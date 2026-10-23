@@ -1,0 +1,11 @@
+{
+  "demo": false,
+  "backupDir": "",
+  "shop": {
+    "n": "StockProject",
+    "a": "",
+    "t": ""
+  },
+  "imprimirDirecto": false,
+  "accesoRemoto": true
+}
