@@ -35,9 +35,10 @@ const assert = require('assert'), { web } = require('./helpers.js');
   assert.strictEqual(a.db().sales.length, n0, 'no vende por encima del límite'); assert(/límite de crédito/.test($('#toast').textContent));
   ev(`cl$(${D}).limite=${total + 1}`); a.click('#cobrar'); assert.strictEqual(a.db().sales.length, n0 + 1, 'dentro del límite sí');
   // pantalla: ficha, segmento filtrable, contactos, planes
-  a.tab('c'); ev(`cSel=${E};draw()`); assert(/Perfil del cliente/.test(a.txt('#c_x')) && /En riesgo/.test(a.txt('#c_x')));
+  a.tab('c'); ev(`cSel=${E};draw()`); assert(/Segmento/.test(a.txt('#c_x')) && /En riesgo/.test(a.txt('#c_x')));
+  assert.strictEqual($('#c_x details.dt[open]'), null, 'la ficha abre con todo plegado: solo lo esencial a la vista');
   a.set('#in_t', 'Le escribí por WhatsApp'); a.click('#in_g'); assert(a.db().inter.some(i => i.cid === E && /WhatsApp/.test(i.txt))); assert(/WhatsApp/.test(a.txt('#c_x')));
-  a.set('#cs_f', 'En riesgo'); assert(/Eva/.test(a.txt('#cs_t')) && !/Carla/.test(a.txt('#cs_t')));
+  $('#cs_det').open = true; a.ev($('#cs_det'), 'toggle'); a.set('#cs_f', 'En riesgo'); assert(/Eva/.test(a.txt('#cs_t')) && !/Carla/.test(a.txt('#cs_t')));
   a.click('#pl_g'); assert(!a.db().planes.some(p => p.cid === E), 'sin deuda no hay monto para financiar');
   assert.deepStrictEqual(a.errs, []);
   console.log('clientes2 OK'); process.exit(0);

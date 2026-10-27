@@ -47,4 +47,5 @@ $('#f_cobros').onclick=e=>{const b=e.target.closest('button');if(!b)return;const
   if(d.pdf){const x=db.cargos.find(y=>y.id==d.pdf);guardarPdf(COB.comprobante(x),'Comprobante-'+String(x.nro||x.id).padStart(8,'0')+'.pdf')}};
 // Cada vez que se cobra, se vende o se anula un pago, se vuelven a evaluar las reglas.
 document.addEventListener('click',e=>{if(e.target.closest('#cpay,#cmv button,#cobrar'))setTimeout(()=>{const r=COB.correr();if(r.cambios){save();draw()}},0)});
+CF.W.cobros=()=>{const n=COB.R().recordatorio.on?COB.pendientes().length:0;return CF.k('Cobros para recordar',n,COB.R().recordatorio.on?'Clientes con deuda para avisar':'Activalos en Finanzas > Cobros')};
 COB.arranque=()=>{const r=COB.correr();if(r.cambios)save();COB.notificar();setInterval(()=>{const q=COB.correr();if(q.cambios){save();draw()}},30*60*1000)};

@@ -5,7 +5,7 @@ if (!app.requestSingleInstanceLock()) app.quit();
 let win, store;
 const defaults = () => { try { return JSON.parse(fs.readFileSync(path.join(__dirname, 'defaults.json'), 'utf8')) } catch (e) { return {} } };
 
-let usr, integ, emp, tok = null;                                   // usuarios y sesión de esta ventana (el token nunca llega a la interfaz)
+let usr, integ, emp, upd, tok = null;                                   // usuarios y sesión de esta ventana (el token nunca llega a la interfaz)
 const quien = () => (usr && usr.habilitado() ? usr.sesion(tok) : null);
 const permite = (m, a) => !usr.habilitado() || usr.tiene(quien(), m, a);
 let faltaClave = false;                               // datos cifrados y sin la clave de este equipo: se pide la clave de recuperación
@@ -131,6 +131,18 @@ app.whenReady().then(() => {
     const m = app.getAppMetrics(), os = require('os'), r = remoto.info(), inf = store.info();
     return { cpu: Math.round(m.reduce((a, x) => a + ((x.cpu && x.cpu.percentCPU) || 0), 0) * 10) / 10, memMB: Math.round(m.reduce((a, x) => a + ((x.memory && x.memory.workingSetSize) || 0), 0) / 1024), libreMB: Math.round(os.freemem() / 1048576), archivoMB: Math.round(store.tam() / 1048576 * 100) / 100, iniciada: Math.round(process.uptime()), ultimoRespaldo: inf.last, servidor: r.running ? { puerto: r.port, https: r.https, ...(r.stats || {}) } : null, rev: store.rev() };
   });
+  // Actualizaciones automáticas (GitHub Releases del repositorio configurado en package.json)
+  let au = null; try { au = require('electron-updater').autoUpdater; } catch (x) {}
+  upd = require('./actualizador')({ autoUpdater: au, version: app.getVersion(), empaquetada: app.isPackaged && !!au,
+    alEstado: e => { if (win && !win.isDestroyed()) win.webContents.send('upd:estado', e); },
+    antesDeInstalar: () => { try { store.backup(); } catch (x) {} usr.audit(quien(), 'actualizacion.instalar', ''); },
+    activo: () => principal.getConfig().actualizar !== false });
+  const autoOn = () => principal.getConfig().actualizar !== false;
+  ipcMain.handle('upd:estado', () => ({ ...upd.estado(), auto: autoOn() }));
+  ipcMain.handle('upd:buscar', async () => ({ ...(await upd.buscar()), auto: autoOn() }));
+  ipcMain.handle('upd:instalar', () => permite('configuracion', 'editar') ? upd.instalar() : sinPermiso);
+  ipcMain.handle('upd:auto', (e, v) => { if (!permite('configuracion', 'editar')) return sinPermiso; principal.setConfig({ actualizar: !!v }); return { ok: true }; });
+  upd.iniciar();
   ipcMain.handle('seg:estado', () => ({ disponible: safeStorage.isEncryptionAvailable(), activo: !!cfgS().cifrado, falta: faltaClave, cifrado: store.cifrado() }));
   ipcMain.handle('seg:activar', () => {
     if (!permite('usuarios', 'editar')) return { ok: false, err: 'Solo un administrador puede cambiar el cifrado' };

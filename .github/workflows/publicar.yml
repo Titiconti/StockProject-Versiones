@@ -1,0 +1,45 @@
+# Construye el instalador de Windows y lo publica como "Release" de GitHub cuando se crea una etiqueta (tag) vX.Y.Z.
+# El programa instalado busca ahí las actualizaciones (latest.yml + instalador).
+# La etiqueta tiene que coincidir con la carpeta de la versión: v2.1.0  ->  "StockProject v2.1.0"
+name: Publicar versión
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: StockProject ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: StockProject ${{ github.ref_name }}/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Comprobar que la versión coincide con la etiqueta
+        shell: bash
+        run: |
+          V=$(node -p "require('./package.json').version")
+          if [ "v$V" != "${{ github.ref_name }}" ]; then echo "package.json dice $V pero la etiqueta es ${{ github.ref_name }}"; exit 1; fi
+
+      # Se informa pero no frena la publicación (algunas pruebas son pesadas o dependen del entorno).
+      - name: Pruebas automáticas
+        continue-on-error: true
+        run: npm test
+
+      - name: Construir y publicar el instalador
+        run: npx electron-builder --win nsis --x64 --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

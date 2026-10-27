@@ -4,7 +4,7 @@ const dom=new JSDOM(html,{runScripts:'dangerously',url:'http://localhost/',prete
 const w=dom.window,d=w.document,$=s=>d.querySelector(s),click=s=>{const e=typeof s==='string'?$(s):s;e.dispatchEvent(new w.MouseEvent('click',{bubbles:true}))};
 const errs=[];w.addEventListener('error',e=>errs.push(e.message));
 // pestañas
-const tabs=[...d.querySelectorAll('nav button:not(.hide)')].map(b=>b.dataset.t);assert.deepStrictEqual(tabs,['v','i','p','o','c','e','r']);
+const tabs=[...d.querySelectorAll('nav button:not(.hide)')].map(b=>b.dataset.t);assert.deepStrictEqual([...tabs].sort(),['c','e','i','o','p','r','v'],'las mismas pantallas de siempre (ahora algunas están en el menú Más)');
 assert(!$('#i').querySelector('#fg'),'el formulario ya no está en Inventario');assert($('#p').querySelector('#fg'),'el formulario está en Productos');
 // agregar producto desde la pestaña Productos
 click('nav button[data-t=p]');assert(!$('#p').classList.contains('hide')&&$('#i').classList.contains('hide'));

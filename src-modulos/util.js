@@ -9,15 +9,14 @@ const UT={
   r2:n=>Math.round((n||0)*100)/100,
   bajar(nombre,texto,tipo='text/plain'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([texto],{type:tipo+';charset=utf-8'}));a.download=nombre;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)},
   csv:rows=>'\ufeff'+rows.map(r=>r.map(c=>{c=c==null?'':String(c);return /[";\n\r]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c}).join(';')).join('\r\n'),
-  // gráfico de barras o línea en SVG con información al pasar el mouse
-  grafico(vals,etq,{linea=false,alto=140,extra=null}={}){
-    const w=Math.max(280,vals.length*26),m=Math.max(1,...vals,...(extra||[0])),bw=w/vals.length;
-    const y=v=>alto-6-(v/m)*(alto-22);
-    const barras=linea?'':vals.map((v,i)=>`<rect x="${i*bw+2}" y="${y(v)}" width="${Math.max(2,bw-4)}" height="${alto-6-y(v)}" rx="3" fill="var(--ac)" data-i="${i}" style="cursor:pointer"><title>${esc(etq[i])}: ${fmt(v)}</title></rect>`).join('');
-    const ln=(a,color,dash)=>`<polyline fill="none" stroke="${color}" stroke-width="2.5" ${dash?'stroke-dasharray="5 4"':''} points="${a.map((v,i)=>`${i*bw+bw/2},${y(v)}`).join(' ')}"/>`;
-    const pts=linea?vals.map((v,i)=>`<circle cx="${i*bw+bw/2}" cy="${y(v)}" r="3.5" fill="var(--ac)" data-i="${i}" style="cursor:pointer"><title>${esc(etq[i])}: ${fmt(v)}</title></circle>`).join(''):'';
-    const eje=etq.map((e,i)=>i%Math.ceil(vals.length/8)?'':`<text x="${i*bw+bw/2}" y="${alto+8}" font-size="10" text-anchor="middle" fill="var(--mu)">${esc(e)}</text>`).join('');
-    return `<div class="wrap"><svg viewBox="0 0 ${w} ${alto+14}" style="width:100%;min-width:${Math.min(w,520)}px;height:auto">${barras}${linea?ln(vals,'var(--ac)'):''}${extra?ln(extra,'var(--warn,#d97706)',1):''}${pts}${eje}</svg></div>`;
+  // Gráfico que se adapta al ancho: barras en HTML o línea en SVG con trazo de grosor constante. Cada barra/tramo lleva data-i (se puede tocar).
+  grafico(vals,etq,{linea=false,alto=150,extra=null}={}){
+    const n=Math.max(1,vals.length),todos=[...vals,...(extra||[])],hi=Math.max(1,...todos),lo=linea?Math.min(0,...todos):0,rg=(hi-lo)||1,pct=v=>Math.max(0,Math.min(100,(v-lo)/rg*100));
+    const paso=Math.max(1,Math.ceil(n/6)),ejes=`<div class="gx">${etq.map((e,i)=>i%paso?'':`<span>${esc(e)}</span>`).join('')}</div>`;
+    if(!linea)return `<div class="gr" style="height:${alto}px">${vals.map((v,i)=>`<div class="gc" data-i="${i}" title="${esc(etq[i])}: ${fmt(v)}"><div class="gb" style="height:${Math.max(1,pct(v))}%"></div>${extra&&extra[i]!=null?`<i class="gm" style="bottom:${pct(extra[i])}%"></i>`:''}</div>`).join('')}</div>${ejes}`;
+    const x=i=>n>1?i/(n-1)*100:50,y=v=>96-pct(v)*0.92,pts=a=>a.map((v,i)=>`${x(i).toFixed(2)},${y(v).toFixed(2)}`).join(' ');
+    const cero=lo<0?`<line x1="0" x2="100" y1="${y(0)}" y2="${y(0)}" class="g0"/>`:'';
+    return `<div style="position:relative;height:${alto}px"><svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width:100%;height:100%;display:block">${cero}${extra?`<polyline class="gl gd" points="${pts(extra)}"/>`:''}<polyline class="gl" points="${pts(vals)}"/>${vals.map((v,i)=>`<rect x="${(i*100/n).toFixed(2)}" y="0" width="${(100/n).toFixed(2)}" height="100" fill="transparent" data-i="${i}"><title>${esc(etq[i])}: ${fmt(v)}</title></rect>`).join('')}</svg><span class="gmax">${fmt(hi)}</span></div>${ejes}`;
   }
 };
 // Número con formato libre: "1.234,56", "1,234.56", "$ 1234", "-50". null si está vacío, NaN si no es número.

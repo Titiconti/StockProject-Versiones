@@ -15,6 +15,7 @@ contextBridge.exposeInMainWorld('sp', {
   exportBackup: () => ipcRenderer.invoke('b:export'),
   emp: { listar: () => ipcRenderer.invoke('emp:listar'), crear: n => ipcRenderer.invoke('emp:crear', n), renombrar: (i, n) => ipcRenderer.invoke('emp:renombrar', i, n), cambiar: i => ipcRenderer.invoke('emp:cambiar', i), consolidado: o => ipcRenderer.invoke('emp:consolidado', o) },
   fx: { actualizar: b => ipcRenderer.invoke('fx:actualizar', b) },
+  upd: { estado: () => ipcRenderer.invoke('upd:estado'), buscar: () => ipcRenderer.invoke('upd:buscar'), instalar: () => ipcRenderer.invoke('upd:instalar'), auto: v => ipcRenderer.invoke('upd:auto', v), alCambiar: f => ipcRenderer.on('upd:estado', (e, s) => f(s)) },
   sys: { metricas: () => ipcRenderer.invoke('sys:metricas') },
   int: { call: (n, ...a) => ipcRenderer.invoke('int:call', n, a) },
   seg: {

@@ -1,7 +1,7 @@
 {
   "name": "stockproject",
   "productName": "StockProject",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "StockProject - Punto de venta e inventario",
   "author": "StockProject",
   "main": "main.js",
@@ -16,6 +16,7 @@
     "productName": "StockProject",
     "files": [
       "main.js",
+      "actualizador.js",
       "preload.js",
       "store.js",
       "usuarios.js",
@@ -31,14 +32,30 @@
       "defaults.json"
     ],
     "win": {
-      "target": "nsis"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "language": "3082",
-      "createDesktopShortcut": true
-    }
+      "createDesktopShortcut": true,
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Titiconti",
+        "repo": "StockProject-Deposito",
+        "releaseType": "release"
+      }
+    ]
   },
   "devDependencies": {
     "electron": "^33.0.0",
@@ -46,7 +63,12 @@
     "jsdom": "^30.0.0"
   },
   "dependencies": {
+    "electron-updater": "^6.8.11",
     "qrcode": "^1.5.4",
     "selfsigned": "^2.4.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Titiconti/StockProject-Deposito.git"
   }
 }

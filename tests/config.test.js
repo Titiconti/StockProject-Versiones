@@ -3,7 +3,7 @@ const assert = require('assert'), { web } = require('./helpers.js');
   const a = web(), { $, $$, w } = a, ev = w.eval.bind(w);
   const vis = () => [...a.d.querySelectorAll('nav button:not(.hide)')].map(b => b.dataset.t);
   // demo web sin encuesta: solo las pantallas de siempre
-  assert.deepStrictEqual(vis(), ['v', 'i', 'p', 'o', 'c', 'e', 'r', 'u'].filter(t => t !== 'u'));
+  assert.deepStrictEqual(vis().sort(), ['c', 'e', 'i', 'o', 'p', 'r', 'v']);
   // encuesta: 4 pasos
   ev('CF.abrirEncuesta(true)'); const ov = () => $('#enc');
   assert(ov() && /Paso 1 de 4/.test(ov().textContent));
@@ -21,8 +21,8 @@ const assert = require('assert'), { web } = require('./helpers.js');
   assert(!$('#h').classList.contains('hide'), 'abre en Inicio');
   // Inicio: widgets del perfil servicios
   ev("db.sales.push({id:900,date:new Date().toISOString(),items:[{id:1,name:'Consulta',qty:1,price:1000,cost:300}],total:1000,pay:'Efectivo'})"); ev('draw()');
-  assert(/Ventas de hoy/.test(a.txt('#hk')) && /1 ventas/.test(a.txt('#hk')) && /Ganancia del mes/.test(a.txt('#hk')) && !/Stock bajo/.test(a.txt('#hk')));
-  assert($('#hk svg'), 'gráfico de tendencia');
+  assert(/Ventas de hoy/.test(a.txt('#hk')) && /1 ventas/.test(a.txt('#hk')) && /Cobrado hoy/.test(a.txt('#hk')) && !/Ganancia del mes/.test(a.txt('#hk'), 'por defecto solo 5 cuadros') && !/Stock bajo/.test(a.txt('#hk')));
+  assert($('#hk .gr'), 'gráfico de tendencia');
   // Configuración: el usuario ajusta pantallas y cuadros
   a.tab('g'); assert(/Servicios/.test(a.txt('#g_res')) && /España/.test(a.txt('#g_res')));
   const t = $('#g_tabs input[data-tab=o]'); t.checked = true; a.ev(t, 'change'); assert(vis().includes('o'), 'activar Pedidos desde Configuración');

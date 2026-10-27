@@ -188,3 +188,11 @@ Desde ese momento el programa pide usuario y contraseña al abrirse, y el acceso
 
 ### Nuevos datos en el archivo
 `cfg` (encuesta, moneda, pantallas, tipos de cambio, programa de puntos), `fin` (movimientos, cuentas a pagar, empleados, extracto bancario), `cargos`, `inter`, `planes`, `rec`, `avisos`, `rules`. Los archivos de versiones anteriores se abren sin cambios.
+
+## Versión 2.1: interfaz más simple, más fluidez y actualizaciones automáticas
+
+**Interfaz.** La barra muestra solo 6 pantallas (las que más se usan según el tipo de negocio) y el resto está en el menú **Más ▾**. Lo avanzado quedó plegado: la ficha del cliente (límite, plan de pagos, contactos, datos personales), el análisis de clientes, los filtros extra de Analítica, el balance, las herramientas de Reportes y la personalización de Configuración. Inicio muestra 5 cuadros y a lo sumo 2 recomendaciones, y los gráficos se adaptan al ancho. Configuración se redujo a 4 secciones (Mi negocio, Seguridad, Datos, Avanzado).
+
+**Fluidez.** Antes cada acción redibujaba todas las pantallas (con 40.000 ventas, 3.000 clientes y 2.000 productos: unos 700 ms por acción). Ahora solo se dibuja la pantalla visible y las listas largas muestran las primeras filas con buscador (Inventario y Clientes tienen buscador nuevo): unos 6 ms por acción y 15 a 45 ms al abrir una pantalla, medido en Chromium real.
+
+**Actualizaciones automáticas.** El programa instalado busca versiones nuevas en las *Releases* de GitHub (`Titiconti/StockProject-Deposito`, configurado en `package.json > build.publish`), las baja en segundo plano y las instala al cerrar (o antes, con el aviso *Actualizar ahora*). Antes de instalar hace un respaldo y no deja actualizar con una venta a medias. Se ve en **Configuración > Avanzado > Sistema y actualizaciones**. Para publicar una versión ver `COMO_PUBLICAR.md` (en la raíz del repositorio).
