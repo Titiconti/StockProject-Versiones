@@ -13,9 +13,6 @@ permissions:
 jobs:
   windows:
     runs-on: windows-latest
-    defaults:
-      run:
-        working-directory: StockProject-v2.1.0 ${{ github.ref_name }}
     steps:
       - uses: actions/checkout@v4
 
