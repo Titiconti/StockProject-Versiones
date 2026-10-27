@@ -1,15 +1,22 @@
 name: Crear instalador
 on: [push, workflow_dispatch]
+
 jobs:
   build:
     runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: StockProject-Versiones
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 20 }
+        with: 
+          node-version: 20
       - run: npm install
       - run: npm run dist
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-artifact@v4
-        with: { name: StockProject-Instalador, path: dist/*.exe }
+        with: 
+          name: StockProject-Instalador 
+          path: StockProject-Versiones/dist/*.exe
