@@ -82,7 +82,7 @@ function crearServidor({ store, indexPath, defaults = {}, auth, usuarios, tls, i
         if (!r.ok) return send(r.codigo || 400, { error: r.error });
         const w = store.put(JSON.stringify(db), rev);
         if (w.ok) { if (usuarios) usuarios.audit({ id: null, user: 'api:' + tk.nombre }, 'api' + ruta, ''); return send(201, r); }
-        if (!w.conflict) return send(500, { error: w.err || 'no se pudo guardar' });
+        if (!w.conflict) return send(w.err ? 422 : 500, { error: w.err || 'no se pudo guardar' });
       }
       return send(503, { error: 'los datos cambiaron mientras se guardaba; reintentá' });
     }

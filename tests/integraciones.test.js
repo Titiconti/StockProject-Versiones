@@ -55,7 +55,7 @@ const crearStore = require('../store.js'), crearInt = require('../integraciones.
   assert(!integ.crearHook({ url: 'ftp://x', eventos: ['venta.creada'] }).ok); assert(!integ.crearHook({ url: 'http://x', eventos: [] }).ok);
   const hk = integ.crearHook({ url: 'http://receptor.local/hook', eventos: ['venta.creada', 'stock.bajo', 'cliente.creado'] }); assert(hk.ok && hk.secreto.length === 40);
   integ.iniciar(store.snapshot()); const nuevo = JSON.parse(store.snapshot());
-  nuevo.sales.push({ id: 50, date: new Date().toISOString(), items: [{ id: 1, name: 'Yerba', qty: 3, price: 1000, cost: 600 }], total: 3000, pay: 'Efectivo' }); nuevo.prods[0].lots[0].qty = 4;
+  nuevo.sales.push({ id: 50, date: new Date().toISOString(), items: [{ id: 1, name: 'Yerba', qty: 3, price: 1000, cost: 600 }], total: 3000, pay: 'Efectivo', caja: 1 }); nuevo.cajas = [{ id: 1, uid: 0, user: 'Sin usuario', caja: 'Caja 1', abre: new Date().toISOString(), ini: 0, movs: [] }]; /* v3: las ventas del local van en una caja abierta */ nuevo.prods[0].lots[0].qty = 4;
   nuevo.clients.push({ id: 9, name: 'Nuevo', phone: '' }); nuevo.pays.push({ id: 5, cid: 1, amount: 10, method: 'Efectivo' });
   assert(store.put(JSON.stringify(nuevo), store.rev()).ok); await new Promise(r => setTimeout(r, 30));
   const ev = recibidos.map(x => JSON.parse(x.body).evento).sort(); assert.deepStrictEqual(ev, ['cliente.creado', 'stock.bajo', 'venta.creada'], 'solo los eventos elegidos (no pago.registrado)');

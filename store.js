@@ -8,6 +8,7 @@ const sellar = (key, str) => { const iv = crypto.randomBytes(12), c = crypto.cre
 const abrir = (key, b) => { const d = crypto.createDecipheriv('aes-256-gcm', key, b.subarray(0, 12)); d.setAuthTag(b.subarray(12, 28)); return Buffer.concat([d.update(b.subarray(28)), d.final()]).toString('utf8'); };
 const kdf = (pw, salt) => crypto.scryptSync(String(pw), salt, 32, { N: 16384, r: 8, p: 1 });
 
+const validar = require('./validar');
 module.exports = function ({ dataFile, configFile, docsDir, home, defaults = {}, keep = 30 }) {
   const crudo = f => fs.readFileSync(f, 'utf8');
   const claro = s => { if (s.startsWith(MAGIC)) { if (!key) throw new Error('datos cifrados y falta la clave'); return abrir(key, Buffer.from(s.slice(MAGIC.length), 'base64')); } return s; };
@@ -64,6 +65,7 @@ module.exports = function ({ dataFile, configFile, docsDir, home, defaults = {},
     if (base !== rev) return { ok: false, conflict: true, rev };
     let o; try { o = JSON.parse(str) } catch (e) { return { ok: false, err: 'datos inválidos' } }
     if (!o || !Array.isArray(o.prods)) return { ok: false, err: 'datos inválidos' };
+    { let prev = null; try { prev = JSON.parse(snapshot() || 'null'); } catch (e) {} const err = validar(prev, o); if (err) return { ok: false, err }; }   // reglas de negocio controladas en el proceso principal
     rev++; o.rev = rev;
     const out = JSON.stringify(o); write(out);
     if (hook) { try { hook(out) } catch (e) {} }

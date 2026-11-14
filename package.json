@@ -19,6 +19,7 @@
       "actualizador.js",
       "preload.js",
       "store.js",
+      "validar.js",
       "usuarios.js",
       "integraciones.js",
       "empresas.js",

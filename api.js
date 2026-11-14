@@ -56,7 +56,7 @@ function ventaCrear(db, b) {
   }
   const total = r2(lineas.reduce((a, i) => a + i.price * i.qty, 0));
   if (c && pay === 'Cuenta corriente' && c.limite && deuda(db, c.id) + total > c.limite + 0.005) return { error: 'Supera el límite de crédito del cliente', codigo: 409, restaurar: lineas };
-  const s = { id: db.sid++, date: new Date().toISOString(), items: lineas, total, pay }; if (c) { s.cid = c.id; s.cname = c.name; s.disc = disc; }
+  const s = { id: db.sid++, date: new Date().toISOString(), items: lineas, total, pay, origen: 'api' }; /* pedido externo: no pasa por la caja del local */ if (c) { s.cid = c.id; s.cname = c.name; s.disc = disc; }
   db.sales.push(s); return { ok: true, venta: { id: s.id, total, fecha: s.date } };
 }
 const OPENAPI = {
