@@ -39,7 +39,7 @@ const assert = require('assert'), { web } = require('./helpers.js');
   assert.strictEqual($('#c_x details.dt[open]'), null, 'la ficha abre con todo plegado: solo lo esencial a la vista');
   a.set('#in_t', 'Le escribí por WhatsApp'); a.click('#in_g'); assert(a.db().inter.some(i => i.cid === E && /WhatsApp/.test(i.txt))); assert(/WhatsApp/.test(a.txt('#c_x')));
   $('#cs_det').open = true; a.ev($('#cs_det'), 'toggle'); a.set('#cs_f', 'En riesgo'); assert(/Eva/.test(a.txt('#cs_t')) && !/Carla/.test(a.txt('#cs_t')));
-  a.click('#pl_g'); assert(!a.db().planes.some(p => p.cid === E), 'sin deuda no hay monto para financiar');
+  assert.strictEqual($('#pl_g'), null, 'v3: el plan de pagos ya no se crea desde la ficha'); assert.strictEqual($('#cx_lim'), null, 'v3: el límite de crédito ya no se carga desde la ficha');
   assert.deepStrictEqual(a.errs, []);
   console.log('clientes2 OK'); process.exit(0);
 })().catch(e => { console.error(e); process.exit(1); });
