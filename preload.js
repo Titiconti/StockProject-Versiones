@@ -17,7 +17,6 @@ contextBridge.exposeInMainWorld('sp', {
   fx: { actualizar: b => ipcRenderer.invoke('fx:actualizar', b) },
   upd: { estado: () => ipcRenderer.invoke('upd:estado'), buscar: () => ipcRenderer.invoke('upd:buscar'), instalar: () => ipcRenderer.invoke('upd:instalar'), auto: v => ipcRenderer.invoke('upd:auto', v), alCambiar: f => ipcRenderer.on('upd:estado', (e, s) => f(s)) },
   sys: { metricas: () => ipcRenderer.invoke('sys:metricas') },
-  int: { call: (n, ...a) => ipcRenderer.invoke('int:call', n, a) },
   seg: {
     estado: () => ipcRenderer.invoke('seg:estado'),
     activar: () => ipcRenderer.invoke('seg:activar'),

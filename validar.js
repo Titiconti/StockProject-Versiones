@@ -87,7 +87,7 @@ function cambios(a, o) {
     if (viejas.has(s.id)) continue;
     const d = dia(s.date);
     for (const i of s.items) for (const l of i.lots || []) if (l.exp && d && l.exp < d) return 'No se puede vender un lote vencido (' + String(i.name || '').slice(0, 60) + ', lote ' + String(l.n || '') + ')';
-    if (exige && s.origen !== 'api' && !cajasAbiertas.has(s.caja)) return 'Para registrar una venta tiene que haber una caja abierta';
+    if (exige && !cajasAbiertas.has(s.caja)) return 'Para registrar una venta tiene que haber una caja abierta';
   }
   return null;
 }

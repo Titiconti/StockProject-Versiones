@@ -34,7 +34,6 @@ b = base(); b.sales.push(venta({ items: [{ id: 1, name: 'Yerba', qty: 1, price: 
 b = base(); b.sales.push(venta({ caja: undefined })); no(a, b, /caja abierta/);
 b = base(); b.cajas[0].cierre = new Date().toISOString(); b.sales.push(venta()); no(a, b, /caja abierta/);
 b = base(); b.cfg.cajaObligatoria = false; b.sales.push(venta({ caja: undefined })); ok(a, b);
-b = base(); b.sales.push(venta({ caja: undefined, origen: 'api' })); ok(a, b);
 b = base(); b.sales.push(venta({ items: [{ id: 1, name: 'Yerba', qty: 0, price: 1000 }] })); no(a, b, /cantidad o un precio inválido/);
 // lo ya registrado no se altera
 a = base(); a.sales.push(venta()); b = JSON.parse(JSON.stringify(a)); b.sales[0].total = 1; no(a, b, /no se puede modificar/);

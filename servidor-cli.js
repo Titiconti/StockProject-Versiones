@@ -9,9 +9,7 @@ let defaults = {}; try { defaults = JSON.parse(fs.readFileSync(path.join(__dirna
 const store = require('./store')({ dataFile: path.join(datos, 'stockproject-data.json'), configFile: path.join(datos, 'config.json'),
   docsDir: datos, home: os.homedir(), defaults });
 const usuarios = require('./usuarios')({ usersFile: path.join(datos, 'usuarios.json'), auditFile: path.join(datos, 'auditoria.jsonl') });
-const integraciones = require('./integraciones')({ file: path.join(datos, 'integraciones.json') });
-store.onPut(t => integraciones.alGuardar(t));
-const g = require('./servidor').gestor({ store, usuarios, integraciones, indexPath: path.join(__dirname, 'index.html'), defaults });
+const g = require('./servidor').gestor({ store, usuarios, indexPath: path.join(__dirname, 'index.html'), defaults });
 (async () => {
   store.load();
   const clave = arg('clave'), puerto = arg('puerto');

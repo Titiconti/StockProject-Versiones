@@ -37,8 +37,7 @@ function ips() {
   return r;
 }
 
-function crearServidor({ store, indexPath, defaults = {}, auth, usuarios, tls, integraciones }) {
-  const apiMod = require('./api');
+function crearServidor({ store, indexPath, defaults = {}, auth, usuarios, tls }) {
   const SEC = tls ? '; Secure' : '';
   const conU = () => !!(usuarios && usuarios.habilitado());
   const intentos = new Map();
@@ -59,35 +58,7 @@ function crearServidor({ store, indexPath, defaults = {}, auth, usuarios, tls, i
     req.on('error', rej);
   });
 
-  const stats = { peticiones: 0, errores: 0, api: 0, desde: Date.now() };
-  async function manejarApi(req, u, send) {
-    stats.api++;
-    const ruta = u.pathname.slice(7);
-    if (ruta === '/docs') return send(200, apiMod.docsHtml(), 'text/html; charset=utf-8');
-    if (ruta === '/openapi.json') return send(200, apiMod.OPENAPI);
-    if (!integraciones) return send(404, { error: 'no disponible' });
-    const ip = req.socket.remoteAddress, t0 = Date.now(), k = 'api' + ip, a = intentos.get(k) || { n: 0, t: t0 };
-    if (t0 - a.t > 60e3) { a.n = 0; a.t = t0; } if (a.n >= 20) return send(429, { error: 'demasiados intentos' });
-    const tk = integraciones.verificar(req.headers.authorization);
-    if (!tk) { a.n++; intentos.set(k, a); return send(401, { error: 'clave inválida' }); }
-    const datos = () => { try { return JSON.parse(store.snapshot() || '{}') } catch (e) { return {} } };
-    if (req.method === 'GET') { const r = apiMod.consultar(datos(), ruta, u.searchParams); return r == null ? send(404, { error: 'no encontrado' }) : send(200, r); }
-    if (req.method === 'POST' && ['/productos', '/clientes', '/ventas'].includes(ruta)) {
-      if (tk.scope !== 'escritura') return send(403, { error: 'esta clave es de solo lectura' });
-      let b; try { b = JSON.parse(await leer(req, 1e6)) } catch (e) { return send(400, { error: 'JSON inválido' }); }
-      const f = ruta === '/productos' ? apiMod.productoUpsert : ruta === '/clientes' ? apiMod.clienteUpsert : apiMod.ventaCrear;
-      for (let i = 0; i < 4; i++) {
-        const txt = store.snapshot(); if (!txt) return send(500, { error: 'sin datos' });
-        const db = JSON.parse(txt), rev = store.rev(), r = f(db, b);
-        if (!r.ok) return send(r.codigo || 400, { error: r.error });
-        const w = store.put(JSON.stringify(db), rev);
-        if (w.ok) { if (usuarios) usuarios.audit({ id: null, user: 'api:' + tk.nombre }, 'api' + ruta, ''); return send(201, r); }
-        if (!w.conflict) return send(w.err ? 422 : 500, { error: w.err || 'no se pudo guardar' });
-      }
-      return send(503, { error: 'los datos cambiaron mientras se guardaba; reintentá' });
-    }
-    return send(404, { error: 'no encontrado' });
-  }
+  const stats = { peticiones: 0, errores: 0, desde: Date.now() };
 
   const srv = (tls ? https.createServer.bind(https, tls) : http.createServer)(async (req, res) => {
     const send = (code, data, type = 'application/json; charset=utf-8', extra = {}) => {
@@ -99,7 +70,6 @@ function crearServidor({ store, indexPath, defaults = {}, auth, usuarios, tls, i
       const u = new URL(req.url, 'http://x'), { pin, secret } = auth();
       if (u.pathname === '/manifest.webmanifest') return send(200, { name: 'StockProject', short_name: 'StockProject', start_url: '/', display: 'standalone', background_color: '#f5f6f8', theme_color: '#2563eb', icons: [{ src: '/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }] }, 'application/manifest+json');
       if (u.pathname === '/icon.svg') return send(200, '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="96" fill="#2563eb"/><g fill="none" stroke="#fff" stroke-width="28" stroke-linejoin="round"><path d="M96 176l160-80 160 80v160l-160 80-160-80z"/><path d="M96 176l160 80 160-80M256 256v160"/></g></svg>', 'image/svg+xml');
-      if (u.pathname.startsWith('/api/v1/')) return await manejarApi(req, u, send);
       if (u.pathname === '/login' && req.method === 'GET') return send(200, loginHtml(conU()), 'text/html; charset=utf-8');
       if (u.pathname === '/api/login' && req.method === 'POST') {
         const ip = req.socket.remoteAddress, ahora = Date.now(), a = intentos.get(ip) || { n: 0, t: ahora };
@@ -174,7 +144,7 @@ function crearServidor({ store, indexPath, defaults = {}, auth, usuarios, tls, i
 }
 
 // Administra el servidor según la configuración guardada (activado, puerto, clave).
-function gestor({ store, indexPath, defaults = {}, usuarios, certDir, integraciones }) {
+function gestor({ store, indexPath, defaults = {}, usuarios, certDir }) {
   let ctl = null, port = 0, error = '', esHttps = false;
   const conf = () => {
     const r = store.getConfig().remote || {};
@@ -196,7 +166,7 @@ function gestor({ store, indexPath, defaults = {}, usuarios, certDir, integracio
     if (!c.enabled) return info();
     let tls = null; esHttps = false;
     if (c.https && certDir) { try { tls = certificado(certDir); esHttps = true; } catch (e) { error = 'No se pudo preparar HTTPS: ' + e.message; } }
-    ctl = crearServidor({ store, indexPath, defaults, usuarios, tls, integraciones, auth: () => { const x = conf(); return { pin: x.pin, secret: x.secret }; } });
+    ctl = crearServidor({ store, indexPath, defaults, usuarios, tls, auth: () => { const x = conf(); return { pin: x.pin, secret: x.secret }; } });
     try { port = await ctl.listen(c.port); } catch (e) { error = 'No se pudo abrir el puerto ' + c.port + ': ' + e.message; ctl = null; }
     return info();
   }
