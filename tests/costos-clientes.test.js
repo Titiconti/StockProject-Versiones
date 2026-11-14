@@ -82,7 +82,7 @@ const assert = require('assert'), { web } = require('./helpers');
 
   // ---------- REPORTES ----------
   tab('r'); $('#per').value = '9999'; w.eval("$('#per').dispatchEvent(new Event('change'))");
-  const k = txt('#kpis'); assert(/Ganancia estimada/.test(k) && /Rentabilidad/.test(k) && /Deuda de clientes/.test(k) && /Desvíos a escuela/.test(k));
+  const k = txt('#kpis'); assert(/Ganancia estimada/.test(k) && /Rentabilidad/.test(k) && /Deuda de clientes/.test(k) && /Bajas de stock/.test(k));
   const pdf = w.eval('buildReport()').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
   assert(/Ganancia estimada/.test(pdf) && /Ventas por cliente/.test(pdf) && /Venta particular/.test(pdf) && /Kiosco 33/.test(pdf), 'el PDF incluye ventas por cliente');
   assert(/Rentabilidad/.test(pdf)); assert.deepStrictEqual(errs, []);
