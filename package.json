@@ -52,7 +52,7 @@
       {
         "provider": "github",
         "owner": "Titiconti",
-        "repo": "StockProject-Deposito",
+        "repo": "StockProject-Versiones",
         "releaseType": "release"
       }
     ]
@@ -69,6 +69,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Titiconti/StockProject-Deposito.git"
+    "url": "https://github.com/Titiconti/StockProject-Versiones.git"
   }
 }
