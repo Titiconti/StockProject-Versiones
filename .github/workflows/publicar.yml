@@ -1,6 +1,6 @@
 # Construye el instalador de Windows y lo publica como "Release" de GitHub cuando se crea una etiqueta (tag) vX.Y.Z.
 # El programa instalado busca ahí las actualizaciones (latest.yml + instalador).
-# La etiqueta tiene que coincidir con la carpeta de la versión: v2.1.0  ->  "StockProject v2.1.0"
+# La etiqueta tiene que coincidir con "version" de package.json: v2.1.0  <->  "version": "2.1.0"
 name: Publicar versión
 
 on:
@@ -18,7 +18,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Instalar dependencias
         run: npm ci
