@@ -13,8 +13,21 @@ Todo pasa en un solo repositorio: **`Titiconti/StockProject-Versiones`**. Ahí e
 
 > La etiqueta tiene que coincidir con la versión: `v2.2.0` ↔ `"version": "2.2.0"`. Si no coinciden, el flujo se detiene a propósito.
 
+## Qué hace el flujo "Publicar versión"
+1. Corre todas las pruebas. **Si una falla, no se publica.**
+2. Arma el instalador sin publicarlo y lo verifica (`verificar-dist.js`): instalador, `.blockmap`, `latest.yml`, versión y sha512.
+3. Sube los tres archivos a la release. El programa instalado comprueba el sha512 antes de instalar.
+
+Antes de etiquetar, probá a mano: **Actions > Crear instalador > Run workflow**, bajá el instalador, instalalo en una PC de prueba, abrí caja, vendé, cerrá y reabrí.
+
+## Puente para las instalaciones 2.1.0 (una sola vez)
+Las 2.1.0 buscan actualizaciones en `Titiconti/StockProject-Deposito`. Para que pasen a la versión nueva, creá ahí una release con la misma etiqueta y subí los mismos tres archivos (`.exe`, `.exe.blockmap`, `latest.yml`). Desde esa versión en adelante ya buscan en `StockProject-Versiones`.
+
+## Firma de código (pendiente, opcional)
+El instalador no está firmado: Windows muestra el aviso de SmartScreen. Para quitarlo hace falta un certificado de firma de código pago (OV/EV). Cuando lo tengas, se configura en `package.json > build.win` y con secretos de GitHub (`CSC_LINK`, `CSC_KEY_PASSWORD`); nunca se guarda en el repositorio.
+
 ## Plan B: sin Actions
-Corré `npm run dist` en tu PC y, en la release, tocá **Edit** y arrastrá los tres archivos de `dist\`: el `.exe`, el `.exe.blockmap` y `latest.yml`.
+Corré `npm run dist` en tu PC (necesita el *Modo de desarrollador* de Windows activado o una consola de administrador) y después `node verificar-dist.js`. En la release, en la release, tocá **Edit** y arrastrá los tres archivos de `dist\`: el `.exe`, el `.exe.blockmap` y `latest.yml`.
 
 ## Si algo no funciona
 - **Actions no puede publicar:** en *Settings > Actions > General > Workflow permissions* elegí **Read and write permissions**.

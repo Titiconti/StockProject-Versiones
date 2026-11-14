@@ -1,0 +1,39 @@
+# Novedades de StockProject
+
+## 5.0.0 (preparada, sin publicar)
+
+### Caja
+- Apertura con dinero inicial, ingresos y retiros con motivo, y cierre contando el efectivo. Diferencia = contado − esperado.
+- Solo el efectivo suma a la caja; tarjeta, transferencia y cuenta corriente no.
+- **Para cobrar tiene que haber una caja abierta** (se puede desactivar en Configuración > Mi negocio > Caja).
+- Historial de cajas en Más > Caja. Al salir con la caja abierta se pide cerrarla.
+
+### Ventas
+- Atajos: F2 buscar, F4 efectivo, F5 tarjeta, F6 transferencia, F7 cuenta corriente, F8 cobrar (pide confirmación).
+- Vista en cuadrícula o lista; cada producto muestra su estado con texto.
+- El lector no suma dos veces una misma lectura; los productos con todos los lotes vencidos no se venden.
+- Venta por peso (precio por kg), por número de serie (con garantía) y con variantes (talle, color…).
+- Precios por cantidad y compra mínima por producto.
+
+### Inventario y productos
+- "Escuela" ahora es **Baja de Stock**: motivo, justificación obligatoria y responsable. Con motivo Vencimiento se dan de baja los lotes vencidos.
+- Opciones por producto: categoría, peso, series, variantes, vencimiento obligatorio, garantía.
+- Entrevista por rubro (Configuración > Mi negocio): activa solo lo que tu negocio necesita.
+
+### Clientes y finanzas
+- Cobro de deudas en pocos pasos, con "Cobrar todo", resumen y comprobante.
+- **Se eliminó el cobro automático** (recargos por mora, pronto pago y cuotas recurrentes). Lo ya generado se conserva.
+- El plan de pagos y el límite de crédito ya no se cargan desde la ficha (lo existente sigue vigente).
+- Libro mayor con filtros, totales y exportación a PDF.
+
+### Pedidos
+- Reposición sugerida con tus ventas reales. Al recibir se carga el costo y la factura del proveedor queda como cuenta a pagar.
+
+### General
+- Avisos (campana), historial de actividad (Más > Actividad), preferencias por equipo y tutorial de atajos.
+- Los datos se vuelven a controlar al guardar: no se aceptan ventas de lotes vencidos, cierres de caja modificados ni datos inválidos.
+- Seguridad: ventana del programa endurecida y dependencia de certificados actualizada.
+
+### Compatibilidad
+- Los datos existentes no se modifican. Los productos y ventas anteriores funcionan igual.
+- Las instalaciones 2.1.0 buscan actualizaciones en el repositorio anterior (`StockProject-Deposito`): para que reciban esta versión hay que hacer el "puente" descripto en `COMO_PUBLICAR.md`.
