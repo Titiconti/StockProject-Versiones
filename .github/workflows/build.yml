@@ -1,19 +1,43 @@
+# Pruebas automáticas (Linux, rápidas y baratas) en cada pull request y push a main.
+# El instalador de Windows se arma solo cuando se pide a mano (Actions > Crear instalador > Run workflow),
+# porque los runners de Windows consumen el doble de minutos. Este workflow NO publica nada:
+# las releases las hace publicar.yml al crear una etiqueta vX.Y.Z.
 name: Crear instalador
-on: [push, workflow_dispatch]
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  build:
+  pruebas:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+  instalador:
+    if: github.event_name == 'workflow_dispatch'
+    needs: pruebas
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: 
+        with:
           node-version: 20
-      - run: npm install
-      - run: npm run dist
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          cache: npm
+      - run: npm ci
+      - run: npx electron-builder --win nsis --x64 --publish never
       - uses: actions/upload-artifact@v4
-        with: 
-          name: StockProject-Instalador 
-          path: StockProject-Versiones/dist/*.exe
+        with:
+          name: StockProject-Instalador
+          path: dist/*.exe
