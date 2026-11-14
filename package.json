@@ -1,7 +1,7 @@
 {
   "name": "stockproject",
   "productName": "StockProject",
-  "version": "2.1.1",
+  "version": "5.0.0",
   "description": "StockProject - Punto de venta e inventario",
   "author": "StockProject",
   "main": "main.js",
@@ -47,7 +47,8 @@
       "allowToChangeInstallationDirectory": true,
       "language": "3082",
       "createDesktopShortcut": true,
-      "artifactName": "${productName}-Setup-${version}.${ext}"
+      "artifactName": "${productName}-Setup-${version}.${ext}",
+      "deleteAppDataOnUninstall": false
     },
     "publish": [
       {

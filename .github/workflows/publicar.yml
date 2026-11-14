@@ -1,6 +1,7 @@
-# Construye el instalador de Windows y lo publica como "Release" de GitHub cuando se crea una etiqueta (tag) vX.Y.Z.
-# El programa instalado busca ahí las actualizaciones (latest.yml + instalador).
-# La etiqueta tiene que coincidir con "version" de package.json: v2.1.0  <->  "version": "2.1.0"
+# Publica una versión cuando se crea una etiqueta vX.Y.Z (solo con aprobación del dueño: actualiza a todos los clientes).
+# Orden: pruebas (si fallan, no se publica) -> instalador -> verificación de los archivos -> subida a la Release.
+# El programa instalado busca ahí latest.yml y el instalador, y comprueba el sha512 antes de instalar.
+# La etiqueta tiene que coincidir con "version" de package.json: v5.0.0 <-> "version": "5.0.0"
 name: Publicar versión
 
 on:
@@ -8,11 +9,25 @@ on:
     tags: ['v*']
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
   windows:
+    needs: pruebas
     runs-on: windows-latest
+    permissions:
+      contents: write   # solo este trabajo puede escribir en Releases
     steps:
       - uses: actions/checkout@v4
 
@@ -29,12 +44,18 @@ jobs:
           V=$(node -p "require('./package.json').version")
           if [ "v$V" != "${{ github.ref_name }}" ]; then echo "package.json dice $V pero la etiqueta es ${{ github.ref_name }}"; exit 1; fi
 
-      # Se informa pero no frena la publicación (algunas pruebas son pesadas o dependen del entorno).
-      - name: Pruebas automáticas
-        continue-on-error: true
-        run: npm test
+      - name: Construir el instalador (sin publicar)
+        run: npx electron-builder --win nsis --x64 --publish never
 
-      - name: Construir y publicar el instalador
-        run: npx electron-builder --win nsis --x64 --publish always
+      - name: Verificar los archivos antes de publicar
+        run: node verificar-dist.js
+
+      - name: Subir a la Release
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.ref_name }}"
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "StockProject ${TAG#v}" --notes "Ver NOVEDADES.md"
+          gh release upload "$TAG" dist/*.exe dist/*.exe.blockmap dist/latest.yml --clobber
+          gh release view "$TAG" --json assets --jq '.assets[].name'
