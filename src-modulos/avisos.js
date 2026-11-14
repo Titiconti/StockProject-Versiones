@@ -14,7 +14,8 @@ AV.lista=()=>{const P=AV.prefs(),o=[],hoy=T(),en7=plus(7);
   const sb=db.prods.filter(p=>p.min&&avail(p)<=p.min);if(sb.length)o.push({t:'stock',k:'s'+sb.length,cls:'low',txt:`${sb.length} ${sb.length===1?'producto':'productos'} con stock bajo: ${sb.slice(0,3).map(p=>p.name).join(', ')}${sb.length>3?'…':''}.`,ir:'i'});
   if(typeof RP!=='undefined'){const n=RP.altas();if(n)o.push({t:'reponer',k:'r'+n,cls:'out',txt:`${n} ${n===1?'producto necesita':'productos necesitan'} reposición con prioridad alta.`,ir:'o'})}
   const cj=(db.cajas||[]).filter(c=>c.cierre&&Math.abs(c.dif)>=0.005&&UT.dk(c.cierre)>=UT.add(UT.hoy(),-7));cj.forEach(c=>o.push({t:'caja',k:'c'+c.id,cls:c.dif<0?'out':'low',txt:`Caja de ${c.user} (${new Date(c.cierre).toLocaleDateString('es-AR')}) cerró con ${c.dif<0?'faltante':'sobrante'} de ${fmt(Math.abs(c.dif))}.`,ir:'k'}));
-  return o.filter(x=>P.avisos[x.t]!==false).map(x=>({...x,visto:P.visto[x.t]===x.k}))};
+  const K=db.cfg.caps||{};   // alertas que el negocio desactivó en la entrevista por rubro
+  return o.filter(x=>P.avisos[x.t]!==false&&!(x.t==='stock'&&K.alertaStock===false)&&!(x.t==='porvencer'&&K.alertaVto===false)).map(x=>({...x,visto:P.visto[x.t]===x.k}))};
 // ---------- campana ----------
 $('#ses').insertAdjacentHTML('beforebegin','<span id="avw" style="position:relative"><button class="btn sec" id="avb" title="Avisos" aria-haspopup="true" style="padding:6px 11px">🔔<b id="avn" class="hide"></b></button><span id="guard" class="mu hide" style="font-size:12px;margin-left:6px" aria-live="polite">Guardando…</span><div id="avp" class="hide" role="dialog" aria-label="Avisos"></div></span>');
 AV.draw=()=>{const L=AV.lista(),nuevos=L.filter(x=>!x.visto),n=$('#avn');n.textContent=nuevos.length;n.classList.toggle('hide',!nuevos.length);

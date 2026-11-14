@@ -14,10 +14,16 @@ const pagina = () => path.join(__dirname, faltaClave ? 'clave.html' : usr.habili
 function crear() {
   Menu.setApplicationMenu(null);
   win = new BrowserWindow({ width: 1280, height: 800, title: 'StockProject', autoHideMenuBar: true,
-    webPreferences: { preload: path.join(__dirname, 'preload.js') } });
+    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, webviewTag: false } });
   win.maximize();
   // enlaces de WhatsApp, correo o pago: se abren en el programa predeterminado de Windows, nunca dentro de la app
   win.webContents.setWindowOpenHandler(({ url }) => { if (/^(https?:|mailto:)/i.test(url)) shell.openExternal(url); return { action: 'deny' }; });
+  // La ventana solo muestra las páginas del programa: no navega a sitios ni archivos externos, no incrusta webviews
+  // y no concede permisos del navegador (cámara, micrófono, ubicación, notificaciones web, etc.).
+  const propia = url => { try { const u = new URL(url); return u.protocol === 'file:' && path.normalize(decodeURIComponent(u.pathname.replace(/^\/([A-Za-z]:)/, '$1'))).toLowerCase().startsWith(path.normalize(__dirname).toLowerCase()); } catch (e) { return false; } };
+  win.webContents.on('will-navigate', (e, url) => { if (!propia(url)) e.preventDefault(); });
+  win.webContents.on('will-attach-webview', e => e.preventDefault());
+  win.webContents.session.setPermissionRequestHandler((wc, permiso, cb) => cb(permiso === 'clipboard-sanitized-write'));   // solo copiar al portapapeles (botón "Copiar mensaje")
   win.loadFile(pagina());
 }
 

@@ -4,7 +4,7 @@
 // si hay otra ventana abierta (caja, vista previa) y solo cambian el medio de pago estando en Ventas.
 const AT={};
 AT.MAP={F4:'Efectivo',F5:'Tarjeta de débito',F6:'Transferencia',F7:'Cuenta corriente'};
-AT.modal=()=>!!($('#cjov')||$('#atov')||($('#pv')&&!$('#pv').classList.contains('hide'))||$('#tour')||$('#avtu'));
+AT.modal=()=>!!($('#cjov')||$('#atov')||($('#pv')&&!$('#pv').classList.contains('hide'))||$('#tour')||$('#avtu')||$('#pxm'));
 AT.enVentas=()=>!$('#v').classList.contains('hide');
 AT.medio=m=>{const s=$('#pay'),o=[...s.options].find(x=>x.value===m||x.textContent===m);if(!o||o.disabled||o.hidden){toast(m==='Cuenta corriente'?'Para vender en cuenta corriente elegí primero un cliente':'Medio de pago no disponible');return false}s.value=o.value;s.dispatchEvent(new Event('change',{bubbles:true}));toast('Medio de pago: '+o.textContent);return true};
 AT.cerrar=()=>{const o=$('#atov');if(o)o.remove()};

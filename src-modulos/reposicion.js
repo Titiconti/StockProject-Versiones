@@ -8,7 +8,7 @@
 //  Sin ventas en 30 días se usa solo el stock mínimo (precisión baja). No se inventan datos: el motivo dice de dónde sale cada número.
 const RP={};
 RP.dias=()=>Math.max(1,+db.cfg.reposDias||7);RP.cob=()=>Math.max(1,+db.cfg.reposCobertura||14);
-RP.ventas=dias=>{const m=new Map(),desde=UT.add(UT.hoy(),-(dias-1));db.sales.forEach(s=>{if(s.void||UT.dk(s.date)<desde)return;s.items.forEach(i=>m.set(i.id,(m.get(i.id)||0)+i.qty))});return m};
+RP.ventas=dias=>{const m=new Map(),desde=UT.add(UT.hoy(),-(dias-1));db.sales.forEach(s=>{if(s.void||UT.dk(s.date)<desde)return;s.items.forEach(i=>m.set(i.id,(m.get(i.id)||0)+(i.g||i.qty)))});return m};   // por peso: en gramos, igual que el stock
 RP.enCamino=()=>{const m=new Map();db.orders.filter(o=>!o.closed).forEach(o=>o.items.forEach(i=>{const f=Math.max(0,i.qty-i.rec);if(f)m.set(i.pid,(m.get(i.pid)||0)+f)}));return m};
 RP.prov=()=>{const m=new Map();db.orders.slice().sort((a,b)=>a.date<b.date?-1:1).forEach(o=>{if(o.supplier)o.items.forEach(i=>m.set(i.pid,o.supplier))});return m};
 RP.lead=()=>{const m=new Map();db.orders.forEach(o=>{const r=(o.receipts||[])[0];if(!r)return;const d=Math.max(0,Math.round((new Date(r.date)-new Date(o.date))/864e5));o.items.forEach(i=>{const a=m.get(i.pid)||[];a.push(d);m.set(i.pid,a)})});return m};
