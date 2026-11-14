@@ -31,6 +31,9 @@ label{font-size:12px;color:var(--mu);display:block;margin-bottom:3px}
 .p{border:1px solid var(--bd);background:var(--bg);color:var(--tx);border-radius:10px;padding:10px;text-align:left;cursor:pointer;font:inherit}
 .p:hover:not(:disabled){border-color:var(--ac)}.p:disabled{opacity:.45;cursor:not-allowed}
 .p b{display:block}.p span{color:var(--mu);font-size:12px;display:block}.p em{font-style:normal;color:var(--ac);font-weight:700}
+.p .pt{margin:4px 0 2px}.p .pt i{font-style:normal;font-size:11px;padding:1px 7px}.p .pc{display:inline;font-family:ui-monospace,monospace}.p span .pc{color:var(--mu)}
+.prods.lista{grid-template-columns:1fr;gap:6px}.prods.lista .p{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:4px 12px;padding:8px 12px}.prods.lista .p b{grid-column:1}.prods.lista .p>span:not(.pt){grid-column:1}.prods.lista .p .pt{grid-column:2;grid-row:1/3;margin:0}.prods.lista .p em{grid-column:3;grid-row:1/3;font-size:16px}
+#vvw button{padding:6px 10px;line-height:1}
 .row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd)}
 .q button{width:28px;height:28px;border-radius:6px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);cursor:pointer}
 .tot{font-size:34px;font-weight:800;margin:6px 0}
@@ -85,7 +88,7 @@ details.card>summary{font-weight:700;cursor:pointer;padding:2px 0;list-style:non
 <div id="vuelto" style="font-weight:700;margin-bottom:8px"></div>
 <label style="display:flex;gap:8px;align-items:center;font-size:14px;color:var(--tx);margin-bottom:10px"><input type="checkbox" id="prt" style="width:auto"> Mostrar ticket para imprimir al cobrar (opcional)</label>
 <div style="display:flex;gap:8px"><button class="btn" id="cobrar" style="flex:1;font-size:17px">Cobrar</button><button class="btn sec" id="vaciar">Vaciar</button></div></div>
-<div class="card"><input id="q" placeholder="Buscar o escanear código…" autocomplete="off"><div class="prods" id="prods"></div></div>
+<div class="card"><div style="display:flex;gap:8px;align-items:center"><input id="q" placeholder="Buscar por nombre o código, o escanear… (F2)" autocomplete="off"><span class="pills" id="vvw" style="margin:0;flex:none" role="group" aria-label="Vista de productos"><button data-vw="g" title="Cuadrícula">▦</button><button data-vw="l" title="Lista">☰</button></span></div><div class="prods" id="prods"></div></div>
 </div></section>
 <section id="p" class="hide">
 <div class="card"><h3 id="ft">Agregar producto o stock</h3>
@@ -218,9 +221,14 @@ let prodMas=0;const prodList=q=>{const a=db.prods.filter(p=>(p.name+p.code).toLo
 function drawProds(){drawProds0();if(prodMas)$('#prods').insertAdjacentHTML('beforeend','<p class="mu" style="grid-column:1/-1">Se muestran 60 de '+prodMas+' productos. Escribí en el buscador para encontrar el que necesitás.</p>')}
 function drawProds0(){const q=$('#q').value.toLowerCase();
 $('#prods').innerHTML=prodList(q).map(p=>{const a=avail(p),ex=p.lots.filter(l=>!l.exp||l.exp>=T()).map(l=>l.exp).filter(Boolean).sort()[0];
-return `<button class="p" data-id="${p.id}" ${a<=0?'disabled':''}><b>${esc(p.name)}</b><span>${a>0?'Disponible: '+a:'Sin stock'}</span>${ex&&ex<=plus(30)?`<span style="color:var(--warn)">Vence ${fD(ex)}</span>`:''}<em>${fmt(up(p))}</em></button>`}).join('')||'<p class="mu">No hay productos.</p>'}
+// Estado con texto (no solo color): Disponible · Stock bajo · Sin stock · Vencido (no vendible) · Vence pronto.
+const vencido=a<=0&&tot(p)>0,bajo=a>0&&p.min&&a<=p.min,st=vencido?['out','Vencido · no vendible']:a<=0?['out','Sin stock']:bajo?['low','Stock bajo']:['','Disponible'];
+return `<button class="p" data-id="${p.id}" ${a<=0?'disabled':''} title="${esc(p.name)}${p.code?' · '+esc(p.code):''}"><b>${esc(p.name)}</b><span>${a>0?'Disponible: '+a:vencido?'Lotes vencidos':'Sin stock'}${p.code?' · <span class="pc">'+esc(p.code)+'</span>':''}</span><span class="pt"><i class="tag ${st[0]}">${st[1]}</i>${ex&&ex<=plus(30)?` <i class="tag low">Vence ${fD(ex)}</i>`:''}</span><em>${fmt(up(p))}</em></button>`}).join('')||'<p class="mu">No hay productos.</p>'}
+// Vista de Ventas: cuadrícula o lista (preferencia de este equipo).
+const VISTA_K='sp_vista_ventas';function vistaVentas(v){if(v){try{localStorage.setItem(VISTA_K,v)}catch(e){}}let x='g';try{x=localStorage.getItem(VISTA_K)||'g'}catch(e){}$('#prods').classList.toggle('lista',x==='l');$$('#vvw button').forEach(b=>b.classList.toggle('on',b.dataset.vw===x));return x}
 function add(id){const p=db.prods.find(x=>x.id==id);if((cart[id]||0)>=avail(p))return toast('No hay más stock disponible');cart[id]=(cart[id]||0)+1;drawCart()}
 $('#prods').onclick=e=>{const b=e.target.closest('.p');if(b)add(b.dataset.id)};
+$('#vvw').onclick=e=>{const b=e.target.closest('[data-vw]');if(b)vistaVentas(b.dataset.vw)};vistaVentas();
 {const dp=deb(drawProds,150);$('#q').oninput=()=>db.prods.length>300?dp():drawProds()}
 {const di=deb(drawInv,150),dc=deb(drawCli,150);$('#iq').oninput=()=>db.prods.length>300?di():drawInv();$('#cbus').oninput=()=>db.clients.length>300?dc():drawCli()}
 $('#q').onkeydown=e=>{if(e.key!=='Enter')return;const q=e.target.value.trim().toLowerCase();if(!q)return;const ex=db.prods.find(p=>String(p.code||'').trim().toLowerCase()===q);if(ex){if(noVendible(ex))return;add(ex.id);e.target.value='';drawProds();return}
@@ -253,7 +261,7 @@ $('#cobrar').onclick=()=>{const pay=$('#pay').value;if(typeof CJ!=='undefined'&&
 for(const id of Object.keys(cart)){const p=db.prods.find(x=>x.id==id);if(!p||!(cart[id]>0)||cart[id]>avail(p)){const n=p?p.name:'un producto';cleanCart();drawCart();drawProds();return toast('Cambió el stock vendible de '+n+' (sin stock o lote vencido): revisá la venta antes de cobrar')}}   // nunca se registra una venta con un descuento de stock incompleto
 
 const c=cl$(clId),dsc=cdisc(),total=cartTotal(),items=Object.keys(cart).map(id=>{const p=db.prods.find(x=>x.id==id);const lots=sell(p,cart[id]);return{id:p.id,name:p.name,qty:cart[id],price:up(p),lp:p.price,cost:p.cost||0,lots}});
-const sale={id:db.sid++,date:new Date().toISOString(),items,total,pay};if(c){sale.cid=c.id;sale.cname=c.name;sale.disc=dsc}if(typeof CJ!=='undefined')CJ.tag(sale);
+const sale={id:db.sid++,date:new Date().toISOString(),items,total,pay};if(c){sale.cid=c.id;sale.cname=c.name;sale.disc=dsc}if(typeof CJ!=='undefined')CJ.tag(sale);sale.user=quien();
 db.sales.push(sale);save();cart={};$('#rec').value='';clId=null;$('#cl').value='';
 toast('Venta registrada: '+fmt(total)+(c?' · '+c.name+(pay==='Cuenta corriente'?' (a cuenta)':''):''));draw();if($('#prt').checked)printTicket(sale)};
 let lastH='';
@@ -272,7 +280,7 @@ function drawInv(){drawInv0();if(invMas)$('#inv').insertAdjacentHTML('beforeend'
 function drawInv0(){$('#inv').innerHTML=invList().map(p=>{const t=tot(p),ex=p.lots.map(l=>l.exp).filter(Boolean).sort()[0];
 let c=['','OK'];if(t<=0)c=['out','Sin stock'];else if(p.lots.some(l=>st(l)[1]==='Vencido'))c=['out','Lote vencido'];else if(avail(p)<=p.min)c=['low','Stock bajo'];else if(ex&&ex<=plus(30))c=['low','Por vencer'];
 return `<tr><td><b>${esc(p.name)}</b></td><td>${esc(p.code||'-')}</td><td>${p.cost?fmt(p.cost):'-'}</td><td>${fmt(p.price)}</td><td>${p.cost&&p.price?Math.round((p.price-p.cost)/p.price*100)+' %':'-'}</td><td>${t}</td><td>${fD(ex)}</td><td><span class="tag ${c[0]}">${c[1]}</span></td><td><button class="btn sec" data-l="${p.id}">Lotes</button> <button class="btn sec" data-e="${p.id}">Editar</button> <button class="btn del" data-d="${p.id}">${arm==='p'+p.id?'¿Seguro? Eliminar':'Eliminar'}</button></td></tr>`}).join('')}
-$('#inv').onclick=e=>{const b=e.target.closest('button');if(!b)return;
+$('#inv').onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.d&&arm==='p'+b.dataset.d){const p=db.prods.find(x=>x.id==b.dataset.d);if(p)ajuste({tipo:'producto.eliminado',pid:p.id,txt:p.name+' (stock '+tot(p)+')'})}
 if(b.dataset.l){lotP=+b.dataset.l;drawLots();$('#lots').scrollIntoView({behavior:'smooth'})}
 else if(b.dataset.e){pick(db.prods.find(x=>x.id==b.dataset.e),true);$('nav button[data-t="p"]').click()}
 else if(b.dataset.d&&armed('p'+b.dataset.d)){db.prods=db.prods.filter(x=>x.id!=b.dataset.d);delete cart[b.dataset.d];if(lotP==b.dataset.d)lotP=null;arm='';save();draw();toast('Producto eliminado')}};
@@ -290,15 +298,15 @@ $('#fg').onclick=()=>{const name=fn.value.trim(),price=parseFloat(fp.value);if(!
 const d={name,code:fc.value.trim(),price,cost:Math.max(0,parseFloat(fk.value)||0),min:parseInt(fm.value)||0};
 const dup=d.code&&db.prods.find(p=>p.id!==editId&&String(p.code||'').trim().toLowerCase()===d.code.toLowerCase());if(dup)return toast('El código '+d.code+' ya lo tiene '+dup.name);
 const q=parseInt(fs.value)||0,lt=fl.value.trim(),ex=fv.value;
-if(editId){const p=db.prods.find(x=>x.id==editId);Object.assign(p,d);if(q>0)addLot(p,lt||'L-'+(p.lots.length+1),q,ex)}
+if(editId){const p=db.prods.find(x=>x.id==editId);if(Math.abs((p.price||0)-d.price)>0.004||Math.abs((p.cost||0)-d.cost)>0.004)ajuste({tipo:'producto.precio',pid:p.id,txt:p.name+': precio '+fmt(p.price)+' → '+fmt(d.price)+(Math.abs((p.cost||0)-d.cost)>0.004?' · costo '+fmt(p.cost||0)+' → '+fmt(d.cost):'')});Object.assign(p,d);if(q>0)ajuste({tipo:'stock.ingreso',pid:p.id,txt:p.name+': +'+q});if(q>0)addLot(p,lt||'L-'+(p.lots.length+1),q,ex)}
 else{if(db.prods.some(p=>norm(p.name)===norm(name)))return toast('Ese producto ya existe: elegílo de la lista para sumarle stock');const p={id:db.nid++,...d,lots:[]};db.prods.push(p);if(q>0)addLot(p,lt||'Inicial',q,ex)}
 const was=editId,msg=was&&q>0?'Stock agregado a '+name:'Producto guardado',ret=back;save();clr();draw();toast(msg);$('#flast').textContent='Último guardado: '+name+(d.code?' · '+d.code:'');if(was&&ret)$('nav button[data-t="i"]').click();else $('#fc').focus()};
 function drawLots(){const p=db.prods.find(x=>x.id==lotP);$('#lots').classList.toggle('hide',!p);if(!p)return;$('#lt').textContent='Lotes de '+p.name;
 $('#lb').innerHTML=p.lots.slice().sort((a,b)=>(a.exp||'9')>(b.exp||'9')?1:-1).map(l=>{const s=st(l);return `<tr><td>${esc(l.n)}</td><td>${l.qty}</td><td>${fD(l.exp)}</td><td><span class="tag ${s[0]}">${s[1]}</span></td><td><button class="btn del" data-x="${l.id}">${arm==='l'+l.id?'¿Seguro? Eliminar':'Eliminar'}</button></td></tr>`}).join('')||'<tr><td colspan="5" class="mu">Este producto no tiene lotes.</td></tr>'}
 $('#lg').onclick=()=>{const p=db.prods.find(x=>x.id==lotP),q=parseInt(lq.value);if(!p||!(q>0))return toast('Ingresá una cantidad válida');
-p.lots.push({id:db.lid++,n:ln.value.trim()||'L-'+(p.lots.length+1),qty:q,exp:lv.value});save();ln.value=lq.value=lv.value='';draw();toast('Lote agregado')};
+p.lots.push({id:db.lid++,n:ln.value.trim()||'L-'+(p.lots.length+1),qty:q,exp:lv.value});ajuste({tipo:'stock.lote_agregado',pid:p.id,txt:p.name+': +'+q+' (lote '+(ln.value.trim()||'L-'+p.lots.length)+')'});save();ln.value=lq.value=lv.value='';draw();toast('Lote agregado')};
 $('#lc').onclick=()=>{lotP=null;drawLots()};
-$('#lb').onclick=e=>{const b=e.target.closest('button');if(!b||!armed('l'+b.dataset.x))return;const p=db.prods.find(x=>x.id==lotP);p.lots=p.lots.filter(l=>l.id!=b.dataset.x);arm='';save();draw();toast('Lote eliminado')};
+$('#lb').onclick=e=>{const b=e.target.closest('button');if(!b||!armed('l'+b.dataset.x))return;const p=db.prods.find(x=>x.id==lotP),lx=p.lots.find(l=>l.id==b.dataset.x);if(lx)ajuste({tipo:'stock.lote_eliminado',pid:p.id,txt:p.name+': −'+lx.qty+' (lote '+lx.n+')'});p.lots=p.lots.filter(l=>l.id!=b.dataset.x);arm='';save();draw();toast('Lote eliminado')};
 const since=()=>{const d=+$('#per').value,s=new Date();s.setHours(0,0,0,0);s.setDate(s.getDate()-d);return s};
 const inAll=()=>{const s=since();return db.sales.filter(x=>new Date(x.date)>=s)};
 const costOf=s=>s.items.reduce((a,i)=>a+i.qty*(i.cost||0),0);   // costo de lo vendido (con el costo que tenía el producto al vender)
@@ -339,9 +347,11 @@ $('#hist').onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.data
 if(fix&&Object.keys(cart).length)return toast('Primero cobrá o vaciá la venta actual');
 if(!s||!armed((fix?'c':'s')+id))return;arm='';
 s.items.forEach(i=>{const p=db.prods.find(x=>x.id==i.id);if(p)restore(p,i.lots,i.qty)});
-if(fix){db.sales=db.sales.filter(x=>x!==s);s.items.forEach(i=>{if(db.prods.find(p=>p.id==i.id))cart[i.id]=i.qty});if(s.cid&&cl$(s.cid))setClient(s.cid);if([...$('#pay').options].some(o=>o.value===s.pay))$('#pay').value=s.pay}else s.void=true;
+if(fix){ajuste({tipo:'venta.corregida',ref:s.id,txt:'Venta N.º '+String(s.id).padStart(6,'0')+' ('+fmt(s.total)+') cargada para corregir'});db.sales=db.sales.filter(x=>x!==s);s.items.forEach(i=>{if(db.prods.find(p=>p.id==i.id))cart[i.id]=i.qty});if(s.cid&&cl$(s.cid))setClient(s.cid);if([...$('#pay').options].some(o=>o.value===s.pay))$('#pay').value=s.pay}else{s.void=true;s.voidAt=new Date().toISOString();s.voidBy=quien()}
 save();if(fix)$('nav button[data-t="v"]').click();draw();toast(fix?'Venta cargada para corregir':'Venta anulada y stock devuelto')};
 const ld=x=>{const d=new Date(x);return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
+const quien=()=>AU.habilitado&&AU.usuario?(AU.usuario.nombre||AU.usuario.user):'Sin usuario';
+function ajuste(o){db.ajustes=db.ajustes||[];db.ajid=db.ajid||1;db.ajustes.push({id:db.ajid++,date:new Date().toISOString(),user:quien(),...o});if(db.ajustes.length>5000)db.ajustes.splice(0,db.ajustes.length-5000)}
 const repcss=`.a4 h2{font-size:15px;margin:22px 0 6px;padding-bottom:3px;border-bottom:1px solid #000;break-after:avoid}.a4 .kp{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0 4px}.a4 .kp div{border:1px solid #bbb;border-radius:6px;padding:9px 10px}.a4 .kp small{color:#555;font-size:11px}.a4 .kp b{display:block;font-size:17px;margin-top:2px}.a4 .bar{height:7px;background:#555;border-radius:3px;min-width:2px;margin-top:3px}.a4 tr{break-inside:avoid}.a4 thead{display:table-header-group}.a4 *{-webkit-print-color-adjust:exact;print-color-adjust:exact}.a4 .note{font-size:11px;color:#555;margin-top:6px}`;
 function buildReport(){
 const S=inRange(),A=inAll(),sh=db.shop,now=new Date(),tt=S.reduce((a,s)=>a+s.total,0),un=S.reduce((a,s)=>a+s.items.reduce((b,i)=>b+i.qty,0),0);
@@ -405,14 +415,14 @@ $('#op').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();const f=$('#osg').
 $('#osg').onmousedown=e=>{const r=e.target.closest('[data-s]');if(r){e.preventDefault();oPick(db.prods.find(p=>p.id==r.dataset.s))}};
 $('#oq').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();$('#oa').click()}};
 $('#od').onclick=e=>{const b=e.target.closest('button');if(b){draft.splice(+b.dataset.k,1);drawOrd()}};
-$('#og').onclick=()=>{if(!draft.length)return;db.orders.push({id:db.oid++,date:new Date().toISOString(),supplier:$('#os').value.trim(),items:draft.map(d=>({...d,cost:(db.prods.find(z=>z.id===d.pid)||{}).cost||0})),closed:false,receipts:[]});draft=[];$('#os').value='';save();draw();toast('Pedido guardado')};
+$('#og').onclick=()=>{if(!draft.length)return;db.orders.push({id:db.oid++,date:new Date().toISOString(),supplier:$('#os').value.trim(),user:quien(),items:draft.map(d=>({...d,cost:(db.prods.find(z=>z.id===d.pid)||{}).cost||0})),closed:false,receipts:[]});draft=[];$('#os').value='';save();draw();toast('Pedido guardado')};
 $('#ol').onclick=e=>{const b=e.target.closest('button');if(!b)return;const D=b.dataset;
 if(D.rv)recvId=+D.rv;else if(D.no)recvId=null;
 else if(D.ok){const o=db.orders.find(x=>x.id==D.ok),rc=[];
 const fi=Math.round((parseFloat(($('#ofi')||{}).value)||0)*100)/100,fv=($('#ofv')||{}).value||'';if(fi<0)return toast('El importe de la factura no puede ser negativo');let nc=0;
 for(const[k,i]of o.items.entries()){const c=$(`#ol [data-c='${k}']`);if(c&&c.value!==''&&!(parseFloat(c.value)>=0))return toast('Revisá el costo de '+i.name)}
 o.items.forEach((i,k)=>{const q=parseInt($(`#ol [data-r='${k}']`).value)||0;if(q<=0)return;const n=$(`#ol [data-n='${k}']`).value.trim()||'P'+o.id,x=$(`#ol [data-x='${k}']`).value;const p=db.prods.find(z=>z.id===i.pid),cu=parseFloat(($(`#ol [data-c='${k}']`)||{}).value);i.rec+=q;rc.push({name:i.name,qty:q,n,exp:x,cost:isFinite(cu)?cu:(p&&p.cost)||0});if(p){if(isFinite(cu)&&Math.abs(cu-(p.cost||0))>0.004){p.cost=Math.round(cu*100)/100;nc++}const l=p.lots.find(z=>z.n===n&&z.exp===x);if(l)l.qty+=q;else p.lots.push({id:db.lid++,n,qty:q,exp:x})}});
-if(!rc.length)return toast('Ingresá las cantidades que llegaron');const rcp={date:new Date().toISOString(),items:rc},ref='ord'+o.id+':'+o.receipts.length;
+if(!rc.length)return toast('Ingresá las cantidades que llegaron');const rcp={date:new Date().toISOString(),user:quien(),items:rc},ref='ord'+o.id+':'+o.receipts.length;
 if(fi>0&&!db.fin.pagar.some(g=>g.ref===ref)){const g={id:db.fin.id++,prov:o.supplier||'Proveedor',desc:'Pedido N.º '+o.id+' (mercadería)',monto:fi,vence:fv,pagado:false,ord:o.id,ref};db.fin.pagar.push(g);rcp.factura=g.id}
 o.receipts.push(rcp);recvId=null;save();toast('Mercadería ingresada al inventario'+(nc?' · costo actualizado en '+nc+(nc===1?' producto':' productos'):'')+(rcp.factura?' · factura a pagar registrada en Finanzas':''))}
 else if(D.cl){if(!armed('k'+D.cl))return;db.orders.find(x=>x.id==D.cl).closed=true;arm='';save()}
@@ -448,7 +458,7 @@ else if(D.d){const id=+D.d;if(db.sales.some(s=>s.cid===id)||db.pays.some(p=>p.ci
 if(!armed('c'+id))return;db.clients=db.clients.filter(c=>c.id!==id);if(clId===id)clId=null;if(cSel===id)cSel=null;arm='';save();draw();toast('Cliente eliminado')}};
 $('#cpay').onclick=()=>{const c=cl$(cSel);if(!c)return;const m=Math.round(parseFloat($('#cm').value)*100)/100;if(!(m>0))return toast('Ingresá el monto cobrado');const antes=debtOf(c.id);
 if(m>antes+0.005&&!armed('ov'+c.id))return toast(antes>0.005?'El monto supera la deuda ('+fmt(antes)+'): tocá de nuevo para dejar el resto como saldo a favor':'El cliente no tiene deuda: tocá de nuevo para registrarlo como saldo a favor');arm='';
-const py={id:db.payid++,date:new Date().toISOString(),cid:c.id,amount:m,method:$('#cmm').value,note:$('#cnn').value.trim()};if(typeof CJ!=='undefined')CJ.tag(py);db.pays.push(py);save();$('#cm').value='';$('#cnn').value='';
+const py={id:db.payid++,date:new Date().toISOString(),cid:c.id,amount:m,method:$('#cmm').value,note:$('#cnn').value.trim(),user:quien()};if(typeof CJ!=='undefined')CJ.tag(py);db.pays.push(py);save();$('#cm').value='';$('#cnn').value='';
 cRes={pid:py.id,cid:c.id,antes:Math.round(antes*100)/100,despues:Math.round((antes-m)*100)/100};draw();toast('Cobro registrado: '+fmt(m)+' · saldo '+fmt(cRes.despues))};
 let cRes=null;
 function drawCres(){const r=cRes&&cRes.cid===cSel?cRes:null,p=r&&db.pays.find(x=>x.id===r.pid);if(!p){$('#cres').innerHTML='';return}
@@ -1447,6 +1457,40 @@ $('#rp').onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.datase
 {const d0=drawOrd;drawOrd=function(){d0();RP.draw()}}
 // Aviso en Inicio/Notificaciones: cantidad de productos con prioridad alta (lo usan otros módulos si existe).
 RP.altas=()=>RP.calc().filter(x=>x.pri==='alta').length;
+</script>
+<script>
+// ===== Actividad reciente (v3.0.0, fase 2): historial unificado de acciones relevantes =====
+// No guarda una copia aparte: arma la lista a partir de los registros reales (ventas, cobros, cajas, bajas, pedidos,
+// recepciones, ajustes de inventario y precios, finanzas). Con usuarios activados, el registro detallado de cada
+// clic sigue estando en Usuarios > Registro de actividad.
+const AC={};
+AC.F=d=>new Date(d).toLocaleString('es-AR',{dateStyle:'short',timeStyle:'short'});
+AC.N=n=>'N.º '+String(n).padStart(6,'0');
+AC.TIPOS={venta:'Ventas',anulacion:'Anulaciones',cobro:'Cobros de deudas',caja:'Caja',baja:'Bajas de stock',pedido:'Pedidos y recepciones',ajuste:'Ajustes de inventario y productos',finanzas:'Finanzas'};
+AC.AJN={'stock.lote_agregado':'Lote agregado','stock.lote_eliminado':'Lote eliminado','stock.ingreso':'Ingreso de stock','producto.precio':'Cambio de precio o costo','producto.eliminado':'Producto eliminado','venta.corregida':'Venta cargada para corregir'};
+AC.lista=()=>{const L=[],add=(d,g,acc,user,txt)=>{if(d)L.push({d,g,acc,user:user||'Sin registrar',txt})};
+  db.sales.forEach(s=>{add(s.date,'venta','Venta',s.user,`${AC.N(s.id)} · ${fmt(s.total)} · ${s.pay}${s.cname?' · '+s.cname:''}`);if(s.void)add(s.voidAt,'anulacion','Venta anulada',s.voidBy,`${AC.N(s.id)} · ${fmt(s.total)}`)});
+  db.pays.forEach(p=>add(p.date,'cobro','Cobro de deuda',p.user,`${(cl$(p.cid)||{name:'Cliente'}).name} · ${fmt(p.amount)} (${p.method})`));
+  (db.cajas||[]).forEach(c=>{add(c.abre,'caja','Apertura de caja',c.user,`${c.caja} · inicial ${fmt(c.ini)}`);(c.movs||[]).forEach(m=>add(m.date,'caja',m.t==='egreso'?'Retiro de caja':'Ingreso a caja',m.user,`${fmt(m.monto)} · ${m.motivo}`));
+    if(c.cierre){const t=Math.abs(c.dif)<0.005?'equilibrada':c.dif>0?'sobrante '+fmt(c.dif):'faltante '+fmt(-c.dif);add(c.cierre,'caja','Cierre de caja',c.cerro||c.user,`${c.caja} · contado ${fmt(c.contado)} · ${t}`)}});
+  db.desv.forEach(v=>{const it=v.items.map(i=>i.qty+' x '+i.name).join(', ');add(v.reg||v.date,'baja','Baja de stock',v.user,`${v.reason?v.reason+' · ':''}${it}`);if(v.void)add(v.voidAt,'anulacion','Baja anulada',v.voidBy,it)});
+  db.orders.forEach(o=>{add(o.date,'pedido','Pedido',o.user,`N.º ${o.id} · ${o.supplier||'Sin proveedor'} · ${o.items.length} productos`);(o.receipts||[]).forEach(r=>add(r.date,'pedido','Recepción de mercadería',r.user,`Pedido N.º ${o.id} · ${r.items.map(i=>i.qty+' x '+i.name).join(', ')}`))});
+  (db.ajustes||[]).forEach(a=>add(a.date,a.tipo==='venta.corregida'?'anulacion':'ajuste',AC.AJN[a.tipo]||a.tipo,a.user,a.txt||''));
+  db.fin.mov.forEach(m=>add(m.fecha+'T12:00:00','finanzas',m.tipo==='gasto'?'Gasto registrado':'Ingreso registrado',m.user,`${m.cat||''} · ${fmt(m.monto)}${m.desc?' · '+m.desc:''}`));
+  db.fin.pagar.forEach(g=>{if(g.pagado&&g.pagoFecha)add(g.pagoFecha+'T12:00:00','finanzas','Pago a proveedor',g.user,`${g.prov} · ${fmt(g.monto)}${g.desc?' · '+g.desc:''}`)});
+  return L.sort((a,b)=>a.d<b.d?1:-1)};
+$('main').insertAdjacentHTML('beforeend',`<section id="z" class="hide"><div class="card"><div class="lh"><h3>Actividad reciente</h3></div><div class="form"><div><label>Tipo</label><select id="ac_t"><option value="">Todo</option>${Object.entries(AC.TIPOS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></div><div><label>Usuario</label><select id="ac_u"></select></div><div><label>Desde</label><input id="ac_d" type="date"></div><div><label>Hasta</label><input id="ac_h" type="date"></div><div><label>Buscar</label><input id="ac_q" placeholder="Producto, cliente, N.º…"></div></div><p id="ac_s" class="mu" style="margin:0 0 8px"></p><div class="wrap"><table><thead><tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Detalle</th></tr></thead><tbody id="ac_l"></tbody></table></div></div></section>`);
+$('#masmenu').insertAdjacentHTML('beforeend','<button data-t="z">Actividad</button>');
+{const b=$('#masmenu button[data-t="z"]');b.onclick=()=>{$$('nav button').forEach(x=>x.classList.toggle('on',x===b));$$('nav button').map(x=>x.dataset.t).forEach(s=>$('#'+s)&&$('#'+s).classList.toggle('hide',s!=='z'));$('#masmenu').classList.add('hide');masRefresh();draw()}}
+MODT.z='reporte';if(typeof CF!=='undefined'&&CF.NAVN)CF.NAVN.z='Actividad';
+{const r0=relevante;relevante=t=>t==='z'?true:r0(t)}
+AC.draw=()=>{if($('#z').classList.contains('hide'))return;const all=AC.lista(),su=$('#ac_u'),cu=su.value,us=[...new Set(all.map(x=>x.user))].sort();su.innerHTML='<option value="">Todos</option>'+us.map(u=>`<option>${esc(u)}</option>`).join('');su.value=us.includes(cu)?cu:'';
+  const t=$('#ac_t').value,d=$('#ac_d').value,h=$('#ac_h').value,q=norm($('#ac_q').value.trim());
+  const L=all.filter(x=>(!t||x.g===t)&&(!su.value||x.user===su.value)&&(!d||ld(x.d)>=d)&&(!h||ld(x.d)<=h)&&(!q||norm(x.acc+' '+x.txt).includes(q)));
+  $('#ac_s').textContent=`${L.length} ${L.length===1?'acción':'acciones'}${L.length>300?' · se muestran las 300 más recientes':''}`;
+  $('#ac_l').innerHTML=L.slice(0,300).map(x=>`<tr><td>${AC.F(x.d)}</td><td>${esc(x.user)}</td><td><b>${esc(x.acc)}</b></td><td style="white-space:normal">${esc(x.txt)}</td></tr>`).join('')||'<tr><td colspan="4" class="mu">No hay acciones con estos filtros.</td></tr>'};
+['#ac_t','#ac_u','#ac_d','#ac_h'].forEach(s=>$(s).onchange=AC.draw);$('#ac_q').oninput=AC.draw;
+MODS.push(AC.draw);
 </script>
 <script>
 // ===== Movilidad: trabajo sin conexión con sincronización =====
