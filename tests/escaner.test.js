@@ -6,7 +6,7 @@ const assert = require('assert'), { web } = require('./helpers');
   const press = (el, key, o = {}) => { const e = new w.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...o }); el.dispatchEvent(e); return e; };
   // simula escribir un código en el campo enfocado: tecla por tecla y Enter; gap = milisegundos entre teclas
   const type = (code, gap, el = d.activeElement) => { if (el.focus) el.focus(); for (const ch of code) { t += gap; const e = press(el, ch); if (!e.defaultPrevented && 'value' in el) { el.value += ch; el.dispatchEvent(new w.Event('input', { bubbles: true })); } } t += gap; return press(el, 'Enter'); };
-  const scan = (code, el) => type(code, 8, el);
+  const scan = (code, el) => { t += 500; return type(code, 8, el); };   // entre un escaneo y otro pasa al menos medio segundo (v3: dos lecturas iguales en menos de 400 ms cuentan como una)
   const toast = () => $('#toast').textContent;
 
   // ---- VENTAS: escanear agrega el producto aunque el cursor esté en el buscador ----
@@ -18,7 +18,7 @@ const assert = require('assert'), { web } = require('./helpers');
   // código desconocido
   scan('0000000000', $('#q')); assert(/no encontrado/.test(toast())); assert.strictEqual(Object.keys(w.eval('cart')).length, 2); assert.strictEqual($('#q').value, '');
   // sin stock
-  scan('7794455', $('#q')); assert(/No hay más stock/.test(toast()), 'Pan lactal no tiene stock'); assert.strictEqual(w.eval('cart[6]'), undefined);
+  scan('7794455', $('#q')); assert(/Pan lactal: sin stock/.test(toast()), 'Pan lactal no tiene stock'); assert.strictEqual(w.eval('cart[6]'), undefined);
   // con un cliente elegido el escaneo usa su descuento
   w.eval('setClient(1)'); scan('7790387', $('#q')); assert.strictEqual(w.eval('cart[3]'), 1); assert(txt('#cart').includes(w.eval('fmt(6210)').replace(/[\s\u00a0]+/g, ' ')), '6900 con 10 % = 6210'); w.eval('setClient(null)');
 

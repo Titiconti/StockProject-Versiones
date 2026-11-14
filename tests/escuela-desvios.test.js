@@ -9,7 +9,7 @@ const assert = require('assert'), { web } = require('./helpers');
   assert($('#eg').disabled, 'sin productos no se puede registrar');
   // ---- ya no pide el nombre de la escuela; muestra la fecha del desvío (hoy por defecto) ----
   assert.strictEqual($('#ed'), null, 'no hay campo de nombre de escuela'); assert(!/Escuela \/ destino|Destino/.test(txt('#e')), 'no se menciona un destino');
-  assert.strictEqual($('#edf').value, hoy, 'la fecha arranca en hoy'); assert.strictEqual($('#edf').max, hoy, 'no se puede elegir una fecha futura en el calendario'); assert(/Fecha del desvío/.test(txt('#e')));
+  assert.strictEqual($('#edf').value, hoy, 'la fecha arranca en hoy'); assert.strictEqual($('#edf').max, hoy, 'no se puede elegir una fecha futura en el calendario'); assert(/Fecha de la baja/.test(txt('#e')));
 
   // armar el desvío escribiendo (con sugerencias)
   $('#en').value = 'Copa de leche';
@@ -24,26 +24,30 @@ const assert = require('assert'), { web } = require('./helpers');
 
   // registrar SIN escribir ningún nombre: descuenta stock (primero el lote que vence antes), NO es una venta, y queda registrado con su fecha
   const ventas0 = db().sales.length, caja0 = JSON.stringify(db().sales);
+  // v3: la justificación es obligatoria (sin ella no se descuenta nada)
+  click('#eg'); assert(/justificación/.test($('#toast').textContent)); assert.strictEqual(db().desv.length, 0); assert.strictEqual(lotes(5), 'L-001:6,L-002:12');
+  assert.deepStrictEqual([...$('#emo').options].map(o => o.value), ['Vencimiento', 'Retiro del local', 'Daños', 'Extravío', 'Otro']);
+  $('#emo').value = 'Daños'; $('#ej').value = 'Leche cortada';
   click('#eg');
   assert.strictEqual(lotes(5), 'L-002:10', 'FEFO: 6 de L-001 y 2 de L-002'); assert.strictEqual(stock(3), 10);
   assert.strictEqual(db().sales.length, ventas0, 'no se registra como venta'); assert.strictEqual(JSON.stringify(db().sales), caja0);
-  const v = db().desv[0]; assert(v && v.note === 'Copa de leche' && v.items.length === 2 && !v.void && v.dest === undefined, 'no guarda nombre de escuela');
+  const v = db().desv[0]; assert(v.reason === 'Daños' && v.just === 'Leche cortada' && v.user === 'Sin usuario', 'motivo, justificación y responsable'); assert(v && v.note === 'Copa de leche' && v.items.length === 2 && !v.void && v.dest === undefined, 'no guarda nombre de escuela');
   assert.strictEqual(dia(v.date), hoy, 'se guardó con la fecha de hoy'); assert(Math.abs(Date.now() - new Date(v.date)) < 60e3, 'hoy: con la hora real');
   assert.deepStrictEqual([v.items[0].qty, v.items[0].cost], [8, 1200], 'guarda el costo del momento'); assert(v.items[0].lots.length === 2, 'recuerda de qué lotes salió');
   assert(txt('#el').includes(fD(hoy)), 'el listado muestra la fecha del desvío'); assert(/8 x Leche entera 1 L/.test(txt('#el')) && /Copa de leche/.test(txt('#el')) && txt('#el').includes(f(8 * 1200 + 2 * 4800)), 'listado con detalle, nota y costo total');
-  assert(txt('#elp').includes(f(19200)) && /1 desvío registrado/.test(txt('#elp')));
-  assert(new RegExp('Desvío registrado el ' + fD(hoy).replace(/\//g, '\\/')).test($('#toast').textContent), 'el aviso incluye la fecha'); assert($('#eg').disabled && !/Leche/.test(txt('#et')), 'el borrador queda vacío');
+  assert(txt('#elp').includes(f(19200)) && /1 baja registrada/.test(txt('#elp')));
+  assert(new RegExp('Baja registrada el ' + fD(hoy).replace(/\//g, '\\/')).test($('#toast').textContent), 'el aviso incluye la fecha'); assert($('#eg').disabled && !/Leche/.test(txt('#et')), 'el borrador queda vacío');
   assert.strictEqual($('#edf').value, hoy, 'la fecha vuelve a hoy');
   tab('v'); assert(/10/.test(txt('#prods')), 'el stock descontado se ve en Ventas');
 
   // ---- desvío de una fecha anterior (por ejemplo, cargar uno que se olvidaron de registrar) ----
   tab('e'); const hace5 = w.eval('plus(-5)');
-  set('#ep', 'agua'); pick('#esg'); $('#eq').value = '3'; click('#ea'); $('#edf').value = hace5; click('#eg');
+  set('#ep', 'agua'); pick('#esg'); $('#eq').value = '3'; click('#ea'); $('#edf').value = hace5; $('#ej').value = 'Rotas'; click('#eg');
   const v2 = db().desv[1]; assert.strictEqual(dia(v2.date), hace5, 'quedó con la fecha elegida'); assert.strictEqual(stock(2), 37); assert.strictEqual(v2.note, '');
   assert(txt('#el').includes(fD(hace5)), 'la fecha anterior aparece en el listado');
   const filas = [...w.document.querySelectorAll('#el tr')].map(tr => tr.textContent); assert(filas[0].includes(fD(hoy)) && filas[1].includes(fD(hace5)), 'ordenados del más reciente al más antiguo, aunque se hayan cargado al revés');
   // ---- fecha futura: no se acepta y no toca el stock ----
-  set('#ep', 'agua'); pick('#esg'); $('#eq').value = '2'; click('#ea'); $('#edf').value = w.eval('plus(2)'); click('#eg');
+  set('#ep', 'agua'); pick('#esg'); $('#eq').value = '2'; click('#ea'); $('#edf').value = w.eval('plus(2)'); $('#ej').value = 'Rotas'; click('#eg');
   assert(/no puede ser futura/.test($('#toast').textContent)); assert.strictEqual(db().desv.length, 2); assert.strictEqual(stock(2), 37, 'no descontó stock'); assert(/Agua mineral/.test(txt('#et')), 'el borrador sigue ahí');
   $('#edf').value = hoy; click('#eg'); assert.strictEqual(db().desv.length, 3); assert.strictEqual(stock(2), 35);
 
@@ -51,14 +55,14 @@ const assert = require('assert'), { web } = require('./helpers');
   set('#ep', 'pan'); pick('#esg'); $('#eq').value = '1'; click('#ea'); assert(/Stock insuficiente: disponible 0/.test($('#toast').textContent), 'sin stock');
   // lotes vencidos no se pueden desviar
   w.eval("db.prods.find(p=>p.id===4).lots[0].exp='2020-01-01'");
-  set('#ep', 'galletitas'); pick('#esg'); $('#eq').value = '1'; click('#ea'); assert(/disponible 0/.test($('#toast').textContent), 'lote vencido no disponible');
+  $('#emo').value = 'Daños'; set('#ep', 'galletitas'); pick('#esg'); $('#eq').value = '1'; click('#ea'); assert(/disponible 0/.test($('#toast').textContent) && /motivo Vencimiento/.test($('#toast').textContent), 'lote vencido no disponible salvo por vencimiento');
 
   // ---- reportes: el período respeta la fecha del desvío; el PDF muestra la fecha y no un destino ----
   tab('r'); const per = v => { $('#per').value = v; w.eval("$('#per').dispatchEvent(new Event('change'))"); };
   per('0'); assert(txt('#kpis').includes(f(19200 + 2 * 700)), 'hoy: solo los desvíos de hoy (el de hace 5 días no entra)');
   per('7'); assert(txt('#kpis').includes(f(19200 + 3 * 700 + 2 * 700)), 'últimos 7 días: entra también el de hace 5 días');
   const pdf = w.eval('buildReport()').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
-  assert(/Desvíos a escuela/.test(pdf) && pdf.includes(fD(hoy)) && pdf.includes(fD(hace5)) && /Total desviado/.test(pdf) && !/Destino/.test(pdf), 'PDF con fechas y sin columna de destino');
+  assert(/Bajas de stock/.test(pdf) && pdf.includes(fD(hoy)) && pdf.includes(fD(hace5)) && /Total desviado/.test(pdf) && !/Destino/.test(pdf), 'PDF con fechas y sin columna de destino');
   assert(pdf.indexOf(fD(hace5)) < pdf.lastIndexOf(fD(hoy)), 'en el PDF van del más antiguo al más nuevo');
   // desvíos registrados con versiones anteriores (que sí tenían escuela) siguen viéndose
   w.eval("db.desv.push({id:99,date:new Date().toISOString(),dest:'Escuela Vieja N° 5',note:'',items:[{id:2,name:'Agua mineral 500 ml',qty:1,cost:700,lots:[]}]});draw()");
@@ -71,6 +75,18 @@ const assert = require('assert'), { web } = require('./helpers');
   const id1 = db().desv[0].id; anular(id1); assert(!db().desv.find(x => x.id === id1).void, 'pide confirmación'); anular(id1);
   assert(db().desv.find(x => x.id === id1).void); assert.strictEqual(lotes(5), 'L-001:6,L-002:12', 'volvió exactamente a sus lotes'); assert.strictEqual(stock(3), 12);
   assert(/Anulado/.test(txt('#el')) && !w.document.querySelector('#el [data-v="' + id1 + '"]'), 'queda marcado y no se anula dos veces');
-  tab('r'); per('0'); assert(!txt('#kpis').includes(f(19200)), 'el anulado deja de contar'); assert.deepStrictEqual(errs, []);
+  tab('r'); per('0'); assert(!txt('#kpis').includes(f(19200)), 'el anulado deja de contar');
+  // ---- v3: con motivo Vencimiento se dan de baja los lotes vencidos (y queda el lote en la trazabilidad) ----
+  tab('e'); w.eval("$('#emo').value='Vencimiento';$('#emo').dispatchEvent(new Event('change'))");
+  set('#ep', 'galletitas'); assert(/Disponible 3 · vencido 3/.test(txt('#esg'))); pick('#esg'); $('#eq').value = '3'; click('#ea'); $('#ej').value = 'Vencidas en góndola'; click('#eg');
+  const vv = db().desv[db().desv.length - 1]; assert.strictEqual(stock(4), 0, 'se descontaron los vencidos'); assert.strictEqual(vv.reason, 'Vencimiento'); assert.strictEqual(vv.items[0].lots[0].exp, '2020-01-01', 'guarda el lote vencido');
+  assert.strictEqual(db().sales.length, 0, 'no es una venta');
+  // ---- filtros del listado: motivo, producto y responsable ----
+  const filtrar = (s, v) => { $(s).value = v; w.eval(`$('${s}').dispatchEvent(new Event('${s === '#efp' ? 'input' : 'change'}'))`); };
+  filtrar('#efm', 'Vencimiento'); assert.strictEqual(w.document.querySelectorAll('#el tr').length, 1); assert(/Galletitas/.test(txt('#el')) && /3 unidades/.test(txt('#elp')));
+  filtrar('#efm', ''); filtrar('#efp', 'yerba'); assert.strictEqual(w.document.querySelectorAll('#el tr').length, 1); assert(/Yerba/.test(txt('#el')));
+  filtrar('#efp', ''); filtrar('#efd', w.eval('plus(1)')); assert(/no hay bajas/.test(txt('#el')), 'rango sin resultados');
+  assert(/Baja de Stock/.test(txt('nav')), 'la pantalla se llama Baja de Stock'); assert(!/Escuela/.test(txt('nav')));
+  assert.deepStrictEqual(errs, []);
   console.log('ESCUELA_OK'); process.exit(0);
 })().catch(e => { console.log('FALLO', e.stack || e.message); process.exit(1); });

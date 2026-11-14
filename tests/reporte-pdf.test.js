@@ -9,6 +9,8 @@ function boot(desktop, pdfResult = { ok: true }) {
       info: async () => ({ dir: 'C:\\x', last: null, warn: '' }), now: async () => ({}), choose: async () => ({}), restore: async () => true,
       print: async () => ({ ok: true }), pdf: async (h, n) => { calls.pdf.push([h, n]); return pdfResult; } }; }
   } });
+  // Estas pruebas no son de caja: se desactiva la exigencia de caja abierta (ver tests/caja.test.js).
+  dom.window.eval('db.cfg.cajaObligatoria=false');
   return { w: dom.window, calls };
 }
 const wait = ms => new Promise(r => setTimeout(r, ms));

@@ -37,6 +37,7 @@ const crearStore = require('../store.js'), { gestor } = require('../servidor.js'
   B.tab('v'); assert(/Coca-Cola 1,5 L/.test(B.txt('#prods')), 'B lo muestra en Ventas');
 
   // B vende; A lo ve
+  B.w.eval('db.cfg.cajaObligatoria=false');   // sin exigir caja (se prueba en caja.test.js)
   B.click('#prods .p'); B.click('#cobrar'); assert(await until(() => store.rev() === 2)); assert.strictEqual(stock(B), 9);
   assert(await sync(A, () => A.w.eval('db.sales.length') === 1 && stock(A) === 9), 'A ve la venta de B y el stock actualizado');
 

@@ -75,7 +75,7 @@ details.card>summary{font-weight:700;cursor:pointer;padding:2px 0;list-style:non
 </head>
 <body>
 <header><div class="bar"><span class="logo">📦 StockProject</span>
-<nav><button data-t="h" class="hide">Inicio</button><button data-t="v" class="on">Ventas</button><button data-t="p">Productos</button><button data-t="i">Inventario</button><button data-t="c">Clientes</button><button data-t="r">Reportes</button><span class="mas hide" id="masw"><a id="masb" role="button" tabindex="0" aria-haspopup="true">Más ▾</a><span id="masmenu" class="hide"><button data-t="o">Pedidos</button><button data-t="f" class="hide">Finanzas</button><button data-t="a" class="hide">Analítica</button><button data-t="e">Escuela</button><button data-t="g" class="hide">Configuración</button><button data-t="u" class="hide">Usuarios</button></span></span></nav><button class="btn sec" id="ayuda" title="Ayuda de esta pantalla" style="padding:6px 11px">?</button><span id="ses"></span></div></header>
+<nav><button data-t="h" class="hide">Inicio</button><button data-t="v" class="on">Ventas</button><button data-t="p">Productos</button><button data-t="i">Inventario</button><button data-t="c">Clientes</button><button data-t="r">Reportes</button><span class="mas hide" id="masw"><a id="masb" role="button" tabindex="0" aria-haspopup="true">Más ▾</a><span id="masmenu" class="hide"><button data-t="o">Pedidos</button><button data-t="f" class="hide">Finanzas</button><button data-t="a" class="hide">Analítica</button><button data-t="e">Baja de Stock</button><button data-t="g" class="hide">Configuración</button><button data-t="u" class="hide">Usuarios</button></span></span></nav><button class="btn sec" id="ayuda" title="Ayuda de esta pantalla" style="padding:6px 11px">?</button><span id="ses"></span></div></header>
 <main>
 <section id="v"><div class="grid">
 <div class="card"><h3>Venta actual</h3><div style="position:relative"><label>Cliente</label><input id="cl" autocomplete="off" placeholder="Venta particular · elegir cliente"><div id="clg" class="sug hide"></div></div><div id="clchip"></div><div id="cart"></div><div class="mu">Total a cobrar</div><div class="tot" id="total">$ 0,00</div>
@@ -109,17 +109,18 @@ details.card>summary{font-weight:700;cursor:pointer;padding:2px 0;list-style:non
 <div class="wrap"><table><thead><tr><th>Fecha</th><th>Concepto</th><th class="n">Debe</th><th class="n">Haber</th><th class="n">Saldo</th><th></th></tr></thead><tbody id="cmv"></tbody></table></div></div>
 </section>
 <section id="e" class="hide">
-<div class="card"><h3>Nuevo desvío de mercadería</h3><p class="mu" style="margin-top:0">Descuenta el stock sin registrarlo como venta, y deja guardado el desvío (fecha, productos y costo).</p>
-<div class="form"><div><label>Fecha del desvío</label><input id="edf" type="date"></div><div><label>Notas (opcional)</label><input id="en"></div></div>
+<div class="card"><h3>Nueva baja de stock <span class="mu" style="font-size:14px;font-weight:400">· salidas sin venta</span></h3><p class="mu" style="margin-top:0">Descuenta el stock sin registrarlo como venta ni como ingreso, y deja guardada la baja (fecha, motivo, responsable, productos, lotes y costo).</p>
+<div class="form"><div><label>Fecha de la baja</label><input id="edf" type="date"></div><div><label>Motivo</label><select id="emo"></select></div><div><label>Justificación (obligatoria)</label><input id="ej" placeholder="Ej.: envases rotos al descargar"></div><div><label>Observaciones (opcional)</label><input id="en"></div></div>
 <div class="form"><div style="position:relative"><label>Producto</label><input id="ep" autocomplete="off" placeholder="Escribí o escaneá el código…"><div id="esg" class="sug hide"></div></div><div><label>Cantidad</label><input id="eq" type="number" min="1"></div><div><button class="btn sec" id="ea">Agregar</button></div></div>
-<div id="et"></div><button class="btn" id="eg" style="margin-top:10px">Registrar desvío</button></div>
-<div class="card"><h3>Desvíos registrados</h3><p id="elp" class="mu" style="margin-top:0"></p><div class="wrap"><table><thead><tr><th>Fecha</th><th>Detalle</th><th class="n">Costo</th><th></th></tr></thead><tbody id="el"></tbody></table></div></div>
+<div id="et"></div><button class="btn" id="eg" style="margin-top:10px">Registrar baja</button></div>
+<div class="card"><h3>Bajas registradas</h3><div class="form"><div><label>Desde</label><input id="efd" type="date"></div><div><label>Hasta</label><input id="efh" type="date"></div><div><label>Motivo</label><select id="efm"></select></div><div><label>Producto</label><input id="efp" placeholder="Nombre o código"></div><div><label>Responsable</label><select id="efu"></select></div></div><p id="elp" class="mu" style="margin-top:0"></p><div class="wrap"><table><thead><tr><th>Fecha</th><th>Detalle</th><th class="n">Costo</th><th></th></tr></thead><tbody id="el"></tbody></table></div></div>
 </section>
 <section id="h" class="hide"><div class="card"><h3 id="hnom" style="margin:0"></h3><p id="hsub" class="mu" style="margin:4px 0 0"></p></div><div class="kpis" id="hk" style="margin-top:12px"></div><div class="card" id="htips" style="margin-top:12px"></div></section>
 <section id="g" class="hide"><div class="pills" id="gp"><button data-s="n" class="on">Mi negocio</button><button data-s="s">Seguridad</button><button data-s="d">Datos</button><button data-s="x">Avanzado</button></div><div class="pills sub hide" id="gp2"><button data-s="x">Sistema y actualizaciones</button><button data-s="i">Integraciones</button><button data-s="m">Empresas y monedas</button></div>
 <div data-sub="n"><div class="card"><h3>Tu negocio</h3><p id="g_res" class="mu"></p><button class="btn" id="g_enc">Completar o repetir la encuesta</button></div>
 <details class="card"><summary>Personalizar el menú y el panel de Inicio</summary><div class="grid"><div><h3>Pantallas que querés ver</h3><div id="g_tabs"></div></div><div><h3>Cuadros del panel de Inicio</h3><div id="g_ws"></div></div></div><button class="btn sec" id="g_rst" style="margin-top:8px">Volver a lo sugerido para mi negocio</button></details>
-<details class="card"><summary>Categorías de gastos</summary><p class="mu" style="margin-top:0">Separadas por coma. Se usan en Finanzas.</p><input id="g_gc" style="width:100%"><button class="btn" id="g_gcs" style="margin-top:8px">Guardar categorías</button></details></div>
+<details class="card"><summary>Categorías de gastos</summary><p class="mu" style="margin-top:0">Separadas por coma. Se usan en Finanzas.</p><input id="g_gc" style="width:100%"><button class="btn" id="g_gcs" style="margin-top:8px">Guardar categorías</button></details>
+<details class="card"><summary>Motivos de baja de stock</summary><p class="mu" style="margin-top:0">Siempre están Vencimiento, Retiro del local, Daños, Extravío y Otro. Agregá otros separados por coma.</p><input id="g_mb" style="width:100%"><button class="btn" id="g_mbs" style="margin-top:8px">Guardar motivos</button></details></div>
 <div data-sub="s" class="hide"><div id="sg_ed"><div class="grid"><div class="card"><h3>Cifrado de datos en esta PC</h3><p id="sg_c"></p><p class="mu">Protege tus datos y respaldos si alguien copia los archivos. La clave queda guardada por Windows y recibís una clave de recuperación para guardar aparte.</p><button class="btn" id="sg_on">Activar cifrado</button><button class="btn sec" id="sg_off">Desactivar cifrado</button></div>
 <div class="card"><h3>Copia protegida con contraseña</h3><p class="mu" style="margin-top:0">Sirve para llevar tus datos a otra PC. Se abre solo con esta contraseña (mínimo 8 caracteres).</p><input id="sg_pw" type="password" autocomplete="new-password" placeholder="Contraseña de la copia" style="width:100%"><div style="display:flex;gap:8px;margin-top:8px"><button class="btn" id="sg_cp">Guardar copia</button><button class="btn sec" id="sg_rp">Restaurar copia</button></div></div></div>
 <div class="card"><h3>Acceso desde el celular con HTTPS</h3><p id="sg_hs" class="mu"></p><button class="btn sec" id="sg_https">Activar HTTPS</button></div></div>
@@ -178,7 +179,7 @@ sales:[],nid:7,sid:1,lid:100,demo:1});
 const EDA=ED&&!!sp.auth,AU=EDA?sp.auth.estado():SRV?(SP_BOOT.auth||{habilitado:false}):{habilitado:false};
 const can=(m,a='ver')=>!AU.habilitado||((AU.permisos||{})[m]||[]).includes(a);
 const call=(n,...a)=>EDA?sp.auth.call(n,...a):SRV?fetch('/api/auth/'+n,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({args:a})}).then(r=>{if(r.status===401){location.reload();return{}}return r.json()}):Promise.resolve({ok:false});
-const ROLN={admin:'Administrador',gerente:'Gerente',empleado:'Empleado',consulta:'Consulta'},MODN={finanzas:'Finanzas',configuracion:'Configuración',ventas:'Ventas',inventario:'Inventario',productos:'Productos',pedidos:'Pedidos',clientes:'Clientes',escuela:'Escuela',reporte:'Reportes',respaldo:'Respaldos',acceso_remoto:'Acceso remoto',usuarios:'Usuarios'},ACN={ver:'Ver',crear:'Crear',editar:'Editar',eliminar:'Eliminar'};
+const ROLN={admin:'Administrador',gerente:'Gerente',empleado:'Empleado',consulta:'Consulta'},MODN={finanzas:'Finanzas',configuracion:'Configuración',ventas:'Ventas',inventario:'Inventario',productos:'Productos',pedidos:'Pedidos',clientes:'Clientes',escuela:'Baja de Stock',reporte:'Reportes',respaldo:'Respaldos',acceso_remoto:'Acceso remoto',usuarios:'Usuarios'},ACN={ver:'Ver',crear:'Crear',editar:'Editar',eliminar:'Eliminar'};
 let db,rev=0,gen=0,pending=0,chain=Promise.resolve();
 function readDb(){let f='';try{f=ED?sp.load():SRV?(SP_BOOT.data?JSON.stringify(SP_BOOT.data):''):(localStorage.getItem(K)||localStorage.getItem('stockproject_v1')||'')}catch(e){}try{return JSON.parse(f)}catch(e){return null}}
 function fixDb(){db.lid=db.lid||100;db.shop=db.shop||DEF.shop||{n:'StockProject',a:'',t:''};db.orders=db.orders||[];db.oid=db.oid||1;
@@ -221,7 +222,10 @@ function add(id){const p=db.prods.find(x=>x.id==id);if((cart[id]||0)>=avail(p))r
 $('#prods').onclick=e=>{const b=e.target.closest('.p');if(b)add(b.dataset.id)};
 {const dp=deb(drawProds,150);$('#q').oninput=()=>db.prods.length>300?dp():drawProds()}
 {const di=deb(drawInv,150),dc=deb(drawCli,150);$('#iq').oninput=()=>db.prods.length>300?di():drawInv();$('#cbus').oninput=()=>db.clients.length>300?dc():drawCli()}
-$('#q').onkeydown=e=>{if(e.key!=='Enter')return;const q=e.target.value.trim().toLowerCase(),p=db.prods.find(p=>String(p.code||'').toLowerCase()===q&&avail(p)>0)||db.prods.find(p=>(p.name+p.code).toLowerCase().includes(q)&&avail(p)>0);if(p){add(p.id);e.target.value='';drawProds()}};
+$('#q').onkeydown=e=>{if(e.key!=='Enter')return;const q=e.target.value.trim().toLowerCase();if(!q)return;const ex=db.prods.find(p=>String(p.code||'').trim().toLowerCase()===q);if(ex){if(noVendible(ex))return;add(ex.id);e.target.value='';drawProds();return}
+const p=db.prods.find(p=>(p.name+p.code).toLowerCase().includes(q)&&avail(p)>0);if(p){add(p.id);e.target.value='';drawProds()}};
+// Explica por qué un producto no se puede vender (sin stock o con todos sus lotes vencidos). Devuelve true si no se puede.
+function noVendible(p){if(avail(p)>0)return false;beep(0);toast(tot(p)>0?p.name+': todos sus lotes están vencidos, no se puede vender. Dalo de baja en Baja de Stock (motivo Vencimiento).':p.name+': sin stock');return true}
 function cl$(id){return db.clients.find(c=>c.id===id)}
 function cdisc(){const c=cl$(clId);return c?(c.disc||0):0}
 function up(p){return Math.round(p.price*(100-cdisc()))/100}   // precio unitario con el descuento del cliente
@@ -244,9 +248,11 @@ $('#rec').oninput=$('#pay').onchange=drawCart;
 $('#cart').onclick=e=>{const b=e.target.closest('button');if(!b)return;const id=b.dataset.id;
 if(b.dataset.a==='+')add(id);else{if(--cart[id]<=0)delete cart[id];drawCart()}};
 $('#vaciar').onclick=()=>{cart={};$('#rec').value='';drawCart()};
-$('#cobrar').onclick=()=>{const pay=$('#pay').value;if(pay==='Cuenta corriente'&&!cl$(clId))return toast('Elegí un cliente para vender en cuenta corriente');
+$('#cobrar').onclick=()=>{const pay=$('#pay').value;if(typeof CJ!=='undefined'&&!CJ.puedeVender()){CJ.formAbrir('Para cobrar tiene que haber una caja abierta.');return toast('Abrí la caja antes de cobrar')}if(pay==='Cuenta corriente'&&!cl$(clId))return toast('Elegí un cliente para vender en cuenta corriente');
+for(const id of Object.keys(cart)){const p=db.prods.find(x=>x.id==id);if(!p||!(cart[id]>0)||cart[id]>avail(p)){const n=p?p.name:'un producto';cleanCart();drawCart();drawProds();return toast('Cambió el stock vendible de '+n+' (sin stock o lote vencido): revisá la venta antes de cobrar')}}   // nunca se registra una venta con un descuento de stock incompleto
+
 const c=cl$(clId),dsc=cdisc(),total=cartTotal(),items=Object.keys(cart).map(id=>{const p=db.prods.find(x=>x.id==id);const lots=sell(p,cart[id]);return{id:p.id,name:p.name,qty:cart[id],price:up(p),lp:p.price,cost:p.cost||0,lots}});
-const sale={id:db.sid++,date:new Date().toISOString(),items,total,pay};if(c){sale.cid=c.id;sale.cname=c.name;sale.disc=dsc}
+const sale={id:db.sid++,date:new Date().toISOString(),items,total,pay};if(c){sale.cid=c.id;sale.cname=c.name;sale.disc=dsc}if(typeof CJ!=='undefined')CJ.tag(sale);
 db.sales.push(sale);save();cart={};$('#rec').value='';clId=null;$('#cl').value='';
 toast('Venta registrada: '+fmt(total)+(c?' · '+c.name+(pay==='Cuenta corriente'?' (a cuenta)':''):''));draw();if($('#prt').checked)printTicket(sale)};
 let lastH='';
@@ -307,7 +313,7 @@ let _aggK='';const aggOf=cid=>{const k=db.sales.length+'|'+db.pays.length+'|'+(d
 const debtOf=cid=>{const o=aggOf(cid);return Math.round((o.cc+o.cg-o.pg)*100)/100};
 const inRange=()=>inAll().filter(x=>!x.void);
 function drawRep(){const S=inRange(),tt=S.reduce((a,s)=>a+s.total,0),un=S.reduce((a,s)=>a+s.items.reduce((b,i)=>b+i.qty,0),0);
-$('#kpis').innerHTML=[['Ventas totales',fmt(tt)],['Cantidad de ventas',S.length],['Ticket promedio',fmt(S.length?tt/S.length:0)],['Unidades vendidas',un],['Ganancia estimada',fmt(tt-S.reduce((a,x)=>a+costOf(x),0))],['Rentabilidad',tt?pc1((tt-S.reduce((a,x)=>a+costOf(x),0))/tt*100):'-'],['Deuda de clientes',fmt(db.clients.reduce((a,c)=>a+Math.max(0,debtOf(c.id)),0))],['Desvíos a escuela (a costo)',fmt(desvIn().reduce((a,v)=>a+desvCost(v),0))]].map(k=>`<div class="card kpi"><small>${k[0]}</small><div>${k[1]}</div></div>`).join('');
+$('#kpis').innerHTML=[['Ventas totales',fmt(tt)],['Cantidad de ventas',S.length],['Ticket promedio',fmt(S.length?tt/S.length:0)],['Unidades vendidas',un],['Ganancia estimada',fmt(tt-S.reduce((a,x)=>a+costOf(x),0))],['Rentabilidad',tt?pc1((tt-S.reduce((a,x)=>a+costOf(x),0))/tt*100):'-'],['Deuda de clientes',fmt(db.clients.reduce((a,c)=>a+Math.max(0,debtOf(c.id)),0))],['Bajas de stock (a costo)',fmt(desvIn().reduce((a,v)=>a+desvCost(v),0))]].map(k=>`<div class="card kpi"><small>${k[0]}</small><div>${k[1]}</div></div>`).join('');
 const tp={},pp={};S.forEach(s=>{pp[s.pay]=(pp[s.pay]||0)+s.total;s.items.forEach(i=>{tp[i.name]=(tp[i.name]||0)+i.qty})});
 const bars=(o,f)=>{const a=Object.entries(o).sort((x,y)=>y[1]-x[1]).slice(0,6),m=a[0]?a[0][1]:1;return a.length?a.map(([k,v])=>`<div style="margin-bottom:10px"><div class="row" style="border:0;padding:0"><span>${esc(k)}</span><b>${f(v)}</b></div><div class="barx" style="width:${Math.max(4,v/m*100)}%"></div></div>`).join(''):'<p class="mu">Sin datos en este período.</p>'};
 $('#top').innerHTML=bars(tp,v=>v+' u.');$('#bypay').innerHTML=bars(pp,fmt);
@@ -360,7 +366,7 @@ ${S.length?`<h2>Ventas por medio de pago</h2>${T(`<th>Medio de pago</th><th clas
 ${days.length>1?`<h2>Ventas por día</h2>${T(`<th>Fecha</th><th class='n'>Ventas</th><th class='n'>Total</th><th class='n'>% del total</th>`,days.map(([k,v])=>row(fD(k),v,mx(days))).join(''))}`:''}
 ${hasCl?`<h2>Ventas por cliente</h2>${T(`<th>Cliente</th><th class='n'>Ventas</th><th class='n'>Total</th><th class='n'>Ganancia</th><th class='n'>Rentabilidad</th>`,cls.map(([k,v])=>`<tr><td>${esc(k)}</td><td class='n'>${v.n}</td><td class='n'>${fmt(v.m)}</td><td class='n'>${fmt(v.m-v.c)}</td><td class='n'>${v.m?pc1((v.m-v.c)/v.m*100):'-'}</td></tr>`).join(''))}`:''}
 <h2>Detalle de ventas</h2>${T(`<th>N.º</th><th>Fecha</th><th>Detalle</th><th>Pago</th><th class='n'>Total</th>`,S.map(s=>`<tr><td>${String(s.id).padStart(6,'0')}</td><td>${new Date(s.date).toLocaleString('es-AR',{dateStyle:'short',timeStyle:'short'})}</td><td>${esc(s.items.map(i=>i.qty+' x '+i.name).join(', '))}</td><td>${esc(s.pay)}${s.cname?' · '+esc(s.cname):''}</td><td class='n'>${fmt(s.total)}</td></tr>`).join(''))}`:`<p style='font-size:14px;margin-top:20px'>No hay ventas en este período.</p>`}
-${D.length?`<h2>Desvíos a escuela</h2>${T(`<th>Fecha</th><th>Detalle</th><th class='n'>Costo</th>`,D.slice().sort((a,b)=>a.date>b.date?1:-1).map(v=>`<tr><td>${fD(ld(v.date))}</td><td>${esc(v.items.map(i=>i.qty+' x '+i.name).join(', '))}${v.dest||v.note?` <span style='color:#555'>(${[v.dest,v.note].filter(Boolean).map(esc).join(' · ')})</span>`:''}</td><td class='n'>${fmt(desvCost(v))}</td></tr>`).join('')+`<tr><td colspan='2'><b>Total desviado (a costo)</b></td><td class='n'><b>${fmt(dTot)}</b></td></tr>`)}`:''}
+${D.length?`<h2>Bajas de stock</h2>${T(`<th>Fecha</th><th>Detalle</th><th class='n'>Costo</th>`,D.slice().sort((a,b)=>a.date>b.date?1:-1).map(v=>`<tr><td>${fD(ld(v.date))}</td><td>${esc(v.items.map(i=>i.qty+' x '+i.name).join(', '))}${v.dest||v.note?` <span style='color:#555'>(${[v.dest,v.note].filter(Boolean).map(esc).join(' · ')})</span>`:''}</td><td class='n'>${fmt(desvCost(v))}</td></tr>`).join('')+`<tr><td colspan='2'><b>Total desviado (a costo)</b></td><td class='n'><b>${fmt(dTot)}</b></td></tr>`)}`:''}
 ${debts.length?`<h2>Deudas de clientes (al día de hoy)</h2>${T(`<th>Cliente</th><th>Teléfono</th><th class='n'>Deuda</th>`,debts.map(([c,dd])=>`<tr><td>${esc(c.name)}</td><td>${esc(c.phone||'-')}</td><td class='n'>${fmt(dd)}</td></tr>`).join('')+`<tr><td colspan='2'><b>Total adeudado</b></td><td class='n'><b>${fmt(debts.reduce((a,x)=>a+x[1],0))}</b></td></tr>`)}`:''}
 ${low.length||V.length?`<h2>Alertas de inventario (al día de hoy)</h2>`:''}
 ${low.length?`<div class='note' style='margin:0 0 4px'>Stock bajo o agotado</div>${T(`<th>Producto</th><th class='n'>Disponible</th><th class='n'>Mínimo</th>`,low.map(p=>`<tr><td>${esc(p.name)}</td><td class='n'>${avail(p)}</td><td class='n'>${p.min}</td></tr>`).join(''))}`:''}
@@ -436,32 +442,51 @@ else if(D.e){const c=cl$(+D.e);cEd=c.id;$('#cn').value=c.name;$('#cp').value=c.p
 else if(D.d){const id=+D.d;if(db.sales.some(s=>s.cid===id)||db.pays.some(p=>p.cid===id))return toast('No se puede eliminar: el cliente tiene movimientos registrados');
 if(!armed('c'+id))return;db.clients=db.clients.filter(c=>c.id!==id);if(clId===id)clId=null;if(cSel===id)cSel=null;arm='';save();draw();toast('Cliente eliminado')}};
 $('#cpay').onclick=()=>{const c=cl$(cSel);if(!c)return;const m=parseFloat($('#cm').value);if(!(m>0))return toast('Ingresá el monto cobrado');
-db.pays.push({id:db.payid++,date:new Date().toISOString(),cid:c.id,amount:Math.round(m*100)/100,method:$('#cmm').value,note:$('#cnn').value.trim()});save();$('#cm').value='';$('#cnn').value='';draw();toast('Pago registrado')};
+{const py={id:db.payid++,date:new Date().toISOString(),cid:c.id,amount:Math.round(m*100)/100,method:$('#cmm').value,note:$('#cnn').value.trim()};if(typeof CJ!=='undefined')CJ.tag(py);db.pays.push(py)}save();$('#cm').value='';$('#cnn').value='';draw();toast('Pago registrado')};
 $('#cmv').onclick=e=>{const b=e.target.closest('button');if(b&&b.dataset.g){if(!armed('g'+b.dataset.g))return;db.cargos=db.cargos.filter(x=>x.id!=b.dataset.g);arm='';save();draw();toast('Cargo anulado');return}if(!b||!armed('y'+b.dataset.p))return;db.pays=db.pays.filter(p=>p.id!=b.dataset.p);arm='';save();draw();toast('Pago anulado')};
 
-/* ===== Escuela: desvíos de mercadería (descuentan stock pero no son una venta) ===== */
-let eDraft=[],epId=null;
+/* ===== Baja de Stock (antes "Escuela"): salidas sin venta. Internamente se conservan la pestaña 'e', el permiso 'escuela' y db.desv. ===== */
+// Motivos: los fijos más los que agregue el negocio (db.cfg.motivosBaja). Con motivo "Vencimiento" se pueden dar de baja los lotes vencidos
+// (primero los vencidos y después el que vence antes); con los demás motivos solo el stock vendible, como antes.
+const BAJA_MOT=['Vencimiento','Retiro del local','Daños','Extravío','Otro'];
+const bajaMotivos=()=>[...BAJA_MOT.slice(0,-1),...((db.cfg.motivosBaja||[]).filter(m=>m&&!BAJA_MOT.includes(m))),'Otro'];
+const bajaVto=()=>$('#emo').value==='Vencimiento';
+const bajaDisp=p=>bajaVto()?tot(p):avail(p);
+function sellBaja(p,n){if(!bajaVto())return sell(p,n);const used=[];p.lots.slice().sort((a,b)=>(a.exp||'9')>(b.exp||'9')?1:-1).forEach(l=>{const u=Math.min(l.qty,n);l.qty-=u;n-=u;if(u>0)used.push({n:l.n,exp:l.exp,qty:u})});p.lots=p.lots.filter(l=>l.qty>0);return used}
+const bajaQuien=()=>AU.habilitado&&AU.usuario?(AU.usuario.nombre||AU.usuario.user):'Sin usuario';
+let eDraft=[],epId=null,eBusy=false;
 const epProd=()=>db.prods.find(x=>x.id===epId)||db.prods.find(x=>norm($('#ep').value.trim())&&norm(x.name)===norm($('#ep').value.trim()));
 function eSugg(){const q=norm($('#ep').value.trim()),g=$('#esg'),m=q?db.prods.filter(p=>norm(p.name).includes(q)||norm(p.code||'').includes(q)).slice(0,8):[];
-g.innerHTML=m.map(p=>`<div data-s='${p.id}'><b>${esc(p.name)}</b> <span class='mu'>· Disponible ${avail(p)}</span></div>`).join('');g.classList.toggle('hide',!m.length)}
+g.innerHTML=m.map(p=>`<div data-s='${p.id}'><b>${esc(p.name)}</b> <span class='mu'>· Disponible ${bajaDisp(p)}${tot(p)>avail(p)?' · vencido '+(tot(p)-avail(p)):''}</span></div>`).join('');g.classList.toggle('hide',!m.length)}
 function ePick(p){epId=p.id;$('#ep').value=p.name;$('#esg').classList.add('hide');$('#eq').focus()}
 $('#ep').oninput=()=>{epId=null;eSugg()};$('#ep').onfocus=eSugg;$('#ep').onblur=()=>setTimeout(()=>$('#esg').classList.add('hide'),150);
 $('#ep').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();const f=$('#esg').firstChild;if(!$('#esg').classList.contains('hide')&&f)ePick(db.prods.find(p=>p.id==f.dataset.s));else if(epProd())$('#eq').focus()}};
 $('#esg').onmousedown=e=>{const r=e.target.closest('[data-s]');if(r){e.preventDefault();ePick(db.prods.find(p=>p.id==r.dataset.s))}};
 $('#eq').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();$('#ea').click()}};
 $('#ea').onclick=()=>{const p=epProd(),q=parseInt($('#eq').value);if(!p)return toast('Elegí un producto de la lista');if(!(q>0))return toast('Ingresá la cantidad');
-const d=eDraft.find(x=>x.id===p.id);if((d?d.qty:0)+q>avail(p))return toast('Stock insuficiente: disponible '+avail(p));
+const d=eDraft.find(x=>x.id===p.id);if((d?d.qty:0)+q>bajaDisp(p))return toast('Stock insuficiente: disponible '+bajaDisp(p)+(!bajaVto()&&tot(p)>avail(p)?' (para dar de baja lotes vencidos elegí el motivo Vencimiento)':''));
 if(d)d.qty+=q;else eDraft.push({id:p.id,name:p.name,qty:q});$('#eq').value='';$('#ep').value='';epId=null;$('#esg').classList.add('hide');drawEsc();$('#ep').focus()};
 $('#et').onclick=e=>{const b=e.target.closest('button');if(b){eDraft.splice(+b.dataset.k,1);drawEsc()}};
-$('#eg').onclick=()=>{if(!eDraft.length)return;const fch=$('#edf').value||plus(0);if(fch>plus(0))return toast('La fecha del desvío no puede ser futura');for(const d of eDraft){const p=db.prods.find(x=>x.id===d.id);if(!p||avail(p)<d.qty)return toast('Stock insuficiente de '+d.name)}
-const items=eDraft.map(d=>{const p=db.prods.find(x=>x.id===d.id),lots=sell(p,d.qty);return{id:p.id,name:p.name,qty:d.qty,cost:p.cost||0,lots}});
-db.desv.push({id:db.did++,date:fch===plus(0)?new Date().toISOString():new Date(fch+'T12:00:00').toISOString(),note:$('#en').value.trim(),items});eDraft=[];$('#en').value='';$('#edf').value=plus(0);save();draw();toast('Desvío registrado el '+fD(fch)+': stock descontado')};
-$('#el').onclick=e=>{const b=e.target.closest('button');if(!b||!armed('v'+b.dataset.v))return;const v=db.desv.find(x=>x.id==b.dataset.v);
-v.items.forEach(i=>{const p=db.prods.find(x=>x.id==i.id);if(p)restore(p,i.lots,i.qty)});v.void=true;arm='';save();draw();toast('Desvío anulado y stock devuelto')};
-function drawEsc(){const fe=$('#edf');fe.max=plus(0);if(!fe.value)fe.value=plus(0);$('#et').innerHTML=eDraft.length?`<div class="wrap"><table><thead><tr><th>Producto</th><th>Cantidad</th><th></th></tr></thead><tbody>${eDraft.map((d,k)=>`<tr><td>${esc(d.name)}</td><td>${d.qty}</td><td><button class="btn del" data-k="${k}">Quitar</button></td></tr>`).join('')}</tbody></table></div>`:'<p class="mu">Agregá los productos que salen como desvío.</p>';
-$('#eg').disabled=!eDraft.length;const ok=db.desv.filter(v=>!v.void);
-$('#elp').innerHTML=`${ok.length} ${ok.length===1?'desvío registrado':'desvíos registrados'} · Costo total desviado: <b>${fmt(ok.reduce((a,v)=>a+desvCost(v),0))}</b>`;
-$('#el').innerHTML=db.desv.slice().sort((a,b)=>a.date<b.date?1:-1).slice(0,60).map(v=>`<tr style="${v.void?'opacity:.5':''}"><td><b>${fD(ld(v.date))}</b></td><td>${esc(v.items.map(i=>i.qty+' x '+i.name).join(', '))}${v.dest||v.note?`<br><span class="mu">${[v.dest,v.note].filter(Boolean).map(esc).join(' · ')}</span>`:''}</td><td class="n">${fmt(desvCost(v))}${v.void?' <span class="tag out">Anulado</span>':''}</td><td>${v.void?'':`<button class="btn del" data-v="${v.id}">${arm==='v'+v.id?'¿Seguro? Anular':'Anular'}</button>`}</td></tr>`).join('')||'<tr><td colspan="4" class="mu">Todavía no hay desvíos.</td></tr>'}
+$('#emo').onchange=()=>{eSugg();drawEsc()};
+$('#eg').onclick=()=>{if(!eDraft.length||eBusy)return;const fch=$('#edf').value||plus(0),mot=$('#emo').value,just=$('#ej').value.trim();if(fch>plus(0))return toast('La fecha de la baja no puede ser futura');
+if(!mot)return toast('Elegí el motivo de la baja');if(!just){$('#ej').focus();return toast('Escribí la justificación de la baja')}
+for(const d of eDraft){const p=db.prods.find(x=>x.id===d.id);if(!p||bajaDisp(p)<d.qty)return toast('Stock insuficiente de '+d.name)}
+eBusy=true;try{const items=eDraft.map(d=>{const p=db.prods.find(x=>x.id===d.id),lots=sellBaja(p,d.qty);return{id:p.id,name:p.name,code:p.code||'',qty:d.qty,cost:p.cost||0,lots}});
+db.desv.push({id:db.did++,date:fch===plus(0)?new Date().toISOString():new Date(fch+'T12:00:00').toISOString(),reason:mot,just:just.slice(0,300),user:bajaQuien(),reg:new Date().toISOString(),note:$('#en').value.trim(),items});eDraft=[];$('#en').value='';$('#ej').value='';$('#edf').value=plus(0);save();draw();toast('Baja registrada el '+fD(fch)+' ('+mot+'): stock descontado')}finally{eBusy=false}};
+$('#el').onclick=e=>{const b=e.target.closest('button');if(!b||!armed('v'+b.dataset.v))return;const v=db.desv.find(x=>x.id==b.dataset.v);if(!v||v.void)return;
+v.items.forEach(i=>{const p=db.prods.find(x=>x.id==i.id);if(p)restore(p,i.lots,i.qty)});v.void=true;v.voidBy=bajaQuien();v.voidAt=new Date().toISOString();arm='';save();draw();toast('Baja anulada y stock devuelto')};
+$('#g_mbs').onclick=()=>{if(!can('configuracion','editar'))return toast('Tu usuario no tiene permiso para esto');db.cfg.motivosBaja=[...new Set($('#g_mb').value.split(',').map(x=>x.trim().slice(0,40)).filter(x=>x&&!BAJA_MOT.includes(x)))];save();draw();toast('Motivos guardados')};
+['#efd','#efh','#efm','#efu'].forEach(x=>$(x).onchange=()=>drawEsc());$('#efp').oninput=()=>drawEsc();
+const bajaFiltro=()=>{const d=$('#efd').value,h=$('#efh').value,m=$('#efm').value,u=$('#efu').value,q=norm($('#efp').value.trim());
+return db.desv.filter(v=>(!d||ld(v.date)>=d)&&(!h||ld(v.date)<=h)&&(!m||(v.reason||'Sin motivo')===m)&&(!u||(v.user||'Sin registrar')===u)&&(!q||v.items.some(i=>norm(i.name+' '+(i.code||'')).includes(q))))};
+function drawEsc(){const fe=$('#edf');fe.max=plus(0);if(!fe.value)fe.value=plus(0);
+const mo=$('#emo'),cm=mo.value,M=bajaMotivos();if(mo.options.length!==M.length||[...mo.options].some((o,i)=>o.value!==M[i])){mo.innerHTML=M.map(x=>`<option>${esc(x)}</option>`).join('');mo.value=M.includes(cm)?cm:M[0]}
+const fm=$('#efm'),cf=fm.value,FM=[...new Set([...M,...db.desv.map(v=>v.reason||'Sin motivo')])];fm.innerHTML='<option value="">Todos</option>'+FM.map(x=>`<option>${esc(x)}</option>`).join('');fm.value=FM.includes(cf)?cf:'';
+const fu=$('#efu'),cu=fu.value,FU=[...new Set(db.desv.map(v=>v.user||'Sin registrar'))];fu.innerHTML='<option value="">Todos</option>'+FU.map(x=>`<option>${esc(x)}</option>`).join('');fu.value=FU.includes(cu)?cu:'';
+$('#et').innerHTML=eDraft.length?`<div class="wrap"><table><thead><tr><th>Producto</th><th>Cantidad</th><th></th></tr></thead><tbody>${eDraft.map((d,k)=>`<tr><td>${esc(d.name)}</td><td>${d.qty}</td><td><button class="btn del" data-k="${k}">Quitar</button></td></tr>`).join('')}</tbody></table></div>`:'<p class="mu">Agregá los productos que salen como baja.</p>';
+$('#eg').disabled=!eDraft.length;const L=bajaFiltro(),ok=L.filter(v=>!v.void),un=ok.reduce((a,v)=>a+v.items.reduce((b,i)=>b+i.qty,0),0);
+$('#elp').innerHTML=`${ok.length} ${ok.length===1?'baja registrada':'bajas registradas'} · ${un} unidades · Costo total: <b>${fmt(ok.reduce((a,v)=>a+desvCost(v),0))}</b>${ok.some(v=>v.items.some(i=>!i.cost))?' <span class="mu">(hay productos sin costo cargado: el valor es estimado)</span>':''}`;
+$('#el').innerHTML=L.slice().sort((a,b)=>a.date<b.date?1:-1).slice(0,60).map(v=>`<tr style="${v.void?'opacity:.5':''}"><td><b>${fD(ld(v.date))}</b>${v.reason?`<br><span class="tag low">${esc(v.reason)}</span>`:''}</td><td style="white-space:normal">${esc(v.items.map(i=>i.qty+' x '+i.name).join(', '))}${v.items.some(i=>(i.lots||[]).some(l=>l.n))?`<br><span class="mu">Lotes: ${esc(v.items.flatMap(i=>(i.lots||[]).map(l=>l.n+(l.exp?' (vto. '+fD(l.exp)+')':'')+' x'+l.qty)).join(', '))}</span>`:''}${v.just||v.dest||v.note||v.user?`<br><span class="mu">${[v.just,v.dest,v.note,v.user?'Responsable: '+v.user:''].filter(Boolean).map(esc).join(' · ')}</span>`:''}</td><td class="n">${fmt(desvCost(v))}${v.void?' <span class="tag out">Anulado</span>':''}</td><td>${v.void?'':`<button class="btn del" data-v="${v.id}">${arm==='v'+v.id?'¿Seguro? Anular':'Anular'}</button>`}</td></tr>`).join('')||'<tr><td colspan="4" class="mu">Todavía no hay bajas.</td></tr>'}
 
 /* ===== Carga rápida de productos: Enter pasa al campo siguiente, Ctrl+Enter guarda ===== */
 const FORM=['fc','fn','fp','fk','fm','fs','fl','fv'];
@@ -475,10 +500,12 @@ document.addEventListener('keydown',e=>{if(e.ctrlKey||e.altKey||e.metaKey)return
 if(e.key==='Enter'){const code=sb,rapido=now-sLast<=100;sb='';if(code.length>=4&&rapido){e.preventDefault();e.stopImmediatePropagation();
 const el=document.activeElement;if(el&&typeof el.value==='string'&&el.value.endsWith(code)){el.value=el.value.slice(0,el.value.length-code.length);el.dispatchEvent(new Event('input',{bubbles:true}))}onScan(code)}return}
 if(e.key.length===1){if(sb&&now-sLast>60)sb='';sb+=e.key;sLast=now}},true);
-function onScan(code){const p=db.prods.find(x=>String(x.code||'').trim().toLowerCase()===code.toLowerCase()),tab=tabActiva();
+let scanPrev={c:'',t:0};
+function onScan(code){const now=Date.now();if(code===scanPrev.c&&now-scanPrev.t<400)return;scanPrev={c:code,t:now};   // una misma lectura repetida por el lector no suma dos veces
+const p=db.prods.find(x=>String(x.code||'').trim().toLowerCase()===code.toLowerCase()),tab=tabActiva();
 if(tab==='p'){if(p&&editId&&p.id!==editId){beep(0);return toast('Ese código ya pertenece a '+p.name)}$('#fc').value=code;beep(1);if(p&&!editId){pick(p);toast('Producto existente: '+p.name+' · sumá el stock')}else{toast('Código leído: '+code+(editId?'':'. Completá nombre y precio'));if(!editId)$('#fn').focus()}return}
 if(!p){beep(0);return toast('Código '+code+' no encontrado entre los productos')}
-beep(1);if(tab==='v')add(p.id);else if(tab==='o')oPick(p);else if(tab==='e')ePick(p);else toast(p.name+' · stock '+tot(p)+' · '+fmt(p.price))}
+if(tab==='v'){if(noVendible(p))return;beep(1);return add(p.id)}beep(1);if(tab==='v')add(p.id);else if(tab==='o')oPick(p);else if(tab==='e')ePick(p);else toast(p.name+' · stock '+tot(p)+' · '+fmt(p.price))}
 
 /* ===== Acceso remoto y copia de seguridad (un solo archivo) ===== */
 async function drawRm(){if($('#r').classList.contains('hide'))return;const el=$('#rmi');['#rmt','#rmp','#rmc'].forEach(x=>$(x).classList.toggle('hide',!ED));$('#bx').classList.toggle('hide',KIND==='local');$('#rmq').innerHTML='';
@@ -490,7 +517,7 @@ $('#rmq').innerHTML=i.qr?`<img src="${i.qr}" width="150" height="150" alt="Códi
 $('#rmt').onclick=async()=>{const i=await sp.remote();await sp.setRemote({enabled:!i.enabled});drawRm()};
 $('#rmc').onclick=async()=>{const v=$('#rmp').value.trim();if(!/^[A-Za-z0-9]{4,12}$/.test(v))return toast('La clave debe tener entre 4 y 12 letras o números');await sp.setRemote({pin:v});$('#rmp').value='';toast('Clave cambiada: los dispositivos tendrán que ingresar de nuevo');drawRm()};
 $('#bx').onclick=async()=>{if(ED){const r=await sp.exportBackup();if(r&&r.ok)toast('Copia guardada en un solo archivo');else if(r&&r.err)toast('No se pudo guardar: '+r.err)}else location.href='/api/backup'};
-const MODS=[];
+const MODS=[];MODS.push(()=>{const i=$('#g_mb');if(i&&document.activeElement!==i)i.value=(db.cfg.motivosBaja||[]).join(', ')});
 // Solo se redibuja la pestaña que se está viendo; las otras se dibujan al abrirlas (el clic en la pestaña llama a draw()).
 const DRAWS={v:()=>{drawProds();drawCart()},i:()=>{drawInv();drawLots()},r:()=>{drawRep();drawBk();drawRm()},o:()=>drawOrd(),c:()=>drawCli(),e:()=>drawEsc()};
 const tabNow=()=>{const b=$$('nav button').find(b=>{const s=$('#'+b.dataset.t);return s&&!s.classList.contains('hide')});return b?b.dataset.t:'v'};
@@ -524,7 +551,7 @@ async function drawUsr(){
   if($('#u').classList.contains('hide'))return;
   $('#uact').classList.toggle('hide',AU.habilitado||!EDA);$('#uon').classList.toggle('hide',!AU.habilitado);if(!AU.habilitado)return;
   const me=AU.usuario;$('#u_me').innerHTML=`<b>${esc(me.nombre)}</b> (${esc(me.user)})<br>Rol: ${esc(ROLN[me.rol])}<br>Último ingreso previo: ${me.ultimoAcceso?new Date(me.ultimoAcceso).toLocaleString('es-AR'):'-'}`;
-  if(!$('#f_i').options.length){$('#f_i').innerHTML=Object.entries({v:'Ventas',i:'Inventario',p:'Productos',o:'Pedidos',c:'Clientes',e:'Escuela',r:'Reportes'}).filter(([t])=>can(MODT[t],'ver')).map(([t,n])=>`<option value="${t}">${n}</option>`).join('');$('#f_t').value=(me.prefs||{}).tema||'auto';$('#f_i').value=(me.prefs||{}).inicio||$('#f_i').options[0]&&$('#f_i').options[0].value}
+  if(!$('#f_i').options.length){$('#f_i').innerHTML=Object.entries({v:'Ventas',i:'Inventario',p:'Productos',o:'Pedidos',c:'Clientes',e:'Baja de Stock',r:'Reportes'}).filter(([t])=>can(MODT[t],'ver')).map(([t,n])=>`<option value="${t}">${n}</option>`).join('');$('#f_t').value=(me.prefs||{}).tema||'auto';$('#f_i').value=(me.prefs||{}).inicio||$('#f_i').options[0]&&$('#f_i').options[0].value}
   const ss=await call('misSesiones');$('#u_ses').innerHTML=(Array.isArray(ss)?ss:[]).map(x=>`<div class="row"><span>${esc(x.device||'Dispositivo')}${x.actual?' <span class="tag">Esta sesión</span>':''}</span><span class="mu">${new Date(x.visto).toLocaleString('es-AR',{dateStyle:'short',timeStyle:'short'})}</span></div>`).join('')||'<p class="mu">-</p>';
   const adm=can('usuarios','ver');$('#uadm').classList.toggle('hide',!adm);$('#uaud').classList.toggle('hide',!adm);if(!adm)return;
   if(!$('#n_r').options.length)$('#n_r').innerHTML=Object.entries(ROLN).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
@@ -618,7 +645,7 @@ CF.NECS={inventario:'Inventario físico',proveedores:'Proveedores y compras',fac
 CF.PAISES={AR:{n:'Argentina',mon:'ARS',loc:'es-AR',imp:'IVA',tasa:21,id:'CUIT'},ES:{n:'España',mon:'EUR',loc:'es-ES',imp:'IVA',tasa:21,id:'NIF'},MX:{n:'México',mon:'MXN',loc:'es-MX',imp:'IVA',tasa:16,id:'RFC'},CL:{n:'Chile',mon:'CLP',loc:'es-CL',imp:'IVA',tasa:19,id:'RUT'},UY:{n:'Uruguay',mon:'UYU',loc:'es-UY',imp:'IVA',tasa:22,id:'RUT'},CO:{n:'Colombia',mon:'COP',loc:'es-CO',imp:'IVA',tasa:19,id:'NIT'},PE:{n:'Perú',mon:'PEN',loc:'es-PE',imp:'IGV',tasa:18,id:'RUC'},BR:{n:'Brasil',mon:'BRL',loc:'pt-BR',imp:'ICMS',tasa:18,id:'CNPJ'},US:{n:'Estados Unidos',mon:'USD',loc:'en-US',imp:'Sales tax',tasa:0,id:'EIN'},OT:{n:'Otro país',mon:'USD',loc:'es-AR',imp:'Impuesto',tasa:0,id:'ID fiscal'}};
 CF.MONEDAS={ARS:'Peso argentino',USD:'Dólar estadounidense',EUR:'Euro',MXN:'Peso mexicano',CLP:'Peso chileno',UYU:'Peso uruguayo',COP:'Peso colombiano',PEN:'Sol peruano',BRL:'Real brasileño'};
 CF.WN={ventas:'Ventas de hoy',caja:'Dinero cobrado hoy',stock:'Stock bajo',vencer:'Productos por vencer',deudas:'Deuda de clientes',pedidos:'Pedidos abiertos',top:'Más vendidos',margen:'Ganancia del mes',tendencia:'Gráfico de ventas',cobros:'Cobros para recordar'};
-CF.NAVN={h:'Inicio',v:'Ventas',i:'Inventario',p:'Productos',o:'Pedidos',c:'Clientes',e:'Escuela',f:'Finanzas',r:'Reportes',a:'Analítica',g:'Configuración',u:'Usuarios'};
+CF.NAVN={h:'Inicio',v:'Ventas',i:'Inventario',p:'Productos',o:'Pedidos',c:'Clientes',e:'Baja de Stock',f:'Finanzas',r:'Reportes',a:'Analítica',g:'Configuración',u:'Usuarios'};
 // Perfil por tipo de comercio: orden del menú, widgets del Inicio, categorías de gastos y consejos.
 CF.PERFIL={
   minorista:{prim:['h','v','p','i','c','r'],menu:['h','v','p','i','c','o','f','r','a','e','g','u'],w:['ventas','caja','stock','top','tendencia','deudas','margen'],gastos:['Alquiler','Servicios','Sueldos','Impuestos','Mercadería','Publicidad','Mantenimiento','Otros']},
@@ -689,7 +716,7 @@ CF.abrirEncuesta=(forzar)=>{if($('#enc'))return;const e=CF.enc()||{};let paso=0;
   dibujar()};
 
 // ---------- Recorrido guiado y ayuda contextual ----------
-CF.HELP={h:'Es tu panel del día: ventas, caja, stock y deudas de un vistazo. Los cuadros que ves dependen de tu tipo de comercio y los podés elegir en Configuración > Negocio.',v:'Buscá o escaneá el producto, elegí el medio de pago y tocá Cobrar. Si vendés en cuenta corriente, elegí primero al cliente. Atajo: F9 cobra.',p:'Cargá productos con código, costo, precio y stock mínimo. Con el costo cargado el programa calcula tu ganancia real.',i:'Muestra el stock por lote y vencimiento. Los productos en rojo están por debajo del mínimo o vencidos.',o:'Armá pedidos a proveedores y registrá lo que recibís: el stock sube solo al recibir.',c:'Fichas de clientes con deuda, descuentos, historial de contactos, puntos y planes de pago.',e:'Registra mermas y desvíos del inventario para encontrar pérdidas.',f:'Movimientos de caja, cuentas a pagar, conciliación bancaria y cobros automáticos.',r:'Resumen de ventas por período, con exportación a PDF.',a:'Compará períodos, mirá tendencias y un pronóstico de ventas. Podés exportar a Excel (CSV) o imprimir.',g:'Datos del negocio, seguridad, importación de datos, integraciones, empresas y estado del sistema.',u:'Usuarios, roles, permisos y registro de actividad.'};
+CF.HELP={h:'Es tu panel del día: ventas, caja, stock y deudas de un vistazo. Los cuadros que ves dependen de tu tipo de comercio y los podés elegir en Configuración > Negocio.',v:'Buscá o escaneá el producto, elegí el medio de pago y tocá Cobrar. Si vendés en cuenta corriente, elegí primero al cliente. Atajo: F9 cobra.',p:'Cargá productos con código, costo, precio y stock mínimo. Con el costo cargado el programa calcula tu ganancia real.',i:'Muestra el stock por lote y vencimiento. Los productos en rojo están por debajo del mínimo o vencidos.',o:'Armá pedidos a proveedores y registrá lo que recibís: el stock sube solo al recibir.',c:'Fichas de clientes con deuda, descuentos, historial de contactos, puntos y planes de pago.',e:'Baja de Stock: registra salidas sin venta (vencimientos, daños, extravíos, retiros) con motivo y justificación, para encontrar pérdidas.',f:'Movimientos de caja, cuentas a pagar, conciliación bancaria y cobros automáticos.',r:'Resumen de ventas por período, con exportación a PDF.',a:'Compará períodos, mirá tendencias y un pronóstico de ventas. Podés exportar a Excel (CSV) o imprimir.',g:'Datos del negocio, seguridad, importación de datos, integraciones, empresas y estado del sistema.',u:'Usuarios, roles, permisos y registro de actividad.'};
 CF.tabActual=()=>{const b=$$('nav button').find(b=>$('#'+b.dataset.t)&&!$('#'+b.dataset.t).classList.contains('hide'));return b?b.dataset.t:'v'};
 $('#ayuda').onclick=()=>{if($('#ayu'))return;const t=CF.tabActual(),ov=document.createElement('div');ov.className='ov';ov.id='ayu';ov.innerHTML=`<div class="card"><h3>Ayuda: ${CF.NAVN[t]||''}</h3><p>${esc(CF.HELP[t]||'')}</p><p class="mu">Atajos: Alt+1, Alt+2… cambian de pantalla en el orden del menú · F9 cobra en Ventas.</p><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn sec" id="ay_t">Repetir el recorrido guiado</button><button class="btn" id="ay_x">Cerrar</button></div></div>`;document.body.appendChild(ov);$('#ay_x').onclick=()=>ov.remove();$('#ay_t').onclick=()=>{ov.remove();CF.tour()}};
 CF.tour=()=>{if($('#tour'))return;const pasos=$$('nav button:not(.hide)').map(b=>({el:b.closest('#masmenu')?$('#masb'):b,b,t:b.dataset.t})).filter(x=>CF.HELP[x.t]);let i=0;if(!pasos.length)return;
@@ -1244,6 +1271,120 @@ UPD.banner=e=>{let b=$('#updb');const ver=e&&e.fase==='lista'&&!UPD.oculto&&can(
 $('#g_x').addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;if(b.id==='up_i')UPD.instalar();if(b.id==='up_b'){b.disabled=true;await sp.upd.buscar();SY.render()}});
 $('#g_x').addEventListener('change',async e=>{if(e.target.id==='up_a'){const r=await sp.upd.auto(e.target.checked);if(r&&r.ok===false){toast(r.err);SY.render()}else toast(e.target.checked?'Va a buscar actualizaciones solo':'No va a buscar solo; podés hacerlo a mano')}});
 if(EDA&&sp.upd){sp.upd.alCambiar(e=>{UPD.est=e;UPD.banner(e);if(!$('#g').classList.contains('hide')&&CF.sub==='x')SY.render()});sp.upd.estado().then(UPD.banner)}
+</script>
+<script>
+// ===== Caja: apertura, movimientos, cierre por turno e historial (v3.0.0, fase 1) =====
+// Reglas:
+//  - Cada usuario abre su propia caja (sin usuarios activados hay una sola caja compartida).
+//  - Las ventas y los cobros de deudas quedan asociados a la caja abierta de quien los registra.
+//  - Dinero esperado = inicial + ventas en efectivo + cobros en efectivo + ingresos − egresos.
+//    Tarjeta, transferencia y cuenta corriente NO suman al efectivo de la caja.
+//  - Diferencia = contado − esperado (positiva: sobrante · negativa: faltante · cero: equilibrada).
+//  - Un cierre confirmado guarda una foto de los totales y no se puede editar.
+//  - En el programa instalado y en el acceso remoto se exige caja abierta para cobrar (Configuración puede desactivarlo).
+//    En la demo web es opcional (db.cfg.cajaObligatoria=true la exige).
+const CJ={};
+CJ.fix=()=>{db.cajas=db.cajas||[];db.cjid=db.cjid||1};
+CJ.yo=()=>AU.habilitado&&AU.usuario?{uid:AU.usuario.id,user:AU.usuario.nombre||AU.usuario.user}:{uid:0,user:'Sin usuario'};
+CJ.exige=()=>db.cfg.cajaObligatoria===true||(db.cfg.cajaObligatoria!==false&&KIND!=='local');
+CJ.abierta=()=>{CJ.fix();const y=CJ.yo();return db.cajas.find(c=>!c.cierre&&c.uid===y.uid)||null};
+CJ.r2=n=>Math.round((+n||0)*100)/100;
+CJ.EF='Efectivo';
+// Totales de una caja calculados con los movimientos reales (ventas anuladas no cuentan).
+CJ.calc=c=>{const S=db.sales.filter(s=>s.caja===c.id&&!s.void),P=db.pays.filter(p=>p.caja===c.id),M=c.movs||[];
+  const porMedio={};S.forEach(s=>{porMedio[s.pay]=CJ.r2((porMedio[s.pay]||0)+s.total)});
+  const vendido=CJ.r2(S.reduce((a,s)=>a+s.total,0)),efV=porMedio[CJ.EF]||0,efC=CJ.r2(P.filter(p=>p.method===CJ.EF).reduce((a,p)=>a+p.amount,0)),
+    cobros=CJ.r2(P.reduce((a,p)=>a+p.amount,0)),ing=CJ.r2(M.filter(m=>m.t==='ingreso').reduce((a,m)=>a+m.monto,0)),egr=CJ.r2(M.filter(m=>m.t==='egreso').reduce((a,m)=>a+m.monto,0));
+  return{ventas:S.length,vendido,porMedio,efVentas:efV,efCobros:efC,cobros,ingresos:ing,egresos:egr,esperado:CJ.r2(c.ini+efV+efC+ing-egr)}};
+CJ.dif=d=>Math.abs(d)<0.005?['','Equilibrada']:d>0?['low','Sobrante']:['out','Faltante'];
+CJ.abrir=(ini,nombre,nota)=>{CJ.fix();ini=CJ.r2(ini);if(!isFinite(ini)||ini<0)return{err:'Ingresá el dinero inicial (0 o más)'};if(CJ.abierta())return{err:'Ya tenés una caja abierta'};
+  const y=CJ.yo(),c={id:db.cjid++,uid:y.uid,user:y.user,caja:String(nombre||'').trim().slice(0,40)||'Caja 1',abre:new Date().toISOString(),ini,nota:String(nota||'').trim().slice(0,200),movs:[]};
+  db.cajas.push(c);save();return{ok:true,caja:c}};
+CJ.mov=(t,monto,motivo)=>{const c=CJ.abierta();if(!c)return{err:'No hay una caja abierta'};monto=CJ.r2(monto);if(!['ingreso','egreso'].includes(t))return{err:'Tipo de movimiento inválido'};
+  if(!(monto>0))return{err:'Ingresá un monto mayor a 0'};motivo=String(motivo||'').trim();if(!motivo)return{err:'Escribí el motivo del movimiento'};
+  if(t==='egreso'&&monto>CJ.calc(c).esperado+0.005)return{err:'No hay tanto efectivo en la caja (esperado '+fmt(CJ.calc(c).esperado)+')'};
+  c.movs.push({t,monto,motivo:motivo.slice(0,120),date:new Date().toISOString(),user:CJ.yo().user});save();return{ok:true}};
+CJ.cerrar=(contado,nota)=>{const c=CJ.abierta();if(!c)return{err:'No hay una caja abierta'};if(contado===''||contado==null)return{err:'Ingresá el dinero contado'};contado=CJ.r2(contado);
+  if(!isFinite(contado)||contado<0)return{err:'El dinero contado no puede ser negativo'};const k=CJ.calc(c),dif=CJ.r2(contado-k.esperado);nota=String(nota||'').trim();
+  if(Math.abs(dif)>=0.005&&!nota)return{err:'Hay una diferencia de '+fmt(dif)+': escribí una observación para explicarla'};
+  Object.assign(c,{cierre:new Date().toISOString(),contado,dif,notaCierre:nota.slice(0,300),tot:k,cerro:CJ.yo().user});save();return{ok:true,caja:c}};
+// Etiquetas que usa el resto del programa al registrar ventas y cobros.
+CJ.tag=o=>{const c=CJ.abierta();if(c)o.caja=c.id;return o};
+CJ.puedeVender=()=>!CJ.exige()||!!CJ.abierta();
+
+// ---------- Interfaz ----------
+$('#v').insertAdjacentHTML('afterbegin',`<div class="card" id="cjbar" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 14px"></div>`);
+CJ.ov=(html)=>{CJ.close();document.body.insertAdjacentHTML('beforeend',`<div class="ov" id="cjov" role="dialog" aria-modal="true"><div class="card">${html}</div></div>`);const o=$('#cjov');o.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();CJ.close()}});const f=o.querySelector('input');if(f)f.focus();return o};
+CJ.close=()=>{const o=$('#cjov');if(o)o.remove()};
+CJ.drawBar=()=>{const b=$('#cjbar');if(!b||$('#v').classList.contains('hide'))return;const c=CJ.abierta();
+  if(!c){b.innerHTML=`<span><b>Caja cerrada.</b> <span class="mu">${CJ.exige()?'Abrí la caja para poder cobrar.':'Podés abrir una caja para controlar el efectivo del turno.'}</span></span><span style="flex:1"></span><button class="btn" id="cj_ab">Abrir caja</button>`;return}
+  const k=CJ.calc(c);b.innerHTML=`<span><b>${esc(c.caja)}</b> abierta por ${esc(c.user)} · ${new Date(c.abre).toLocaleString('es-AR',{dateStyle:'short',timeStyle:'short'})}</span><span class="mu">Inicial ${fmt(c.ini)} · Efectivo esperado <b>${fmt(k.esperado)}</b> · Vendido ${fmt(k.vendido)}</span><span style="flex:1"></span><button class="btn sec" id="cj_mv">Ingreso / retiro</button><button class="btn sec" id="cj_ce">Cerrar caja</button>`};
+CJ.formAbrir=(msg)=>{CJ.ov(`<h3>Abrir caja</h3>${msg?`<p class="tip">${esc(msg)}</p>`:''}<div class="form"><div><label>Dinero inicial en efectivo</label><input id="cj_ini" type="number" min="0" step="0.01" value="0"></div><div><label>Caja o terminal</label><input id="cj_nom" placeholder="Caja 1"></div><div><label>Observaciones (opcional)</label><input id="cj_no"></div></div><p class="mu" style="margin:0 0 10px">Responsable: <b>${esc(CJ.yo().user)}</b></p><div style="display:flex;gap:8px"><button class="btn" id="cj_aok">Abrir caja</button><button class="btn sec" data-cjx="1">Cancelar</button></div>`);
+  $('#cj_aok').onclick=()=>{const r=CJ.abrir(parseFloat($('#cj_ini').value),$('#cj_nom').value,$('#cj_no').value);if(r.err)return toast(r.err);CJ.close();draw();toast('Caja abierta con '+fmt(r.caja.ini));const q=$('#q');if(q)q.focus()};
+  $('#cj_ini').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();$('#cj_aok').click()}}};
+CJ.formMov=()=>{CJ.ov(`<h3>Ingreso o retiro de efectivo</h3><div class="form"><div><label>Tipo</label><select id="cj_mt"><option value="egreso">Retiro (sale efectivo)</option><option value="ingreso">Ingreso (entra efectivo)</option></select></div><div><label>Monto</label><input id="cj_mm" type="number" min="0" step="0.01"></div><div><label>Motivo</label><input id="cj_mo" placeholder="Ej.: pago a proveedor, cambio"></div></div><div style="display:flex;gap:8px"><button class="btn" id="cj_mok">Registrar</button><button class="btn sec" data-cjx="1">Cancelar</button></div>`);
+  $('#cj_mok').onclick=()=>{const r=CJ.mov($('#cj_mt').value,parseFloat($('#cj_mm').value),$('#cj_mo').value);if(r.err)return toast(r.err);CJ.close();draw();toast('Movimiento registrado')}};
+CJ.formCerrar=(msg)=>{const c=CJ.abierta();if(!c)return;const k=CJ.calc(c),R=(a,b,x='')=>`<div class="row"><span>${a}</span><b ${x}>${b}</b></div>`;
+  CJ.ov(`<h3>Cerrar caja</h3>${msg?`<p class="tip">${esc(msg)}</p>`:''}<p class="mu" style="margin-top:0">${esc(c.caja)} · ${esc(c.user)} · desde ${new Date(c.abre).toLocaleString('es-AR',{dateStyle:'short',timeStyle:'short'})}</p>
+  ${R('Dinero inicial',fmt(c.ini))}${R('Ventas en efectivo',fmt(k.efVentas))}${R('Cobros de deudas en efectivo',fmt(k.efCobros))}${R('Ingresos',fmt(k.ingresos))}${R('Retiros','− '+fmt(k.egresos))}${R('Efectivo esperado',fmt(k.esperado),'style="font-size:18px"')}
+  <p class="mu" style="margin:10px 0 4px">Total vendido en el turno: <b>${fmt(k.vendido)}</b> (${k.ventas} ventas)${Object.keys(k.porMedio).length?' · '+Object.entries(k.porMedio).map(([m,v])=>esc(m)+' '+fmt(v)).join(' · '):''}. Lo cobrado con tarjeta, transferencia o en cuenta corriente no está en la caja.</p>
+  <div class="form"><div><label>Dinero contado</label><input id="cj_ct" type="number" min="0" step="0.01"></div><div><label>Observaciones</label><input id="cj_cn" placeholder="Obligatorio si hay diferencia"></div></div><div id="cj_df" style="font-weight:700;margin-bottom:10px"></div>
+  <div style="display:flex;gap:8px"><button class="btn" id="cj_cok">Confirmar cierre</button><button class="btn sec" data-cjx="1">Cancelar</button></div>`);
+  $('#cj_ct').oninput=()=>{const v=$('#cj_ct').value;if(v===''){$('#cj_df').textContent='';return}const d=CJ.r2(parseFloat(v)-k.esperado),[,t]=CJ.dif(d);$('#cj_df').innerHTML=`Diferencia: <span style="color:var(--${Math.abs(d)<0.005?'ok':d>0?'warn':'bad'})">${fmt(d)} · ${t}</span>`};
+  $('#cj_cok').onclick=()=>{const r=CJ.cerrar($('#cj_ct').value===''?null:parseFloat($('#cj_ct').value),$('#cj_cn').value);if(r.err)return toast(r.err);CJ.close();draw();const[,t]=CJ.dif(r.caja.dif);toast('Caja cerrada · '+t+(Math.abs(r.caja.dif)>=0.005?' '+fmt(r.caja.dif):''))}};
+document.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;
+  if(t.id==='cj_ab')CJ.formAbrir();else if(t.id==='cj_mv')CJ.formMov();else if(t.id==='cj_ce')CJ.formCerrar();else if(t.dataset.cjx)CJ.close()});
+// Al cerrar sesión con la caja abierta: se pide el cierre (no se cierra sola ni se inventan valores).
+document.addEventListener('click',e=>{if(!e.target.closest('#salir'))return;if(CJ.abierta()){e.stopImmediatePropagation();e.preventDefault();CJ.formCerrar('Tenés la caja abierta. Cerrala antes de salir (contá el efectivo).')}},true);
+
+// ---------- Historial de cajas (Más > Caja) ----------
+$('main').insertAdjacentHTML('beforeend',`<section id="k" class="hide"><div class="card"><div class="lh"><h3>Historial de cajas</h3></div><div class="form"><div><label>Empleado</label><select id="kh_u"></select></div><div><label>Desde</label><input id="kh_d" type="date"></div><div><label>Hasta</label><input id="kh_h" type="date"></div><div><label>Estado</label><select id="kh_e"><option value="">Todas</option><option value="a">Abiertas</option><option value="c">Cerradas</option><option value="d">Con diferencia</option></select></div></div><p id="kh_s" class="mu" style="margin:0 0 8px"></p><div class="wrap"><table><thead><tr><th>Empleado</th><th>Caja</th><th>Apertura</th><th>Cierre</th><th class="n">Inicial</th><th class="n">Esperado</th><th class="n">Contado</th><th class="n">Diferencia</th><th class="n">Vendido</th><th>Por medio de pago</th><th>Observaciones</th></tr></thead><tbody id="kh_l"></tbody></table></div></div></section>`);
+$('#masmenu').insertAdjacentHTML('beforeend','<button data-t="k">Caja</button>');
+{const b=$('#masmenu button[data-t="k"]');b.onclick=()=>{$$('nav button').forEach(x=>x.classList.toggle('on',x===b));$$('nav button').map(x=>x.dataset.t).forEach(s=>$('#'+s)&&$('#'+s).classList.toggle('hide',s!=='k'));$('#masmenu').classList.add('hide');masRefresh();draw()}}
+MODT.k='reporte';if(typeof CF!=='undefined'&&CF.NAVN)CF.NAVN.k='Caja';
+{const r0=relevante;relevante=t=>t==='k'?true:r0(t)}
+CJ.drawHist=()=>{if($('#k').classList.contains('hide'))return;CJ.fix();const su=$('#kh_u'),cu=su.value,us=[...new Set(db.cajas.map(c=>c.user))];su.innerHTML='<option value="">Todos</option>'+us.map(u=>`<option>${esc(u)}</option>`).join('');su.value=us.includes(cu)?cu:'';
+  const d=$('#kh_d').value,h=$('#kh_h').value,e=$('#kh_e').value;
+  const L=db.cajas.filter(c=>(!su.value||c.user===su.value)&&(!d||UT.dk(c.abre)>=d)&&(!h||UT.dk(c.abre)<=h)&&(!e||(e==='a'?!c.cierre:e==='c'?!!c.cierre:!!c.cierre&&Math.abs(c.dif)>=0.005))).sort((a,b)=>a.abre<b.abre?1:-1);
+  const F=x=>new Date(x).toLocaleString('es-AR',{dateStyle:'short',timeStyle:'short'}),cerr=L.filter(c=>c.cierre);
+  $('#kh_s').innerHTML=`${L.length} ${L.length===1?'caja':'cajas'} · Diferencia acumulada de las cerradas: <b>${fmt(cerr.reduce((a,c)=>a+c.dif,0))}</b>`;
+  $('#kh_l').innerHTML=L.map(c=>{const k=c.cierre?c.tot:CJ.calc(c),[cl,t]=c.cierre?CJ.dif(c.dif):['','Abierta'];
+    return `<tr><td>${esc(c.user)}</td><td>${esc(c.caja)}</td><td>${F(c.abre)}</td><td>${c.cierre?F(c.cierre)+(c.cerro&&c.cerro!==c.user?'<br><span class="mu">por '+esc(c.cerro)+'</span>':''):'<span class="tag low">Abierta</span>'}</td><td class="n">${fmt(c.ini)}</td><td class="n">${fmt(k.esperado)}</td><td class="n">${c.cierre?fmt(c.contado):'-'}</td><td class="n">${c.cierre?`${fmt(c.dif)} <span class="tag ${cl}">${t}</span>`:'-'}</td><td class="n">${fmt(k.vendido)}</td><td style="white-space:normal">${Object.entries(k.porMedio).map(([m,v])=>esc(m)+': '+fmt(v)).join('<br>')||'-'}</td><td style="white-space:normal">${[c.nota,c.notaCierre].filter(Boolean).map(esc).join(' · ')||'-'}${(c.movs||[]).length?`<br><span class="mu">${c.movs.map(m=>(m.t==='egreso'?'Retiro ':'Ingreso ')+fmt(m.monto)+' ('+esc(m.motivo)+')').join(' · ')}</span>`:''}</td></tr>`}).join('')||'<tr><td colspan="11" class="mu">Todavía no hay cajas registradas.</td></tr>'};
+['#kh_u','#kh_d','#kh_h','#kh_e'].forEach(s=>$(s).onchange=CJ.drawHist);
+MODS.push(()=>{CJ.fix();CJ.drawBar();CJ.drawHist()});
+// Configuración > Mi negocio: exigir caja abierta para cobrar.
+{const n=$('[data-sub="n"]');if(n){n.insertAdjacentHTML('beforeend',`<details class="card"><summary>Caja</summary><label class="opt"><input type="checkbox" id="cj_req"> Exigir una caja abierta para cobrar ventas</label><p class="mu" style="margin:4px 0 0">Recomendado: cada empleado abre su caja con el dinero inicial y la cierra contando el efectivo al terminar el turno.</p></details>`);
+  $('#cj_req').onchange=()=>{if(!can('configuracion','editar')){$('#cj_req').checked=CJ.exige();return toast('Tu usuario no tiene permiso para esto')}db.cfg.cajaObligatoria=$('#cj_req').checked;save();draw();toast($('#cj_req').checked?'Se exige caja abierta para cobrar':'Ya no se exige caja abierta')};
+  MODS.push(()=>{const c=$('#cj_req');if(c)c.checked=CJ.exige()})}}
+</script>
+<script>
+// ===== Atajos de teclado de Ventas (v3.0.0, fase 1) =====
+// F2 buscar/escanear · F4 efectivo · F5 tarjeta · F6 transferencia · F7 cuenta corriente · F8 cobrar (pide confirmación) · Esc cancelar.
+// F8 nunca registra la venta solo: abre una confirmación que se acepta con Enter o con el botón. Los atajos no actúan
+// si hay otra ventana abierta (caja, vista previa) y solo cambian el medio de pago estando en Ventas.
+const AT={};
+AT.MAP={F4:'Efectivo',F5:'Tarjeta de débito',F6:'Transferencia',F7:'Cuenta corriente'};
+AT.modal=()=>!!($('#cjov')||$('#atov')||($('#pv')&&!$('#pv').classList.contains('hide'))||$('#tour'));
+AT.enVentas=()=>!$('#v').classList.contains('hide');
+AT.medio=m=>{const s=$('#pay'),o=[...s.options].find(x=>x.value===m||x.textContent===m);if(!o||o.disabled||o.hidden){toast(m==='Cuenta corriente'?'Para vender en cuenta corriente elegí primero un cliente':'Medio de pago no disponible');return false}s.value=o.value;s.dispatchEvent(new Event('change',{bubbles:true}));toast('Medio de pago: '+o.textContent);return true};
+AT.cerrar=()=>{const o=$('#atov');if(o)o.remove()};
+AT.confirmar=()=>{if(!Object.keys(cart).length)return toast('No hay productos en la venta');if($('#cobrar').disabled)return;
+  if(typeof CJ!=='undefined'&&!CJ.puedeVender())return $('#cobrar').click();   // muestra la apertura de caja
+  const pay=$('#pay').value,t=cartTotal(),c=cl$(clId),r=parseFloat($('#rec').value)||0;
+  document.body.insertAdjacentHTML('beforeend',`<div class="ov" id="atov" role="dialog" aria-modal="true"><div class="card"><h3>¿Cobrar esta venta?</h3><div class="tot">${fmt(t)}</div><p>Medio de pago: <b>${esc(pay)}</b>${c?' · Cliente: <b>'+esc(c.name)+'</b>':''}${pay==='Efectivo'&&r>0?' · Recibido '+fmt(r)+(r>=t?' · Vuelto '+fmt(r-t):''):''}</p><div style="display:flex;gap:8px"><button class="btn" id="at_ok" style="flex:1">Cobrar (Enter)</button><button class="btn sec" id="at_x">Cancelar (Esc)</button></div></div></div>`);
+  $('#at_ok').onclick=()=>{AT.cerrar();$('#cobrar').click();const q=$('#q');if(q)q.focus()};$('#at_x').onclick=AT.cerrar;$('#at_ok').focus()};
+document.addEventListener('keydown',e=>{
+  const o=$('#atov');if(o){if(e.key==='Escape'){e.preventDefault();e.stopPropagation();AT.cerrar()}else if(e.key==='Enter'&&e.target.id!=='at_x'){e.preventDefault();e.stopPropagation();$('#at_ok').click()}return}
+  if(e.ctrlKey||e.altKey||e.metaKey||!/^F([2-8])$/.test(e.key))return;
+  if(AT.modal())return;e.preventDefault();
+  if(e.key==='F2'){if(!AT.enVentas()){const b=$('nav button[data-t="v"]');if(!b||b.classList.contains('hide'))return;b.click()}const q=$('#q');q.focus();q.select();return}
+  if(!AT.enVentas())return;
+  if(AT.MAP[e.key])return AT.medio(AT.MAP[e.key]);
+  if(e.key==='F8')AT.confirmar()},true);
+// Esc en el buscador de Ventas: borra la búsqueda.
+$('#q').addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#q').value){$('#q').value='';drawProds()}});
+// Ayuda visible en la pantalla de Ventas.
+$('#cobrar').parentElement.insertAdjacentHTML('afterend','<p class="mu" id="athelp" style="margin:8px 0 0;font-size:12px">Atajos: <b>F2</b> buscar · <b>F4</b> efectivo · <b>F5</b> tarjeta · <b>F6</b> transferencia · <b>F7</b> cuenta corriente · <b>F8</b> cobrar · <b>Esc</b> cancelar</p>');
 </script>
 <script>
 // ===== Movilidad: trabajo sin conexión con sincronización =====
