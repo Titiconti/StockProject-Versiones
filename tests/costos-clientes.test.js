@@ -50,7 +50,8 @@ const assert = require('assert'), { web } = require('./helpers');
   assert(!$('#cdet').classList.contains('hide') && $('#cm').value === '5040.00', 'monto sugerido = deuda');
   $('#cm').value = '2000'; $('#cmm').value = 'Transferencia'; $('#cnn').value = 'adelanto'; click('#cpay');
   assert.strictEqual(w.eval('debtOf(1)'), 3040); assert(/Pago \(Transferencia\) · adelanto/.test(txt('#cmv'))); assert(txt('#cmv').includes(f(3040)), 'saldo corrido');
-  $('#cm').value = '4000'; click('#cpay'); assert.strictEqual(w.eval('debtOf(1)'), -960); assert(/A favor/.test(txt('#cli')), 'saldo a favor');
+  $('#cm').value = '4000'; click('#cpay'); assert(/supera la deuda/.test($('#toast').textContent), 'v3: pagar de más pide confirmación'); assert.strictEqual(db().pays.length, 1);
+  click('#cpay'); assert.strictEqual(w.eval('debtOf(1)'), -960); assert(/A favor/.test(txt('#cli')), 'saldo a favor');
   $('#cm').value = '0'; click('#cpay'); assert(/monto/i.test($('#toast').textContent)); assert.strictEqual(db().pays.length, 2);
   const del = () => [...w.document.querySelectorAll('#cmv [data-p]')][0]; click(del()); assert.strictEqual(db().pays.length, 2, 'anular pide confirmación'); click(del()); assert.strictEqual(db().pays.length, 1); assert.strictEqual(w.eval('debtOf(1)'), 3040);
 
