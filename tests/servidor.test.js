@@ -82,10 +82,14 @@ const INDEX = path.join(__dirname, '..', 'index.html');
 
   // modo "solo servidor" (sin pantalla)
   const datos = path.join(base, 'cli');
-  const p = spawn(process.execPath, [path.join(__dirname, '..', 'servidor-cli.js'), '--datos', datos, '--puerto', '3470', '--clave', 'cli12345'], { stdio: ['ignore', 'pipe', 'pipe'] });
+  // servidor-cli usa os.homedir() para buscar respaldos en la nube: con el home real leería (y escribiría) los respaldos del usuario
+  const casa = path.join(base, 'casa'); fs.mkdirSync(casa, { recursive: true });
+  const p = spawn(process.execPath, [path.join(__dirname, '..', 'servidor-cli.js'), '--datos', datos, '--puerto', '3470', '--clave', 'cli12345'], { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, USERPROFILE: casa, HOME: casa } });
   let out = ''; p.stdout.on('data', d => out += d); p.stderr.on('data', d => out += d);
   for (let k = 0; k < 40 && !/Clave de acceso/.test(out); k++) await new Promise(r => setTimeout(r, 100));
   assert(/Clave de acceso: cli12345/.test(out), out);
+  await new Promise(r => setTimeout(r, 300));
+  assert(!fs.existsSync(path.join(datos, 'stockproject-data.json')) || !JSON.parse(fs.readFileSync(path.join(datos, 'stockproject-data.json'), 'utf8')).prods.length, 'el modo servidor de prueba no debe recuperar datos reales');
   const m = out.match(/localhost:(\d+)|:(\d{4,5})/); const puerto = (m && (m[1] || m[2])) || '3470';
   r = await fetch('http://127.0.0.1:' + puerto + '/api/login', { method: 'POST', body: JSON.stringify({ pin: 'cli12345' }) }); assert.strictEqual(r.status, 200, 'el modo servidor responde');
   p.kill();
