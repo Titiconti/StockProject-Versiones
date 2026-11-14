@@ -222,7 +222,10 @@ function add(id){const p=db.prods.find(x=>x.id==id);if((cart[id]||0)>=avail(p))r
 $('#prods').onclick=e=>{const b=e.target.closest('.p');if(b)add(b.dataset.id)};
 {const dp=deb(drawProds,150);$('#q').oninput=()=>db.prods.length>300?dp():drawProds()}
 {const di=deb(drawInv,150),dc=deb(drawCli,150);$('#iq').oninput=()=>db.prods.length>300?di():drawInv();$('#cbus').oninput=()=>db.clients.length>300?dc():drawCli()}
-$('#q').onkeydown=e=>{if(e.key!=='Enter')return;const q=e.target.value.trim().toLowerCase(),p=db.prods.find(p=>String(p.code||'').toLowerCase()===q&&avail(p)>0)||db.prods.find(p=>(p.name+p.code).toLowerCase().includes(q)&&avail(p)>0);if(p){add(p.id);e.target.value='';drawProds()}};
+$('#q').onkeydown=e=>{if(e.key!=='Enter')return;const q=e.target.value.trim().toLowerCase();if(!q)return;const ex=db.prods.find(p=>String(p.code||'').trim().toLowerCase()===q);if(ex){if(noVendible(ex))return;add(ex.id);e.target.value='';drawProds();return}
+const p=db.prods.find(p=>(p.name+p.code).toLowerCase().includes(q)&&avail(p)>0);if(p){add(p.id);e.target.value='';drawProds()}};
+// Explica por qué un producto no se puede vender (sin stock o con todos sus lotes vencidos). Devuelve true si no se puede.
+function noVendible(p){if(avail(p)>0)return false;beep(0);toast(tot(p)>0?p.name+': todos sus lotes están vencidos, no se puede vender. Dalo de baja en Baja de Stock (motivo Vencimiento).':p.name+': sin stock');return true}
 function cl$(id){return db.clients.find(c=>c.id===id)}
 function cdisc(){const c=cl$(clId);return c?(c.disc||0):0}
 function up(p){return Math.round(p.price*(100-cdisc()))/100}   // precio unitario con el descuento del cliente
@@ -246,6 +249,8 @@ $('#cart').onclick=e=>{const b=e.target.closest('button');if(!b)return;const id=
 if(b.dataset.a==='+')add(id);else{if(--cart[id]<=0)delete cart[id];drawCart()}};
 $('#vaciar').onclick=()=>{cart={};$('#rec').value='';drawCart()};
 $('#cobrar').onclick=()=>{const pay=$('#pay').value;if(typeof CJ!=='undefined'&&!CJ.puedeVender()){CJ.formAbrir('Para cobrar tiene que haber una caja abierta.');return toast('Abrí la caja antes de cobrar')}if(pay==='Cuenta corriente'&&!cl$(clId))return toast('Elegí un cliente para vender en cuenta corriente');
+for(const id of Object.keys(cart)){const p=db.prods.find(x=>x.id==id);if(!p||!(cart[id]>0)||cart[id]>avail(p)){const n=p?p.name:'un producto';cleanCart();drawCart();drawProds();return toast('Cambió el stock vendible de '+n+' (sin stock o lote vencido): revisá la venta antes de cobrar')}}   // nunca se registra una venta con un descuento de stock incompleto
+
 const c=cl$(clId),dsc=cdisc(),total=cartTotal(),items=Object.keys(cart).map(id=>{const p=db.prods.find(x=>x.id==id);const lots=sell(p,cart[id]);return{id:p.id,name:p.name,qty:cart[id],price:up(p),lp:p.price,cost:p.cost||0,lots}});
 const sale={id:db.sid++,date:new Date().toISOString(),items,total,pay};if(c){sale.cid=c.id;sale.cname=c.name;sale.disc=dsc}if(typeof CJ!=='undefined')CJ.tag(sale);
 db.sales.push(sale);save();cart={};$('#rec').value='';clId=null;$('#cl').value='';
@@ -495,10 +500,12 @@ document.addEventListener('keydown',e=>{if(e.ctrlKey||e.altKey||e.metaKey)return
 if(e.key==='Enter'){const code=sb,rapido=now-sLast<=100;sb='';if(code.length>=4&&rapido){e.preventDefault();e.stopImmediatePropagation();
 const el=document.activeElement;if(el&&typeof el.value==='string'&&el.value.endsWith(code)){el.value=el.value.slice(0,el.value.length-code.length);el.dispatchEvent(new Event('input',{bubbles:true}))}onScan(code)}return}
 if(e.key.length===1){if(sb&&now-sLast>60)sb='';sb+=e.key;sLast=now}},true);
-function onScan(code){const p=db.prods.find(x=>String(x.code||'').trim().toLowerCase()===code.toLowerCase()),tab=tabActiva();
+let scanPrev={c:'',t:0};
+function onScan(code){const now=Date.now();if(code===scanPrev.c&&now-scanPrev.t<400)return;scanPrev={c:code,t:now};   // una misma lectura repetida por el lector no suma dos veces
+const p=db.prods.find(x=>String(x.code||'').trim().toLowerCase()===code.toLowerCase()),tab=tabActiva();
 if(tab==='p'){if(p&&editId&&p.id!==editId){beep(0);return toast('Ese código ya pertenece a '+p.name)}$('#fc').value=code;beep(1);if(p&&!editId){pick(p);toast('Producto existente: '+p.name+' · sumá el stock')}else{toast('Código leído: '+code+(editId?'':'. Completá nombre y precio'));if(!editId)$('#fn').focus()}return}
 if(!p){beep(0);return toast('Código '+code+' no encontrado entre los productos')}
-beep(1);if(tab==='v')add(p.id);else if(tab==='o')oPick(p);else if(tab==='e')ePick(p);else toast(p.name+' · stock '+tot(p)+' · '+fmt(p.price))}
+if(tab==='v'){if(noVendible(p))return;beep(1);return add(p.id)}beep(1);if(tab==='v')add(p.id);else if(tab==='o')oPick(p);else if(tab==='e')ePick(p);else toast(p.name+' · stock '+tot(p)+' · '+fmt(p.price))}
 
 /* ===== Acceso remoto y copia de seguridad (un solo archivo) ===== */
 async function drawRm(){if($('#r').classList.contains('hide'))return;const el=$('#rmi');['#rmt','#rmp','#rmc'].forEach(x=>$(x).classList.toggle('hide',!ED));$('#bx').classList.toggle('hide',KIND==='local');$('#rmq').innerHTML='';
@@ -1349,6 +1356,35 @@ MODS.push(()=>{CJ.fix();CJ.drawBar();CJ.drawHist()});
 {const n=$('[data-sub="n"]');if(n){n.insertAdjacentHTML('beforeend',`<details class="card"><summary>Caja</summary><label class="opt"><input type="checkbox" id="cj_req"> Exigir una caja abierta para cobrar ventas</label><p class="mu" style="margin:4px 0 0">Recomendado: cada empleado abre su caja con el dinero inicial y la cierra contando el efectivo al terminar el turno.</p></details>`);
   $('#cj_req').onchange=()=>{if(!can('configuracion','editar')){$('#cj_req').checked=CJ.exige();return toast('Tu usuario no tiene permiso para esto')}db.cfg.cajaObligatoria=$('#cj_req').checked;save();draw();toast($('#cj_req').checked?'Se exige caja abierta para cobrar':'Ya no se exige caja abierta')};
   MODS.push(()=>{const c=$('#cj_req');if(c)c.checked=CJ.exige()})}}
+</script>
+<script>
+// ===== Atajos de teclado de Ventas (v3.0.0, fase 1) =====
+// F2 buscar/escanear · F4 efectivo · F5 tarjeta · F6 transferencia · F7 cuenta corriente · F8 cobrar (pide confirmación) · Esc cancelar.
+// F8 nunca registra la venta solo: abre una confirmación que se acepta con Enter o con el botón. Los atajos no actúan
+// si hay otra ventana abierta (caja, vista previa) y solo cambian el medio de pago estando en Ventas.
+const AT={};
+AT.MAP={F4:'Efectivo',F5:'Tarjeta de débito',F6:'Transferencia',F7:'Cuenta corriente'};
+AT.modal=()=>!!($('#cjov')||$('#atov')||($('#pv')&&!$('#pv').classList.contains('hide'))||$('#tour'));
+AT.enVentas=()=>!$('#v').classList.contains('hide');
+AT.medio=m=>{const s=$('#pay'),o=[...s.options].find(x=>x.value===m||x.textContent===m);if(!o||o.disabled||o.hidden){toast(m==='Cuenta corriente'?'Para vender en cuenta corriente elegí primero un cliente':'Medio de pago no disponible');return false}s.value=o.value;s.dispatchEvent(new Event('change',{bubbles:true}));toast('Medio de pago: '+o.textContent);return true};
+AT.cerrar=()=>{const o=$('#atov');if(o)o.remove()};
+AT.confirmar=()=>{if(!Object.keys(cart).length)return toast('No hay productos en la venta');if($('#cobrar').disabled)return;
+  if(typeof CJ!=='undefined'&&!CJ.puedeVender())return $('#cobrar').click();   // muestra la apertura de caja
+  const pay=$('#pay').value,t=cartTotal(),c=cl$(clId),r=parseFloat($('#rec').value)||0;
+  document.body.insertAdjacentHTML('beforeend',`<div class="ov" id="atov" role="dialog" aria-modal="true"><div class="card"><h3>¿Cobrar esta venta?</h3><div class="tot">${fmt(t)}</div><p>Medio de pago: <b>${esc(pay)}</b>${c?' · Cliente: <b>'+esc(c.name)+'</b>':''}${pay==='Efectivo'&&r>0?' · Recibido '+fmt(r)+(r>=t?' · Vuelto '+fmt(r-t):''):''}</p><div style="display:flex;gap:8px"><button class="btn" id="at_ok" style="flex:1">Cobrar (Enter)</button><button class="btn sec" id="at_x">Cancelar (Esc)</button></div></div></div>`);
+  $('#at_ok').onclick=()=>{AT.cerrar();$('#cobrar').click();const q=$('#q');if(q)q.focus()};$('#at_x').onclick=AT.cerrar;$('#at_ok').focus()};
+document.addEventListener('keydown',e=>{
+  const o=$('#atov');if(o){if(e.key==='Escape'){e.preventDefault();e.stopPropagation();AT.cerrar()}else if(e.key==='Enter'&&e.target.id!=='at_x'){e.preventDefault();e.stopPropagation();$('#at_ok').click()}return}
+  if(e.ctrlKey||e.altKey||e.metaKey||!/^F([2-8])$/.test(e.key))return;
+  if(AT.modal())return;e.preventDefault();
+  if(e.key==='F2'){if(!AT.enVentas()){const b=$('nav button[data-t="v"]');if(!b||b.classList.contains('hide'))return;b.click()}const q=$('#q');q.focus();q.select();return}
+  if(!AT.enVentas())return;
+  if(AT.MAP[e.key])return AT.medio(AT.MAP[e.key]);
+  if(e.key==='F8')AT.confirmar()},true);
+// Esc en el buscador de Ventas: borra la búsqueda.
+$('#q').addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#q').value){$('#q').value='';drawProds()}});
+// Ayuda visible en la pantalla de Ventas.
+$('#cobrar').parentElement.insertAdjacentHTML('afterend','<p class="mu" id="athelp" style="margin:8px 0 0;font-size:12px">Atajos: <b>F2</b> buscar · <b>F4</b> efectivo · <b>F5</b> tarjeta · <b>F6</b> transferencia · <b>F7</b> cuenta corriente · <b>F8</b> cobrar · <b>Esc</b> cancelar</p>');
 </script>
 <script>
 // ===== Movilidad: trabajo sin conexión con sincronización =====
