@@ -6,6 +6,8 @@ function escritorio(resultado = { ok: true }) {
       now: async () => ({}), choose: async () => ({}), restore: async () => true, print: async () => ({ ok: true }), remote: async () => ({ running: false, urls: [], pin: '123456' }),
       pdf: async (h, n) => { llamadas.push([h, n]); return resultado; } };
   } });
+  // Estas pruebas no son de caja: se desactiva la exigencia de caja abierta (ver tests/caja.test.js).
+  dom.window.eval('db.cfg.cajaObligatoria=false');
   return { A: api(dom.window), llamadas };
 }
 const texto = h => h.replace(/<[^>]+>/g, ' ').replace(/&nbsp;|\u00a0/g, ' ').replace(/\s+/g, ' ');

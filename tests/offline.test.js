@@ -16,7 +16,7 @@ function celular(servidor) {
 }
 (async () => {
   const hoy = new Date().toLocaleDateString('sv-SE');
-  const S = { rev: 1, caido: false, puts: [], db: { prods: [{ id: 1, name: 'Agua', code: '1', price: 100, cost: 50, min: 0, lots: [{ id: 1, n: 'A', qty: 10, exp: '' }] }], clients: [{ id: 1, name: 'Ana', phone: '', disc: 0 }], sales: [], pays: [], sid: 1, payid: 1, cid: 2, nid: 2, lid: 2, rev: 1 } };
+  const S = { rev: 1, caido: false, puts: [], db: { prods: [{ id: 1, name: 'Agua', code: '1', price: 100, cost: 50, min: 0, lots: [{ id: 1, n: 'A', qty: 10, exp: '' }] }], clients: [{ id: 1, name: 'Ana', phone: '', disc: 0 }], sales: [], pays: [], sid: 1, payid: 1, cid: 2, nid: 2, lid: 2, rev: 1, cfg: { cajaObligatoria: false } } }   // sin exigir caja (se prueba en caja.test.js);
   const A = celular(S), ev = A.w.eval.bind(A.w), stock = () => ev('tot(db.prods[0])');
   const vender = () => { ev('add(1)'); A.click('#cobrar'); };
   // 1) hay conexión: se guarda normal
