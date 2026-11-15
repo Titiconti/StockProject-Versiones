@@ -183,6 +183,18 @@ app.whenReady().then(() => {
     }
     return { ...i, qr };
   });
+  // Panel para el celular desde cualquier lugar: envío de datos de solo lectura al servidor central (nube.js).
+  const nube = require('./nube')({ leer: () => store.snapshot(), getCfg: () => principal.getConfig(), setCfg: p => principal.setConfig(p),
+    proteger: t => safeStorage.isEncryptionAvailable() ? 'ss:' + safeStorage.encryptString(t).toString('base64') : t,
+    desproteger: t => String(t).startsWith('ss:') ? safeStorage.decryptString(Buffer.from(String(t).slice(3), 'base64')) : t });
+  ipcMain.handle('nube:estado', () => nube.estado());
+  ipcMain.handle('nube:call', async (e, n, a) => {
+    if (!permite('acceso_remoto', 'editar')) return { ok: false, err: 'Tu usuario no tiene permiso para cambiar el acceso remoto' };
+    const f = { configurar: nube.configurar, activar: nube.activar, quitar: nube.quitar, ahora: () => nube.sincronizar(true) }[n]; if (!f) return { ok: false };
+    const r = await f(a); usr.audit(quien(), 'nube.' + n, ''); if (n === 'configurar' && r && r.ok) { nube.detener(); nube.iniciar(); }
+    return r;
+  });
+  nube.iniciar(); app.on('before-quit', () => nube.detener());
   ipcMain.handle('remote:set', (e, cfg) => { if (!permite('acceso_remoto', 'editar')) return remoto.info(); usr.audit(quien(), 'acceso_remoto.cambio', Object.keys(cfg || {}).join(',')); return remoto.setConfig(cfg || {}); });
   ipcMain.handle('b:export', async () => {
     if (!permite('respaldo', 'ver')) return { ok: false };

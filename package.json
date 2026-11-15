@@ -20,6 +20,7 @@
       "preload.js",
       "store.js",
       "validar.js",
+      "nube.js",
       "usuarios.js",
       "empresas.js",
       "monedas.js",
