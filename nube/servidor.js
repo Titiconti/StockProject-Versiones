@@ -4,13 +4,13 @@
 // endpoint que modifique datos comerciales.
 // Sin dependencias npm: solo módulos nativos de Node 20+.
 'use strict';
-const http = require('http'), crypto = require('crypto'), fs = require('fs'), path = require('path');
+const http = require('http'), crypto = require('crypto'), fs = require('fs'), path = require('path'), zlib = require('zlib');
+const { archivos } = require('./almacen');
 
 const SUB_OK = /^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])$/;
 const RESERVADOS = new Set(['www', 'admin', 'api', 'app', 'panel', 'mail']);
 const LIMITE_INGESTA = 8 * 1024 * 1024, LIMITE_CHICO = 64 * 1024;
 const SESION_SEG = 30 * 24 * 3600;            // 30 días
-const FRESCURA_MS = 120 * 1000;               // pasado este tiempo sin sync, los datos se marcan desactualizados
 const LOGIN_MAX = 5, LOGIN_VENTANA = 10 * 60 * 1000;
 const FALLOS_MAX = 20, FALLOS_VENTANA = 60 * 1000;
 const LETRAS_CLAVE = 'abcdefghjkmnpqrstuvwxyz23456789';   // sin l, i, o, 0 ni 1: se confunden al dictarlas
@@ -23,33 +23,40 @@ const nuevaClave = () => Array.from({ length: 10 }, () => LETRAS_CLAVE[crypto.ra
 
 class ErrorHttp extends Error { constructor(estado, mensaje) { super(mensaje); this.estado = estado; } }
 
-function crear({ dataDir, dominioBase, adminToken, ahora = () => Date.now(), confiarProxy = false } = {}) {
-  if (!dataDir) throw new Error('Falta dataDir');
+// almacen: dónde se guardan los datos (por defecto, archivos en dataDir). recargar: releer el almacén en cada pedido
+// (necesario cuando hay varias copias del servidor o funciones sin memoria, como en Vercel). frescuraMs: pasado ese
+// tiempo sin noticias del comercio, el panel avisa que los datos pueden no estar al día.
+function crear({ dataDir, almacen, recargar = false, frescuraMs = 120 * 1000, dominioBase, adminToken, ahora = () => Date.now(), confiarProxy = false } = {}) {
+  if (!almacen && !dataDir) throw new Error('Falta dataDir o almacen');
+  if (!almacen) almacen = archivos(dataDir);
+  const FRESCURA_MS = frescuraMs;
   if (!adminToken) throw new Error('Falta adminToken');
   dominioBase = String(dominioBase || '').trim().toLowerCase().replace(/^\.+|\.+$/g, '');
-  fs.mkdirSync(dataDir, { recursive: true });
   const PANEL = fs.readFileSync(path.join(__dirname, 'panel.html'), 'utf8');
-  const rutaComercios = path.join(dataDir, 'comercios.json'), rutaSesiones = path.join(dataDir, 'sesiones.json');
 
-  // ---------- Persistencia (JSON con escritura atómica) ----------
-  function escribir(ruta, texto) {
-    const tmp = ruta + '.tmp';
-    fs.writeFileSync(tmp, texto);
-    for (let i = 0; ; i++) {
-      try { fs.renameSync(tmp, ruta); return; }
-      catch (e) { if (i >= 4 || !['EPERM', 'EBUSY', 'EACCES'].includes(e.code)) throw e; }   // antivirus en Windows
-    }
+  // ---------- Persistencia ----------
+  // comercios: lista (cambia solo por administración) · estado:<id>: {seq, ultimaSync} (cambia en cada envío; va aparte para
+  // que dos envíos simultáneos de comercios distintos no se pisen) · sesiones · intentos · foto:<id> (comprimida).
+  let comercios = [], sesiones = new Map(), intentos = new Map(), cargado = false;
+  const pendientes = [];   // escrituras en curso: se esperan antes de terminar la respuesta
+  const anotar = p => { pendientes.push(p.catch(e => console.error('[almacen] no se pudo guardar:', e && e.message))); };
+  const vaciar = async () => { while (pendientes.length) await pendientes.shift(); };
+  async function cargar() {
+    const [c, s, i] = await almacen.leerVarios(['comercios', 'sesiones', 'intentos']);
+    comercios = c ? JSON.parse(c) : [];   // si está dañado preferimos fallar antes que pisar los datos
+    sesiones = new Map(Object.entries(s ? JSON.parse(s) : {}));
+    if (recargar) intentos = new Map(Object.entries(i ? JSON.parse(i) : {}));
+    const est = comercios.length ? await almacen.leerVarios(comercios.map(x => 'estado:' + x.id)) : [];
+    comercios.forEach((x, k) => { if (est[k]) { const e = JSON.parse(est[k]); x.seq = e.seq; x.ultimaSync = e.ultimaSync; } });
+    cargado = true;
   }
-  function leer(ruta, defecto) {
-    let texto;
-    try { texto = fs.readFileSync(ruta, 'utf8'); } catch (e) { if (e.code === 'ENOENT') return defecto; throw e; }
-    return JSON.parse(texto);   // si está dañado preferimos no arrancar antes que pisar los datos
-  }
-  let comercios = leer(rutaComercios, []);
-  const sesiones = new Map(Object.entries(leer(rutaSesiones, {})));   // sha256(token de sesión) -> { id, vence }
-  const guardarComercios = () => escribir(rutaComercios, JSON.stringify(comercios, null, 1));
-  const guardarSesiones = () => escribir(rutaSesiones, JSON.stringify(Object.fromEntries(sesiones)));
-  const rutaFoto = id => path.join(dataDir, id, 'foto.json');
+  const sinEstado = c => { const { seq, ultimaSync, ...r } = c; return { ...r, seq: 0, ultimaSync: null }; };
+  const guardarComercios = () => anotar(almacen.escribir('comercios', JSON.stringify(comercios.map(sinEstado), null, 1)));
+  const guardarEstado = c => anotar(almacen.escribir('estado:' + c.id, JSON.stringify({ seq: c.seq, ultimaSync: c.ultimaSync })));
+  const guardarSesiones = () => anotar(almacen.escribir('sesiones', JSON.stringify(Object.fromEntries(sesiones))));
+  const guardarIntentos = () => { if (recargar) anotar(almacen.escribir('intentos', JSON.stringify(Object.fromEntries(intentos)))); };
+  const comprimir = t => 'gz:' + zlib.gzipSync(Buffer.from(t, 'utf8')).toString('base64');
+  const descomprimir = t => t && t.startsWith('gz:') ? zlib.gunzipSync(Buffer.from(t.slice(3), 'base64')).toString('utf8') : t;
   const iso = () => new Date(ahora()).toISOString();
   const publico = c => ({ id: c.id, nombre: c.nombre, sub: c.sub, activo: c.activo, alta: c.alta, ultimaSync: c.ultimaSync });
   function cerrarSesiones(id) {
@@ -58,8 +65,7 @@ function crear({ dataDir, dominioBase, adminToken, ahora = () => Date.now(), con
     if (n) guardarSesiones();
   }
 
-  // ---------- Límites de intentos (en memoria) ----------
-  const intentos = new Map();   // clave -> [marcas de tiempo de los fallos]
+  // ---------- Límites de intentos (en memoria; con recargar también se guardan) ----------
   function fallos(clave, ventana) {
     const desde = ahora() - ventana, l = (intentos.get(clave) || []).filter(t => t > desde);
     if (l.length) intentos.set(clave, l); else intentos.delete(clave);
@@ -67,7 +73,7 @@ function crear({ dataDir, dominioBase, adminToken, ahora = () => Date.now(), con
   }
   function anotarFallo(clave) {
     if (intentos.size > 20000) intentos.clear();   // tope de memoria ante un barrido de direcciones
-    intentos.set(clave, [...(intentos.get(clave) || []), ahora()]);
+    intentos.set(clave, [...(intentos.get(clave) || []), ahora()]); guardarIntentos();
   }
 
   // ---------- Utilidades HTTP ----------
@@ -127,12 +133,14 @@ function crear({ dataDir, dominioBase, adminToken, ahora = () => Date.now(), con
     return '';
   }
   function ponerCookie(req, valor, maxAge) {
+    const camino = req.spPrefijo || '/';
     const seguro = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim() === 'https';
-    return `sp_nube=${valor}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${maxAge}${seguro ? '; Secure' : ''}`;
+    return `sp_nube=${valor}; HttpOnly; SameSite=Strict; Path=${camino}; Max-Age=${maxAge}${seguro ? '; Secure' : ''}`;
   }
 
   // ¿A qué comercio apunta el pedido? null = host base (o sin subdominio); '' = subdominio inválido.
   function subDe(req) {
+    if (req.spSub !== undefined) return req.spSub;   // dirección del tipo /c/<comercio>/…
     const host = String(req.headers.host || '').toLowerCase().replace(/:\d+$/, '').replace(/\.$/, '');
     if (dominioBase && host === dominioBase) return null;
     if (dominioBase && host.endsWith('.' + dominioBase)) {
@@ -164,9 +172,9 @@ function crear({ dataDir, dominioBase, adminToken, ahora = () => Date.now(), con
       const n = comercios.reduce((m, c) => Math.max(m, Number(c.id.slice(6)) || 0), 0) + 1;
       const token = nuevoToken(), clave = nuevaClave(), claveSalt = crypto.randomBytes(16).toString('hex');
       const c = { id: 'store_' + String(n).padStart(3, '0'), nombre, sub, activo: true, alta: iso(), tokenHash: sha256(token), claveHash: scrypt(clave, claveSalt), claveSalt, ultimaSync: null, seq: 0 };
-      comercios.push(c); guardarComercios();
+      comercios.push(c); guardarComercios(); guardarEstado(c);
       console.log(`[admin] alta ${c.id} (${c.sub})`);
-      return json(res, 201, { id: c.id, sub: c.sub, url: `https://${c.sub}.${dominioBase || 'localhost'}`, token, clave });
+      return json(res, 201, { id: c.id, sub: c.sub, url: dominioBase ? `https://${c.sub}.${dominioBase}` : `/c/${c.sub}`, token, clave });
     }
     const m = /^\/admin\/comercios\/(store_\d+)\/(token|clave|estado)$/.exec(ruta);
     if (!m) return json(res, 404, { error: 'No existe' });
@@ -177,7 +185,7 @@ function crear({ dataDir, dominioBase, adminToken, ahora = () => Date.now(), con
       req.resume();
       const token = nuevoToken();
       // Un token nuevo es una instalación nueva: la numeración de envíos vuelve a empezar.
-      c.tokenHash = sha256(token); c.seq = 0; guardarComercios();
+      c.tokenHash = sha256(token); c.seq = 0; guardarComercios(); guardarEstado(c);
       console.log(`[admin] token nuevo para ${c.id}`);
       return json(res, 200, { id: c.id, token });
     }
@@ -211,9 +219,8 @@ function crear({ dataDir, dominioBase, adminToken, ahora = () => Date.now(), con
     if (!foto || typeof foto !== 'object' || Array.isArray(foto)) throw new ErrorHttp(400, '"foto" debe ser un objeto');
     if (foto.ventas !== undefined && !Array.isArray(foto.ventas)) throw new ErrorHttp(400, '"foto.ventas" debe ser una lista');
     if (b.seq <= c.seq) return json(res, 200, { ok: true, seq: c.seq, repetido: true });
-    fs.mkdirSync(path.join(dataDir, c.id), { recursive: true });
-    escribir(rutaFoto(c.id), JSON.stringify(foto));
-    c.seq = b.seq; c.ultimaSync = iso(); guardarComercios();
+    await almacen.escribir('foto:' + c.id, comprimir(JSON.stringify(foto)));
+    c.seq = b.seq; c.ultimaSync = iso(); guardarEstado(c);
     return json(res, 200, { ok: true, seq: c.seq });
   }
 
@@ -240,7 +247,7 @@ function crear({ dataDir, dominioBase, adminToken, ahora = () => Date.now(), con
       const bien = c.activo && clave.length > 0 && clave.length <= 200 &&
         crypto.timingSafeEqual(Buffer.from(scrypt(clave, c.claveSalt), 'hex'), Buffer.from(c.claveHash, 'hex'));
       if (!bien) { anotarFallo(kf); return json(res, 401, { error: 'Clave incorrecta' }); }
-      intentos.delete(kf);
+      if (intentos.delete(kf)) guardarIntentos();
       for (const [k, s] of sesiones) if (s.vence <= ahora()) sesiones.delete(k);
       const token = crypto.randomBytes(32).toString('hex');
       sesiones.set(sha256(token), { id: c.id, vence: ahora() + SESION_SEG * 1000 });
@@ -256,8 +263,8 @@ function crear({ dataDir, dominioBase, adminToken, ahora = () => Date.now(), con
     // GET /api/datos
     if (!c.activo || !sesionDe(req, c)) return json(res, 401, { error: 'Sesión no válida' });
     let foto = 'null';
-    try { foto = await fs.promises.readFile(rutaFoto(c.id), 'utf8'); JSON.parse(foto); }
-    catch (e) { if (e.code !== 'ENOENT') console.error(`[datos] foto ilegible de ${c.id}`); foto = 'null'; }
+    try { const t0 = descomprimir(await almacen.leer('foto:' + c.id)); if (t0) { JSON.parse(t0); foto = t0; } }
+    catch (e) { console.error(`[datos] foto ilegible de ${c.id}`); foto = 'null'; }
     const t = ahora(), viejo = !c.ultimaSync || foto === 'null' || t - Date.parse(c.ultimaSync) > FRESCURA_MS;
     return json(res, 200, `{"negocio":${JSON.stringify({ nombre: c.nombre })},"foto":${foto},"ultimaSync":${JSON.stringify(foto === 'null' ? null : c.ultimaSync)},"ahora":${JSON.stringify(new Date(t).toISOString())},"desactualizado":${viejo}}`);
   }
@@ -266,9 +273,12 @@ function crear({ dataDir, dominioBase, adminToken, ahora = () => Date.now(), con
   async function atender(req, res) {
     let u;
     try { u = new URL(req.url, 'http://x'); } catch { return json(res, 400, { error: 'Pedido inválido' }); }
-    const ruta = u.pathname;
-
+    let ruta = u.pathname;
     if (ruta === '/salud') return json(res, 200, { ok: true });
+    if (recargar || !cargado) await cargar();
+    const mc = /^\/c\/([^/]+)(\/.*)?$/.exec(ruta);
+    if (mc) { const s0 = mc[1].toLowerCase(); req.spSub = SUB_OK.test(s0) && !RESERVADOS.has(s0) ? s0 : ''; req.spPrefijo = '/c/' + s0; ruta = mc[2] || '/'; }
+
     if (ruta === '/interno/tls-permitido') {
       const d = String(u.searchParams.get('domain') || '').toLowerCase().replace(/\.$/, '');
       let ok = false;
@@ -287,32 +297,35 @@ function crear({ dataDir, dominioBase, adminToken, ahora = () => Date.now(), con
     if (ruta === '/api' || ruta.startsWith('/api/')) return api(req, res, ruta, c);
     if (ruta === '/') {
       if (req.method !== 'GET' && req.method !== 'HEAD') { req.resume(); return json(res, 405, { error: 'Método no permitido' }, { Allow: 'GET' }); }
-      if (sub === null) return html(res, 200, pagina('StockProject Nube', 'Para ver tu negocio entrá con la dirección de tu comercio, por ejemplo <b>micomercio.' + (dominioBase || 'tu-dominio') + '</b>.'));
+      if (sub === null) return html(res, 200, pagina('StockProject', 'Para ver tu negocio entrá con la dirección de tu comercio. Te la dio quien te instaló el programa.'));
       if (!c) return html(res, 404, pagina('Comercio no encontrado', 'Revisá que la dirección esté bien escrita.'));
-      return html(res, 200, PANEL);
+      return html(res, 200, req.spPrefijo ? PANEL.replace(/(['"`])\/api\//g, '$1' + req.spPrefijo + '/api/') : PANEL);
     }
     req.resume();
     return json(res, 404, { error: 'No existe' });
   }
 
-  const srv = http.createServer((req, res) => {
-    atender(req, res).catch(e => {
+  function manejar(req, res) {
+    const fin = res.end.bind(res);
+    res.end = (...a) => { vaciar().then(() => fin(...a), () => fin(...a)); return res; };
+    return atender(req, res).catch(e => {
       if (!(e instanceof ErrorHttp)) console.error('[error]', req.method, String(req.url).split('?')[0], e && e.message);
       if (res.headersSent) return res.destroy();
       // Nunca se devuelven trazas ni rutas internas: solo un mensaje corto.
       const estado = e instanceof ErrorHttp ? e.estado : 500;
       json(res, estado, { error: e instanceof ErrorHttp ? e.message : 'Error interno' }, estado === 413 && !req.complete ? { Connection: 'close' } : undefined);
     });
-  });
+  }
+  const srv = http.createServer(manejar);
   srv.headersTimeout = 20000; srv.requestTimeout = 60000;
 
   return {
-    srv,
+    srv, manejar,
     listen: (port, host) => new Promise((resolve, reject) => {
       srv.once('error', reject);
       srv.listen(port, host, () => { srv.removeListener('error', reject); resolve(srv.address().port); });
     }),
-    close: () => new Promise(resolve => { srv.close(() => resolve()); srv.closeAllConnections(); }),
+    close: () => new Promise(resolve => { if (!srv.listening) return resolve(); srv.close(() => resolve()); srv.closeAllConnections(); }),
   };
 }
 
@@ -327,7 +340,7 @@ if (require.main === module) {
   const dominioBase = (process.env.DOMAIN_BASE || '').trim();
   if (!dominioBase) console.warn('Aviso: DOMAIN_BASE no está definido; los comercios solo se podrán identificar con el header X-Comercio.');
   const port = Number(process.env.PORT) || 8080, dataDir = path.resolve(process.env.DATA_DIR || './datos-nube');
-  const s = crear({ dataDir, dominioBase, adminToken, confiarProxy: process.env.CONFIAR_PROXY === '1' });
+  const s = crear({ dataDir, dominioBase, adminToken, confiarProxy: process.env.CONFIAR_PROXY === '1', frescuraMs: (Number(process.env.FRESCURA_SEG) || 420) * 1000 });
   s.listen(port).then(p => console.log(`StockProject Nube escuchando en el puerto ${p} (dominio base: ${dominioBase || 'sin definir'})`))
     .catch(e => { console.error('No se pudo abrir el puerto ' + port + ': ' + e.message); process.exit(1); });
   for (const señal of ['SIGTERM', 'SIGINT']) process.on(señal, () => s.close().then(() => process.exit(0)));

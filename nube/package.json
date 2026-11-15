@@ -1,0 +1,6 @@
+{
+  "name": "stockproject-nube",
+  "private": true,
+  "description": "Servidor del panel de solo lectura de StockProject (sin dependencias)",
+  "engines": { "node": ">=20" }
+}

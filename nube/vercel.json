@@ -1,0 +1,4 @@
+{
+  "rewrites": [{ "source": "/(.*)", "destination": "/api/index?__ruta=/$1" }],
+  "functions": { "api/index.js": { "includeFiles": "{panel.html,servidor.js,almacen.js}", "maxDuration": 15 } }
+}
