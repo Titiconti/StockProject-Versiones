@@ -1,6 +1,7 @@
 # Novedades de StockProject
 
-## 5.5.0 (preparada, sin publicar)
+## 5.5.0
+- **Efectos visuales nuevos:** luz que sigue al mouse sobre productos e indicadores, chispas al agregar un producto a la venta, números que cuentan al entrar a una pantalla, brillo en la pantalla de inicio y fondo de puntos que reacciona al mouse en el menú y en el ingreso. Se apagan con «Animaciones suaves».
 - **Mercadería en un solo paso:** cuando llega el proveedor escaneás lo que vino, ponés cantidad y costo, y elegís cómo pagás (con la caja, le quedás debiendo u otro medio). Suma el stock al instante.
 - **Lista para pedir:** el programa arma solo lo que conviene pedir con tus ventas reales, y la mandás por WhatsApp, la copiás o la imprimís.
 - **Plata del negocio:** lo que entró por cada medio de pago, la ganancia estimada, lo que te deben y lo que debés, sin cargar nada. Desde ahí le pagás al proveedor.

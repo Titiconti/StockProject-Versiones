@@ -38,4 +38,18 @@ $('#r').onsubmit=async e=>{e.preventDefault();msg();
   const r=await sp.auth.call('recuperar',$('#ru').value,$('#ra').value,$('#rn').value);
   if(!r.ok)return msg(r.err);
   msg('Contraseña cambiada. Ya podés ingresar.',true);$('#u').value=$('#ru').value;$('#p').value='';$('#vol').click();msg('Contraseña cambiada. Ya podés ingresar.',true);$('#p').focus()};
+</script>
+<script>
+// Fondo de puntos que se apartan con el mouse (adaptado de DotGrid, React Bits, MIT + Commons Clause). Solo decora; respeta "Animaciones suaves".
+(()=>{let on=true;try{on=(JSON.parse(localStorage.getItem('sp_prefs_equipo')||'{}')||{}).anim!==false}catch(e){}if(!on||typeof CanvasRenderingContext2D==='undefined')return;
+  const cv=document.createElement('canvas');let ctx=null;try{ctx=cv.getContext&&cv.getContext('2d')}catch(e){}if(!ctx)return;
+  cv.setAttribute('aria-hidden','true');cv.style.cssText='position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0';document.body.prepend(cv);document.querySelector('.c').style.cssText+=';position:relative;z-index:1';
+  const GAP=24,PROX=150,EMPUJE=9;let pts=[],w=0,h=0,px=-1e4,py=-1e4,corre=false;
+  const armar=()=>{const d=Math.min(devicePixelRatio||1,2);w=innerWidth;h=innerHeight;cv.width=w*d;cv.height=h*d;ctx.setTransform(d,0,0,d,0,0);pts=[];for(let y=GAP/2;y<h;y+=GAP)for(let x=GAP/2;x<w;x+=GAP)pts.push({x,y,dx:0,dy:0,vx:0,vy:0,e:0});pintar()};
+  const pintar=()=>{ctx.clearRect(0,0,w,h);let m=false;for(const p of pts){const ax=p.x-px,ay=p.y-py,d=Math.hypot(ax,ay),k=d<PROX?1-d/PROX:0,tx=k?ax/(d||1)*EMPUJE*k*k:0,ty=k?ay/(d||1)*EMPUJE*k*k:0;
+    p.vx=(p.vx+(tx-p.dx)*.14)*.72;p.vy=(p.vy+(ty-p.dy)*.14)*.72;p.dx+=p.vx;p.dy+=p.vy;p.e+=(k-p.e)*.2;if(Math.abs(p.vx)+Math.abs(p.vy)>.02||p.e>.01)m=true;
+    ctx.fillStyle=p.e>.01?`rgba(${Math.round(255-145*p.e)},${Math.round(255-116*p.e)},255,${.07+.5*p.e})`:'rgba(255,255,255,.07)';ctx.beginPath();ctx.arc(p.x+p.dx,p.y+p.dy,1.2*(1+.9*p.e),0,6.2832);ctx.fill()}return m};
+  const ciclo=()=>{if(pintar())requestAnimationFrame(ciclo);else corre=false};
+  const mover=(x,y)=>{px=x;py=y;if(!corre){corre=true;requestAnimationFrame(ciclo)}};
+  addEventListener('pointermove',e=>mover(e.clientX,e.clientY),{passive:true});document.documentElement.addEventListener('pointerleave',()=>mover(-1e4,-1e4));addEventListener('resize',armar);armar()})();
 </script></body></html>
