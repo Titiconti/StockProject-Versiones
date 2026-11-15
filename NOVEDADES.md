@@ -1,6 +1,11 @@
 # Novedades de StockProject
 
-## 5.2.0 (preparada, sin publicar)
+## 5.3.0 (preparada, sin publicar)
+- **Más rubros:** Panadería, Ferretería, Farmacia, Librería, Pet shop, Dietética y Perfumería, cada uno con sus preguntas, categorías y motivos de baja.
+- **Panel del celular:** el servidor ahora puede alojarse gratis en Vercel (sin tarjeta ni dominio propio). Cada comercio entra por una dirección del tipo `…vercel.app/c/mi-comercio`.
+- Si no hay cambios, la PC avisa al panel cada 5 minutos (antes cada minuto).
+
+## 5.2.0
 - **El programa se adapta a tu rubro:** la encuesta inicial ahora pregunta el rubro (Kiosco, Almacén, Verdulería, Carnicería, Cafetería o restaurante, Ropa, Electrónica, Mayorista, Servicios u Otro) y hace preguntas propias de cada uno. Según las respuestas cambia qué se pide al cargar un producto, la unidad por defecto, las categorías sugeridas y los motivos de baja.
 - Marca, modelo, garantía, números de serie, variantes y precios por cantidad solo aparecen en los rubros que los usan.
 - **Marca propia:** símbolo nuevo (la caja sellada con cinta), tipografía de la marca y animaciones propias: inicio, venta sellada al cobrar, cinta de carga y cambio de pantalla.

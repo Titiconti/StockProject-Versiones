@@ -35,16 +35,17 @@ const assert = require('assert'), crear = require('../nube'), { proyeccion } = c
   assert(N.configurar({ url: 'https://nube.ejemplo/', token: TOK, panel: 'https://ana.nube.ejemplo' }).ok); assert.strictEqual(cfg.nube.token, 'P:' + TOK, 'la clave se guarda protegida'); assert(!JSON.stringify(N.estado()).includes(TOK), 'el estado no expone la clave');
   await N.sincronizar(); assert.strictEqual(envios.length, 1); assert.strictEqual(envios[0].u, 'https://nube.ejemplo/ingesta'); assert.strictEqual(envios[0].auth, 'Bearer ' + TOK); assert.strictEqual(envios[0].body.foto.ventas.length, 3);
   const s1 = envios[0].body.seq; assert(N.estado().ultima && !N.estado().error);
-  reloj += 30000; await N.sincronizar(); assert.strictEqual(envios.length, 1, 'sin cambios y hace menos de un minuto: no reenvía');
-  reloj += 31000; await N.sincronizar(); assert.strictEqual(envios.length, 2, 'cada minuto avisa que sigue conectado'); assert(envios[1].body.seq > s1, 'secuencia creciente');
+  reloj += 30000; await N.sincronizar(); assert.strictEqual(envios.length, 1, 'sin cambios: no reenvía enseguida');
+  reloj += 240000; await N.sincronizar(); assert.strictEqual(envios.length, 1, 'a los 4 minutos y medio todavía no');
+  reloj += 31000; await N.sincronizar(); assert.strictEqual(envios.length, 2, 'cada 5 minutos avisa que sigue conectado'); assert(envios[1].body.seq > s1, 'secuencia creciente');
   db.sales.push({ id: 5, date: new Date(reloj).toISOString(), items: [], total: 10, pay: 'Efectivo', caja: 1 }); reloj += 5000; await N.sincronizar(); assert.strictEqual(envios.length, 3, 'un cambio se envía enseguida');
   // sin Internet: no rompe, avisa y reintenta después
-  red = 'caida'; reloj += 61000; const e1 = await N.sincronizar(); assert(/Sin conexión/.test(e1.error)); const ult = e1.ultima;
+  red = 'caida'; reloj += 301000; const e1 = await N.sincronizar(); assert(/Sin conexión/.test(e1.error)); const ult = e1.ultima;
   red = 'ok'; reloj += 1000; const e2 = await N.sincronizar(); assert(!e2.error && e2.ultima > ult, 'se recupera solo');
   // clave revocada y otros errores
-  red = '401'; reloj += 61000; assert(/no reconoce la clave/.test((await N.sincronizar()).error)); red = '500'; reloj += 61000; assert(/error \(500\)/.test((await N.sincronizar()).error));
+  red = '401'; reloj += 301000; assert(/no reconoce la clave/.test((await N.sincronizar()).error)); red = '500'; reloj += 301000; assert(/error \(500\)/.test((await N.sincronizar()).error));
   // pausar y quitar
-  red = 'ok'; const n = envios.length; N.activar(false); reloj += 61000; await N.sincronizar(); assert.strictEqual(envios.length, n, 'en pausa no envía');
+  red = 'ok'; const n = envios.length; N.activar(false); reloj += 301000; await N.sincronizar(); assert.strictEqual(envios.length, n, 'en pausa no envía');
   N.quitar(); assert(!N.estado().configurado && !cfg.nube.token); assert(/Primero cargá/.test(N.activar(true).err));
   console.log('NUBE_CLIENTE_OK'); process.exit(0);
 })().catch(e => { console.log('FALLO', e.stack || e.message); process.exit(1); });

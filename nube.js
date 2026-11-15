@@ -3,6 +3,7 @@
 // Si no hay Internet o el servidor no responde, el programa sigue funcionando igual y se reintenta solo.
 // Nunca se envían contraseñas, claves, usuarios del sistema ni la configuración; de los clientes, solo nombre y saldo.
 'use strict';
+const LATIDO = 5 * 60 * 1000;
 const r2 = n => Math.round((+n || 0) * 100) / 100;
 const dia = iso => { const d = new Date(iso); return Number.isNaN(+d) ? '' : new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
 
@@ -54,8 +55,9 @@ function crear({ leer, getCfg, setCfg, enviar = (u, o) => fetch(u, o), ahora = (
       let db; try { db = JSON.parse(leer() || 'null'); } catch (e) { db = null; }
       if (!db) { est.error = 'No se pudieron leer los datos locales'; return estado(); }
       const foto = proyeccion(db, ahora()), h = JSON.stringify({ ...foto, generado: 0 });
-      // Sin cambios se reenvía igual cada minuto: así el panel sabe que el comercio sigue conectado.
-      if (!forzar && h === ultHash && ahora() - ultEnvio < 60000) return estado();
+      // Sin cambios se reenvía igual cada 5 minutos: así el panel sabe que el comercio sigue conectado sin gastar
+      // el cupo del servidor gratuito. Los cambios (una venta, un cierre de caja) salen en el próximo ciclo de 30 s.
+      if (!forzar && h === ultHash && ahora() - ultEnvio < LATIDO) return estado();
       const seq = Math.max((c.seq || 0) + 1, ahora());
       const r = await enviar(c.url + '/ingesta', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t }, body: JSON.stringify({ seq, foto }) });
       if (r.status === 401) est.error = 'El servidor no reconoce la clave de esta instalación. Pedí una nueva a soporte.';
@@ -70,4 +72,4 @@ function crear({ leer, getCfg, setCfg, enviar = (u, o) => fetch(u, o), ahora = (
   function detener() { if (timer) { cancelar(timer); timer = null; } }
   return { estado, configurar, activar, quitar, sincronizar, iniciar, detener };
 }
-module.exports = crear; module.exports.proyeccion = proyeccion;
+module.exports = crear; module.exports.proyeccion = proyeccion; module.exports.LATIDO = LATIDO;

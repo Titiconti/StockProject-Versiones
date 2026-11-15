@@ -37,7 +37,7 @@ function pedirHost(host, ruta, headers = {}) {
 }
 const admin = (metodo, ruta, body) => pedir(metodo, ruta, { token: ADMIN, body });
 const cookieDe = r => (r.h.get('set-cookie') || '').split(';')[0];
-const fotoEnDisco = id => fs.readFileSync(path.join(dir, id, 'foto.json'), 'utf8');
+const fotoEnDisco = id => { const t = fs.readFileSync(path.join(dir, 'foto', id + '.json'), 'utf8'); return t.startsWith('gz:') ? require('zlib').gunzipSync(Buffer.from(t.slice(3), 'base64')).toString('utf8') : t; };   // se guarda comprimida
 const foto = (nombre, total) => ({ v: 1, generado: new Date(reloj).toISOString(), negocio: { nombre, moneda: 'ARS', loc: 'es-AR' },
   ventas: [{ id: 'v1', fecha: new Date(reloj).toISOString(), total, pago: 'Efectivo', cliente: null, usuario: 'ana', anulada: false, items: [{ n: 'Yerba', q: 1, p: total, t: total }] }],
   stock: [{ n: 'Yerba', cod: '779', cat: 'Almacén', precio: total, disp: 3, min: 5, vence: '', estado: 'bajo' }], cajas: [], clientes: [], bajas: [], vencimientos: [] });
@@ -91,13 +91,13 @@ const foto = (nombre, total) => ({ v: 1, generado: new Date(reloj).toISOString()
   let r = await pedir('POST', '/ingesta', { token: A.token, body: { seq: 1, foto: f1 } });
   assert.strictEqual(r.estado, 200); assert.deepStrictEqual(r.j, { ok: true, seq: 1 });
   assert.deepStrictEqual(JSON.parse(fotoEnDisco(A.id)), f1);
-  const mtime = fs.statSync(path.join(dir, A.id, 'foto.json')).mtimeMs;
+  const mtime = fs.statSync(path.join(dir, 'foto', A.id + '.json')).mtimeMs;
   r = await pedir('POST', '/ingesta', { token: A.token, body: { seq: 1, foto: foto('Cambiada', 9) } });
   assert.deepStrictEqual(r.j, { ok: true, seq: 1, repetido: true }, 'ingesta repetida es idempotente');
   r = await pedir('POST', '/ingesta', { token: A.token, body: { seq: 0, foto: foto('Cambiada', 9) } });
   assert.strictEqual(r.j.repetido, true);
   assert.deepStrictEqual(JSON.parse(fotoEnDisco(A.id)), f1, 'la repetida no reescribe');
-  assert.strictEqual(fs.statSync(path.join(dir, A.id, 'foto.json')).mtimeMs, mtime);
+  assert.strictEqual(fs.statSync(path.join(dir, 'foto', A.id + '.json')).mtimeMs, mtime);
   assert.strictEqual((await pedir('POST', '/ingesta', { token: 'spn_' + '0'.repeat(48), body: { seq: 5, foto: f1 } })).estado, 401, 'token inválido');
   assert.strictEqual((await pedir('POST', '/ingesta', { body: { seq: 5, foto: f1 } })).estado, 401, 'sin token');
   assert.strictEqual((await pedir('POST', '/ingesta', { token: ADMIN, body: { seq: 5, foto: f1 } })).estado, 401, 'el token de admin no ingesta');
@@ -116,7 +116,7 @@ const foto = (nombre, total) => ({ v: 1, generado: new Date(reloj).toISOString()
   r = await pedir('POST', '/ingesta', { token: A.token, sub: 'kiosco-b', body: { seq: 2, foto: f2 } });
   assert.strictEqual(r.estado, 200);
   assert.deepStrictEqual(JSON.parse(fotoEnDisco(A.id)), f2);
-  assert(!fs.existsSync(path.join(dir, B.id, 'foto.json')), 'B no recibió nada');
+  assert(!fs.existsSync(path.join(dir, 'foto', B.id + '.json')), 'B no recibió nada');
   const fB = foto('Kiosco B', 777);
   assert.strictEqual((await pedir('POST', '/ingesta', { token: B.token, body: { seq: 1, foto: fB } })).estado, 200);
   assert.deepStrictEqual(JSON.parse(fotoEnDisco(A.id)), f2);

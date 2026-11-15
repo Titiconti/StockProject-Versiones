@@ -746,7 +746,7 @@ CF.abrirEncuesta=(forzar)=>{if($('#enc'))return;const e=CF.enc()||{};let paso=0;
   const rad=(n,o,v)=>Object.entries(o).map(([k,t])=>`<label class="opt"><input type="radio" name="${n}" value="${k}" ${v===k?'checked':''}> ${esc(t)}</label>`).join('');
   // Pasos: rubro → preguntas propias del rubro (solo si las tiene) → volumen → necesidades → país y horario.
   const claves=()=>['tipo',...(RBok&&st.rubro&&RB.visibles(st).length?['rubro']:[]),'vol','necs','conf'],clave=()=>claves()[paso];
-  const P={tipo:()=>RBok?`<h3>¿Cuál es tu rubro?</h3><p class="mu" style="margin-top:0">El programa se adapta a lo que elijas: qué te pregunta al cargar un producto, cómo se vende y qué avisos ves.</p>${Object.entries(RB.PERFILES).map(([k,p])=>`<label class="opt"><input type="radio" name="tipo" value="${k}" ${st.rubro===k?'checked':''}> <span><b>${p.n}</b><br><span class="mu">${p.d}</span></span></label>`).join('')}`:`<h3>¿Qué tipo de comercio tenés?</h3>${rad('tipo',CF.TIPOS,st.tipo)}`,
+  const P={tipo:()=>RBok?`<h3>¿Cuál es tu rubro?</h3><p class="mu" style="margin-top:0">El programa se adapta a lo que elijas: qué te pregunta al cargar un producto, cómo se vende y qué avisos ves.</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:0 10px">${Object.entries(RB.PERFILES).map(([k,p])=>`<label class="opt"><input type="radio" name="tipo" value="${k}" ${st.rubro===k?'checked':''}> <span><b>${p.n}</b><br><span class="mu" style="font-size:12.5px">${p.d}</span></span></label>`).join('')}</div>`:`<h3>¿Qué tipo de comercio tenés?</h3>${rad('tipo',CF.TIPOS,st.tipo)}`,
     rubro:()=>`<h3>${esc(RB.PERFILES[st.rubro].n)}: contanos cómo trabajás</h3>${RB.htmlPregs(st,'#enc')}`,
     vol:()=>`<h3>¿Cuántas operaciones hacés por día?</h3>${rad('vol',CF.VOLS,st.vol)}`,
     necs:()=>`<h3>¿Qué necesitás resolver?</h3>${Object.entries(CF.NECS).map(([k,t])=>`<label class="opt"><input type="checkbox" name="necs" value="${k}" ${st.necs.includes(k)?'checked':''}> ${esc(t)}</label>`).join('')}`,
@@ -1412,6 +1412,13 @@ RB.PERFILES={
   electronica:{n:'Electrónica',d:'Dispositivos y accesorios con número de serie y garantía.',tipo:'minorista',caps:{series:true,garantias:true},pregs:['e_serie','e_gar','stock'],cats:['Celulares','Accesorios','Audio','Computación','Cables'],ej:'Auricular inalámbrico'},
   mayorista:{n:'Mayorista o distribuidora',d:'Ventas por volumen, cantidades mínimas y precios por cantidad.',tipo:'mayorista',caps:{tramos:true,minimos:true},pregs:['m_tramos','m_min','m_peso','stock'],cats:['Bebidas','Almacén','Limpieza','Golosinas'],ej:'Gaseosa 2,25 L x 6'},
   servicios:{n:'Servicios',d:'Trabajos, reparaciones o consultoría: se cobra el servicio, casi sin stock.',tipo:'servicios',caps:{},pregs:[],cats:['Servicios','Repuestos'],ej:'Mano de obra'},
+  panaderia:{n:'Panadería',d:'Pan por kilo, facturas, tortas y sándwiches.',tipo:'minorista',caps:{peso:true},pregs:['pa_peso','pa_vto','pa_merma','stock'],cats:['Pan','Facturas','Tortas','Sándwiches de miga','Galletas','Bebidas'],motivos:['Sobrante del día'],ej:'Pan francés'},
+  ferreteria:{n:'Ferretería',d:'Herramientas, tornillería, electricidad, plomería y pinturas.',tipo:'minorista',caps:{peso:true,tramos:true,garantias:true},pregs:['fe_peso','fe_tramos','fe_gar','fe_serie','stock'],cats:['Herramientas','Tornillería','Electricidad','Plomería','Pinturas','Jardín'],ej:'Tornillo autoperforante'},
+  farmacia:{n:'Farmacia',d:'Medicamentos con lote y vencimiento, perfumería y cuidado personal.',tipo:'minorista',caps:{vencimientos:true,vtoPorDefecto:true,alertaVto:true},pregs:['fa_vto','fa_vtodef','stock'],cats:['Medicamentos','Venta libre','Perfumería','Cuidado personal','Bebés','Accesorios'],motivos:['Devolución a droguería'],ej:'Ibuprofeno 400 mg x 10'},
+  libreria:{n:'Librería',d:'Útiles escolares, cuadernos, libros y regalería.',tipo:'minorista',caps:{tramos:true},pregs:['li_tramos','li_var','stock'],cats:['Útiles','Cuadernos','Libros','Arte','Fotocopias','Regalería'],ej:'Cuaderno tapa dura'},
+  petshop:{n:'Pet shop',d:'Alimento suelto o en bolsa, accesorios e higiene para mascotas.',tipo:'minorista',caps:{peso:true,vencimientos:true},pregs:['pe_peso','pe_vto','stock'],cats:['Alimento para perros','Alimento para gatos','Accesorios','Higiene','Farmacia veterinaria'],ej:'Alimento adulto 15 kg'},
+  dietetica:{n:'Dietética',d:'Frutos secos, harinas, semillas y suplementos, muchos por peso.',tipo:'minorista',caps:{peso:true,unidadPorDefecto:'kg',vencimientos:true},pregs:['d_unidad','d_vto','d_merma','stock'],cats:['Frutos secos','Harinas','Semillas','Legumbres','Suplementos','Sin TACC'],motivos:['Merma por fraccionado'],ej:'Almendras'},
+  perfumeria:{n:'Perfumería',d:'Fragancias, maquillaje y cuidado personal.',tipo:'minorista',caps:{vencimientos:true},pregs:['pf_vto','pf_var','stock'],cats:['Fragancias','Maquillaje','Cuidado de la piel','Cabello','Higiene'],ej:'Esmalte de uñas'},
   otro:{n:'Otro comercio',d:'Elegí vos qué funciones querés tener disponibles.',tipo:'otro',caps:{},pregs:['o_peso','o_vto','stock'],cats:[],ej:'Producto'}
 };
 // Rubro equivalente para negocios que contestaron la encuesta anterior (por tipo de comercio).
@@ -1441,6 +1448,24 @@ RB.PREGS={
   m_tramos:{t:'¿Manejás precios diferentes según la cantidad?',tipo:'sino',def:true,ap:(c,v)=>{c.tramos=v}},
   m_min:{t:'¿Necesitás cantidades mínimas de compra por producto?',tipo:'sino',def:true,ap:(c,v)=>{c.minimos=v}},
   m_peso:{t:'¿Vendés mercadería por peso?',tipo:'sino',def:false,ap:(c,v)=>{c.peso=v}},
+  pa_peso:{t:'¿Vendés pan u otros productos por kilo?',tipo:'sino',def:true,ap:(c,v)=>{c.peso=v}},
+  pa_vto:{t:'¿Vendés productos envasados con fecha de vencimiento?',tipo:'sino',def:false,ap:(c,v)=>{c.vencimientos=v}},
+  pa_merma:{t:'¿Querés registrar lo que sobra al final del día?',tipo:'sino',def:true,ap:(c,v,cfg)=>{cfg.sinMotivos=!v}},
+  fe_peso:{t:'¿Vendés clavos, tornillos u otros productos por kilo?',tipo:'sino',def:true,ap:(c,v)=>{c.peso=v}},
+  fe_tramos:{t:'¿Tenés precios distintos según la cantidad (por ejemplo, por caja)?',tipo:'sino',def:true,ap:(c,v)=>{c.tramos=v}},
+  fe_gar:{t:'¿Querés registrar marca, modelo y garantía de las herramientas?',tipo:'sino',def:true,ap:(c,v)=>{c.garantias=v}},
+  fe_serie:{t:'¿Necesitás anotar el número de serie de cada máquina que vendés?',tipo:'sino',def:false,ap:(c,v)=>{c.series=v}},
+  fa_vto:{t:'¿Querés controlar lote y vencimiento de los productos?',tipo:'sino',def:true,ap:(c,v)=>{c.vencimientos=v;c.alertaVto=v}},
+  fa_vtodef:{t:'¿Los productos nuevos tienen que exigir fecha de vencimiento?',d:'Recomendado para medicamentos. Se puede cambiar en cada producto.',tipo:'sino',def:true,si:r=>r.fa_vto!==false,ap:(c,v)=>{c.vtoPorDefecto=v}},
+  li_tramos:{t:'¿Hacés descuento por cantidad (por ejemplo, por docena o por lista escolar)?',tipo:'sino',def:true,ap:(c,v)=>{c.tramos=v}},
+  li_var:{t:'¿Querés llevar el stock por color en algunos productos?',tipo:'sino',def:false,ap:(c,v,cfg)=>{c.variantes=v;if(v)cfg.atributos=['Color']}},
+  pe_peso:{t:'¿Vendés alimento suelto por kilo?',tipo:'sino',def:true,ap:(c,v)=>{c.peso=v}},
+  pe_vto:{t:'¿Querés controlar el vencimiento del alimento y los medicamentos?',tipo:'sino',def:true,ap:(c,v)=>{c.vencimientos=v;c.alertaVto=v}},
+  d_unidad:{t:'¿Lo más común es vender por peso?',d:'Si decís que sí, los productos nuevos arrancan "por peso". Igual podés cargar productos por unidad.',tipo:'sino',def:true,ap:(c,v)=>{c.unidadPorDefecto=v?'kg':'u'}},
+  d_vto:{t:'¿Querés controlar fechas de vencimiento?',tipo:'sino',def:true,ap:(c,v)=>{c.vencimientos=v;c.alertaVto=v}},
+  d_merma:{t:'¿Querés registrar la merma al fraccionar?',tipo:'sino',def:true,ap:(c,v,cfg)=>{cfg.sinMotivos=!v}},
+  pf_vto:{t:'¿Querés controlar el vencimiento de los productos?',tipo:'sino',def:true,ap:(c,v)=>{c.vencimientos=v;c.alertaVto=v}},
+  pf_var:{t:'¿Querés llevar el stock por tono o fragancia en algunos productos?',tipo:'sino',def:false,ap:(c,v,cfg)=>{c.variantes=v;if(v)cfg.atributos=['Tono']}},
   o_peso:{t:'¿Vendés algún producto por peso?',tipo:'sino',def:false,ap:(c,v)=>{c.peso=v}},
   o_vto:{t:'¿Tenés productos con fecha de vencimiento?',tipo:'sino',def:false,ap:(c,v)=>{c.vencimientos=v}},
   stock:{t:'¿Querés alertas de stock mínimo?',tipo:'sino',def:true,ap:(c,v)=>{c.alertaStock=v}}
@@ -1729,7 +1754,7 @@ AV.aplicar();MODS.push(()=>{AV.draw();AV.aplicar();setTimeout(AV.primeraVez,0)})
 // Solo aparece en el programa instalado. La dirección y la clave de instalación las entrega soporte al dar de alta el comercio.
 const NB={};
 if(ED&&sp.nube){const n=$('[data-sub="n"]');n.insertAdjacentHTML('beforeend',`<details class="card" id="nb"><summary>Ver mi negocio desde el celular (desde cualquier lugar)</summary><div id="nb_e"></div>
-<div class="form" style="margin-top:10px"><div style="grid-column:span 2"><label>Dirección del servidor</label><input id="nb_u" placeholder="https://stockproject.qd.je" autocomplete="off"></div><div style="grid-column:span 2"><label>Clave de instalación</label><input id="nb_t" type="password" placeholder="spn_…" autocomplete="off"></div><div style="grid-column:span 2"><label>Dirección de tu panel (para compartir)</label><input id="nb_p" placeholder="https://minegocio.stockproject.qd.je" autocomplete="off"></div></div>
+<div class="form" style="margin-top:10px"><div style="grid-column:span 2"><label>Dirección del servidor</label><input id="nb_u" placeholder="https://stockproject.vercel.app" autocomplete="off"></div><div style="grid-column:span 2"><label>Clave de instalación</label><input id="nb_t" type="password" placeholder="spn_…" autocomplete="off"></div><div style="grid-column:span 2"><label>Dirección de tu panel (para compartir)</label><input id="nb_p" placeholder="https://stockproject.vercel.app/c/minegocio" autocomplete="off"></div></div>
 <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="nb_g">Guardar y conectar</button><button class="btn sec" id="nb_s">Enviar ahora</button><button class="btn sec" id="nb_a"></button><button class="btn del" id="nb_q">Quitar</button></div>
 <p class="mu" style="margin:10px 0 0;font-size:13px">Desde el celular solo se puede consultar: no se puede vender, cobrar ni cambiar nada. Se envían ventas, stock, cajas y los saldos de clientes (nombre y saldo). Si se corta Internet el programa sigue funcionando y se pone al día solo.</p></details>`);
   NB.draw=async()=>{if($('#g').classList.contains('hide')||!$('#nb').open)return;const e=await sp.nube.estado(),F=x=>new Date(x).toLocaleString('es-AR',{dateStyle:'short',timeStyle:'medium'});
@@ -1823,7 +1848,7 @@ label{font-size:12.5px;font-weight:500}
 th{font-weight:600;font-size:12.5px}tbody tr{transition:background .12s}tbody tr:hover{background:color-mix(in srgb,var(--ac) 5%,transparent)}
 .tag{font-weight:600}.pills button{font-weight:500}.pills button.on{color:var(--act)}
 .row{padding:10px 0}.tip{border-radius:10px}
-.ov,.mod{background:rgba(10,19,34,.55);backdrop-filter:blur(5px)}.ov .card{border-radius:18px;padding:22px;box-shadow:0 30px 80px -20px rgba(0,0,0,.5)}
+.ov,.mod{background:rgba(10,19,34,.55);backdrop-filter:blur(5px)}#enc .card{max-width:760px}.ov .card{border-radius:18px;padding:22px;box-shadow:0 30px 80px -20px rgba(0,0,0,.5)}
 #toast{background:var(--ink);color:#fff;border-radius:12px;padding:12px 18px;font-weight:500;box-shadow:0 14px 34px -12px rgba(0,0,0,.5);transform:translate(-50%,12px);transition:opacity .2s,transform .25s var(--ease);max-width:min(560px,92vw)}#toast.show{transform:translate(-50%,0)}
 /* ---- animaciones ---- */
 html.anim main>section:not(.hide){animation:tmIn .26s var(--ease)}html.anim main>section:not(.hide)>.card,html.anim main>section:not(.hide)>.grid>.card,html.anim main>section:not(.hide) .kpis>.card{animation:tmUp .34s var(--ease) backwards}

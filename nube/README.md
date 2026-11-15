@@ -6,8 +6,42 @@ estadísticas de su negocio. Es de **solo lectura**: no existe ninguna ruta que 
 - Cada PC de comercio (StockProject de escritorio) **envía** por HTTPS saliente una "foto" con sus datos
   (`POST /ingesta`). El servidor nunca se conecta a las PCs: no hace falta abrir puertos en el comercio.
 - Cada comercio entra por su propia dirección: `https://<sub>.stockproject.qd.je`, con su clave.
-- Node 20 o superior, sin dependencias npm. Los datos se guardan en archivos JSON dentro de `DATA_DIR`.
+- Node 20 o superior, sin dependencias npm. Los datos se guardan en archivos (`DATA_DIR`) o en una base Redis por HTTPS (`almacen.js`).
 - Esta carpeta **no** forma parte del instalador de escritorio (no está en `build.files`).
+
+## Opción recomendada: Vercel (gratis, sin tarjeta, sin dominio propio)
+
+Elegida por el dueño el 15/11/2026. Cada comercio entra por `https://<proyecto>.vercel.app/c/<comercio>`.
+**Estado: el código está probado en la PC con una base simulada (`tests/nube-vercel.test.js`); el despliegue real en
+Vercel todavía no se hizo ni se pudo probar.**
+
+1. Entrá a https://vercel.com y creá la cuenta con tu usuario de GitHub (plan Hobby, no pide tarjeta).
+2. **Add New > Project** > importá `Titiconti/StockProject-Versiones`.
+   - *Root Directory*: `nube`  ·  *Framework Preset*: Other  ·  sin comando de build.
+3. En el proyecto: **Storage > Create > Upstash for Redis** (plan Free) y conectalo al proyecto. Eso crea solas las
+   variables `KV_REST_API_URL` y `KV_REST_API_TOKEN`.
+4. **Settings > Environment Variables**: agregá `ADMIN_TOKEN` con una clave larga inventada por vos (24 caracteres o
+   más). Es la llave de administración: no la compartas ni la subas al repositorio.
+5. **Deployments > Redeploy**. Probá `https://<proyecto>.vercel.app/salud`: tiene que responder `{"ok":true}`.
+   Si responde un error 503, el mensaje dice qué variable falta.
+6. Dar de alta un comercio (desde tu PC, con tu `ADMIN_TOKEN`):
+   ```
+   curl -X POST https://<proyecto>.vercel.app/admin/comercios -H "Authorization: Bearer TU_ADMIN_TOKEN" -H "Content-Type: application/json" -d "{\"nombre\":\"Kiosco Ana\",\"sub\":\"kiosco-ana\"}"
+   ```
+   Devuelve una sola vez el `token` (clave de instalación, empieza con `spn_`) y la `clave` del panel.
+7. En la PC del comercio: Configuración > Mi negocio > *Ver mi negocio desde el celular*. Dirección del servidor:
+   `https://<proyecto>.vercel.app` · clave de instalación: el `token` · dirección del panel:
+   `https://<proyecto>.vercel.app/c/kiosco-ana`. El dueño entra a esa dirección con la `clave`.
+
+Límites a tener en cuenta:
+- **El plan Hobby de Vercel es para uso personal, no comercial** (lo dicen sus condiciones). Sirve para arrancar y
+  probar con los primeros comercios; si el producto se vende, corresponde pasar al plan pago o mudar el servidor
+  (el mismo código corre en cualquier VPS con Docker: ver más abajo).
+- Upstash gratis tiene un cupo mensual de operaciones. La PC envía cuando hay cambios y, sin cambios, un aviso cada
+  5 minutos; estimado: alcanza para una decena de comercios. Si se supera, el panel deja de actualizarse hasta el
+  mes siguiente (el programa de escritorio no se entera ni se frena).
+- Cada envío puede pesar hasta 4,5 MB (límite de Vercel). La foto se guarda comprimida.
+- Con un dominio propio se puede usar la forma `comercio.midominio.com` definiendo `DOMAIN_BASE`, pero no hace falta.
 
 ## Archivos
 
@@ -39,7 +73,7 @@ ADMIN_TOKEN=$(openssl rand -hex 32) DOMAIN_BASE=stockproject.qd.je node servidor
 Como en local el `Host` no es del dominio, el comercio se indica con el header `X-Comercio: <sub>`
 (por ejemplo con `curl -H "X-Comercio: almacen-lola" http://localhost:8080/`).
 
-## Despliegue en una VM de Oracle Cloud (Always Free, ARM, Ubuntu)
+## Alternativa: una VM propia con Docker (Oracle Cloud u otro VPS)
 
 ### Requisitos
 
