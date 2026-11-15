@@ -33,6 +33,12 @@ Vercel todavía no se hizo ni se pudo probar.**
    `https://<proyecto>.vercel.app` · clave de instalación: el `token` · dirección del panel:
    `https://<proyecto>.vercel.app/c/kiosco-ana`. El dueño entra a esa dirección con la `clave`.
 
+**Alta automática (desde la 5.4.0):** el programa trae la dirección del servidor en `defaults.json` (`nube`) y, al
+terminar la encuesta, llama a `POST /registro` con el nombre del negocio. El servidor elige la dirección corta a partir
+del nombre y devuelve la clave de instalación y la clave del panel. No usa `ADMIN_TOKEN` (que nunca va en el
+instalador): está limitado a 3 altas por hora por conexión y 200 por día en total. Las altas de administración y las
+automáticas quedan marcadas con `origen` en la lista de comercios.
+
 Límites a tener en cuenta:
 - **El plan Hobby de Vercel es para uso personal, no comercial** (lo dicen sus condiciones). Sirve para arrancar y
   probar con los primeros comercios; si el producto se vende, corresponde pasar al plan pago o mudar el servidor

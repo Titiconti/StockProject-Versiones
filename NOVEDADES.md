@@ -1,6 +1,11 @@
 # Novedades de StockProject
 
-## 5.3.0 (preparada, sin publicar)
+## 5.4.0 (preparada, sin publicar)
+- **Tu panel se crea solo:** al terminar la encuesta escribís el nombre del negocio y el programa crea tu panel en Internet, empieza a enviarle los datos y te muestra la dirección y la clave para entrar desde el celular. Sin Internet en ese momento, se crea solo cuando vuelve.
+- Quien ya hizo la encuesta lo crea con un toque en Configuración > Mi negocio > Ver mi negocio desde el celular, donde también puede volver a ver la clave.
+- **Se quitó el acceso desde el celular por la red local** (la PC funcionando como servidor): lo reemplaza el panel en Internet.
+
+## 5.3.0 (sin publicar)
 - **Más rubros:** Panadería, Ferretería, Farmacia, Librería, Pet shop, Dietética y Perfumería, cada uno con sus preguntas, categorías y motivos de baja.
 - **Panel del celular:** el servidor ahora puede alojarse gratis en Vercel (sin tarjeta ni dominio propio). Cada comercio entra por una dirección del tipo `…vercel.app/c/mi-comercio`.
 - Si no hay cambios, la PC avisa al panel cada 5 minutos (antes cada minuto).

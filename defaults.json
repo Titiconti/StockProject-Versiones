@@ -6,5 +6,6 @@
     "a": "",
     "t": ""
   },
-  "imprimirDirecto": false
+  "imprimirDirecto": false,
+  "nube": "https://stock-project-versiones.vercel.app"
 }

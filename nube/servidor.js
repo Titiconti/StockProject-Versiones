@@ -13,6 +13,9 @@ const LIMITE_INGESTA = 8 * 1024 * 1024, LIMITE_CHICO = 64 * 1024;
 const SESION_SEG = 30 * 24 * 3600;            // 30 días
 const LOGIN_MAX = 5, LOGIN_VENTANA = 10 * 60 * 1000;
 const FALLOS_MAX = 20, FALLOS_VENTANA = 60 * 1000;
+// Alta automática desde el programa (sin la clave de administración, que nunca va en el instalador): limitada por IP
+// y con un tope diario total para que nadie pueda llenar la base creando comercios.
+const REG_IP_MAX = 3, REG_IP_VENTANA = 60 * 60 * 1000, REG_DIA_MAX = 200, DIA = 24 * 60 * 60 * 1000;
 const LETRAS_CLAVE = 'abcdefghjkmnpqrstuvwxyz23456789';   // sin l, i, o, 0 ni 1: se confunden al dictarlas
 
 const sha256 = t => crypto.createHash('sha256').update(String(t)).digest('hex');
@@ -153,6 +156,43 @@ function crear({ dataDir, almacen, recargar = false, frescuraMs = 120 * 1000, do
     return SUB_OK.test(s) && !RESERVADOS.has(s) ? s : '';
   }
 
+  // ---------- Alta de un comercio (la usan la administración y el registro automático) ----------
+  function alta(nombre, sub, origen) {
+    const n = comercios.reduce((m, c) => Math.max(m, Number(c.id.slice(6)) || 0), 0) + 1;
+    const token = nuevoToken(), clave = nuevaClave(), claveSalt = crypto.randomBytes(16).toString('hex');
+    const c = { id: 'store_' + String(n).padStart(3, '0'), nombre, sub, activo: true, alta: iso(), origen, tokenHash: sha256(token), claveHash: scrypt(clave, claveSalt), claveSalt, ultimaSync: null, seq: 0 };
+    comercios.push(c); guardarComercios(); guardarEstado(c);
+    console.log(`[${origen}] alta ${c.id} (${c.sub})`);
+    return { id: c.id, sub: c.sub, token, clave };
+  }
+  // Dirección corta a partir del nombre ("Kiosco Ana" → "kiosco-ana"); si está ocupada se agrega un número.
+  function subLibre(nombre) {
+    let b = String(nombre).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 28).replace(/-+$/, '');
+    if (b.length < 3) b = ('comercio-' + b).replace(/-+$/, '');
+    const usado = x => RESERVADOS.has(x) || comercios.some(c => c.sub === x);
+    if (SUB_OK.test(b) && !usado(b)) return b;
+    for (let i = 2; i < 100; i++) { const x = b + '-' + i; if (SUB_OK.test(x) && !usado(x)) return x; }
+    return b.slice(0, 20) + '-' + crypto.randomBytes(3).toString('hex');
+  }
+  function baseDe(req) {
+    const proto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim() || 'http';
+    const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim().toLowerCase();
+    return /^[a-z0-9.-]+(:\d+)?$/.test(host) ? proto + '://' + host : '';
+  }
+  async function registro(req, res) {
+    if (req.method !== 'POST') { req.resume(); return json(res, 405, { error: 'Método no permitido' }, { Allow: 'POST' }); }
+    const kip = 'registro|' + ipDe(req);
+    if (fallos(kip, REG_IP_VENTANA) >= REG_IP_MAX) { req.resume(); return json(res, 429, { error: 'Se crearon demasiados paneles desde esta conexión. Probá en una hora.' }); }
+    if (fallos('registro|total', DIA) >= REG_DIA_MAX) { req.resume(); return json(res, 503, { error: 'Hoy no se pueden crear más paneles. Probá mañana.' }); }
+    const b = await leerJson(req, LIMITE_CHICO);
+    const nombre = typeof b.nombre === 'string' ? b.nombre.replace(/\s+/g, ' ').trim() : '';
+    if (nombre.length < 2 || nombre.length > 80) throw new ErrorHttp(400, 'El nombre del negocio tiene que tener entre 2 y 80 caracteres');
+    anotarFallo(kip); anotarFallo('registro|total');   // cuentan las altas, no solo los errores
+    const r = alta(nombre, subLibre(nombre), 'registro'), base = baseDe(req);
+    const panel = dominioBase ? `https://${r.sub}.${dominioBase}` : (base ? base : '') + `/c/${r.sub}`;
+    return json(res, 201, { ...r, panel });
+  }
+
   // ---------- Administración ----------
   async function admin(req, res, ruta) {
     const ip = ipDe(req), kf = 'admin|' + ip;
@@ -169,12 +209,8 @@ function crear({ dataDir, almacen, recargar = false, frescuraMs = 120 * 1000, do
       if (!SUB_OK.test(sub)) throw new ErrorHttp(400, 'Subdominio inválido: de 3 a 32 letras minúsculas, números o guiones');
       if (RESERVADOS.has(sub)) throw new ErrorHttp(400, 'Ese subdominio está reservado');
       if (comercios.some(c => c.sub === sub)) throw new ErrorHttp(409, 'Ese subdominio ya está en uso');
-      const n = comercios.reduce((m, c) => Math.max(m, Number(c.id.slice(6)) || 0), 0) + 1;
-      const token = nuevoToken(), clave = nuevaClave(), claveSalt = crypto.randomBytes(16).toString('hex');
-      const c = { id: 'store_' + String(n).padStart(3, '0'), nombre, sub, activo: true, alta: iso(), tokenHash: sha256(token), claveHash: scrypt(clave, claveSalt), claveSalt, ultimaSync: null, seq: 0 };
-      comercios.push(c); guardarComercios(); guardarEstado(c);
-      console.log(`[admin] alta ${c.id} (${c.sub})`);
-      return json(res, 201, { id: c.id, sub: c.sub, url: dominioBase ? `https://${c.sub}.${dominioBase}` : `/c/${c.sub}`, token, clave });
+      const r = alta(nombre, sub, 'admin');
+      return json(res, 201, { ...r, url: dominioBase ? `https://${r.sub}.${dominioBase}` : `/c/${r.sub}` });
     }
     const m = /^\/admin\/comercios\/(store_\d+)\/(token|clave|estado)$/.exec(ruta);
     if (!m) return json(res, 404, { error: 'No existe' });
@@ -287,6 +323,7 @@ function crear({ dataDir, almacen, recargar = false, frescuraMs = 120 * 1000, do
       return json(res, ok ? 200 : 404, { ok });
     }
     if (ruta === '/ingesta') return ingesta(req, res);
+    if (ruta === '/registro') return registro(req, res);
 
     const sub = subDe(req);
     if (ruta === '/admin' || ruta.startsWith('/admin/')) {

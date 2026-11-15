@@ -173,14 +173,14 @@ app.whenReady().then(() => {
     usr.audit(quien(), 'respaldo.restaurar_protegido'); win.reload(); return { ok: true };
   });
   // Panel para el celular desde cualquier lugar: envío de datos de solo lectura al servidor central (nube.js).
-  const nube = require('./nube')({ leer: () => store.snapshot(), getCfg: () => principal.getConfig(), setCfg: p => principal.setConfig(p),
+  const nube = require('./nube')({ leer: () => store.snapshot(), getCfg: () => principal.getConfig(), setCfg: p => principal.setConfig(p), servidor: defaults().nube || '',
     proteger: t => safeStorage.isEncryptionAvailable() ? 'ss:' + safeStorage.encryptString(t).toString('base64') : t,
     desproteger: t => String(t).startsWith('ss:') ? safeStorage.decryptString(Buffer.from(String(t).slice(3), 'base64')) : t });
   ipcMain.handle('nube:estado', () => nube.estado());
   ipcMain.handle('nube:call', async (e, n, a) => {
     if (!permite('acceso_remoto', 'editar')) return { ok: false, err: 'Tu usuario no tiene permiso para cambiar el acceso remoto' };
-    const f = { configurar: nube.configurar, activar: nube.activar, quitar: nube.quitar, ahora: () => nube.sincronizar(true) }[n]; if (!f) return { ok: false };
-    const r = await f(a); usr.audit(quien(), 'nube.' + n, ''); if (n === 'configurar' && r && r.ok) { nube.detener(); nube.iniciar(); }
+    const f = { configurar: nube.configurar, activar: nube.activar, quitar: nube.quitar, registrar: nube.registrar, clave: async () => ({ ok: true, clave: nube.clave() }), ahora: () => nube.sincronizar(true) }[n]; if (!f) return { ok: false };
+    const r = await f(a); if (n !== 'clave') usr.audit(quien(), 'nube.' + n, ''); if (n === 'configurar' && r && r.ok) { nube.detener(); nube.iniciar(); }
     return r;
   });
   nube.iniciar(); app.on('before-quit', () => nube.detener());

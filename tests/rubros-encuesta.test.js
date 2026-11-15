@@ -7,7 +7,7 @@ const assert = require('assert'), { web } = require('./helpers');
   const quitar = id => { const x = $(id); if (x) x.parentNode.removeChild(x); };
   const encuesta = (rubro, resp = {}) => { ev('CF.abrirEncuesta(true)'); radio('tipo', rubro); click('#e_sig');
     if (/contanos cómo trabajás/.test(txt('#enc'))) { for (const [k, v] of Object.entries(resp)) radio('rb_' + k, v ? '1' : '0'); click('#e_sig'); }
-    click('#e_sig'); click('#e_sig'); click('#e_sig'); assert(!$('#enc'), 'la encuesta termina'); quitar('#tour'); };
+    click('#e_sig'); click('#e_sig'); $('#e_nom').value = 'Negocio de prueba'; click('#e_sig'); assert(!$('#enc'), 'la encuesta termina'); quitar('#tour'); };
   // los rubros pedidos existen
   ['kiosco', 'almacen', 'verduleria', 'carniceria', 'cafeteria'].forEach(r => assert(ev(`!!RB.PERFILES.${r}`), r));
   // sin encuesta: lo básico, sin marca/modelo ni series

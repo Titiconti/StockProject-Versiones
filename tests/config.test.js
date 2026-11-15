@@ -10,6 +10,7 @@ const assert = require('assert'), { web } = require('./helpers.js');
   ov().querySelector('input[value=servicios]').checked = true; a.click('#e_sig');
   ov().querySelector('input[value=mediano]').checked = true; a.click('#e_sig');
   ov().querySelectorAll('input[name=necs]').forEach(c => c.checked = ['caja', 'clientes', 'reportes'].includes(c.value)); a.click('#e_sig');
+  a.click('#e_sig'); assert(/nombre de tu negocio/.test(a.txt('#toast')), 'el nombre del negocio es obligatorio'); a.set('#e_nom', 'Consultora Ana');
   a.set('#e_pais', 'ES'); assert.strictEqual($('#e_mon').value, 'EUR', 'el país elige la moneda');
   a.click('#e_sig');
   assert(!ov(), 'la encuesta se cierra'); const e = a.db().cfg.encuesta;
