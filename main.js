@@ -179,7 +179,7 @@ app.whenReady().then(() => {
   ipcMain.handle('nube:estado', () => nube.estado());
   ipcMain.handle('nube:call', async (e, n, a) => {
     if (!permite('acceso_remoto', 'editar')) return { ok: false, err: 'Tu usuario no tiene permiso para cambiar el acceso remoto' };
-    const f = { configurar: nube.configurar, activar: nube.activar, quitar: nube.quitar, registrar: nube.registrar, clave: async () => ({ ok: true, clave: nube.clave() }), ahora: () => nube.sincronizar(true) }[n]; if (!f) return { ok: false };
+    const f = { configurar: nube.configurar, activar: nube.activar, quitar: nube.quitar, registrar: a => a && typeof a === 'object' ? nube.registrar(a.nombre, a.clave) : nube.registrar(a), cambiarClave: nube.cambiarClave, clave: async () => ({ ok: true, clave: nube.clave() }), ahora: () => nube.sincronizar(true) }[n]; if (!f) return { ok: false };
     const r = await f(a); if (n !== 'clave') usr.audit(quien(), 'nube.' + n, ''); if (n === 'configurar' && r && r.ok) { nube.detener(); nube.iniciar(); }
     return r;
   });
