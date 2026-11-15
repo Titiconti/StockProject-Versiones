@@ -3,3 +3,7 @@ dist/
 datos/
 graphify-out/
 .claude/
+# Servidor en la nube: datos y secretos locales
+nube/datos-nube/
+nube/.env
+nube/respaldos/
