@@ -4,7 +4,7 @@ const dom=new JSDOM(html,{runScripts:'dangerously',url:'http://localhost/',prete
 const w=dom.window,d=w.document,$=s=>d.querySelector(s),click=s=>{const e=typeof s==='string'?$(s):s;e.dispatchEvent(new w.MouseEvent('click',{bubbles:true}))};
 const errs=[];w.addEventListener('error',e=>errs.push(e.message));
 // pestañas
-const tabs=[...d.querySelectorAll('nav button:not(.hide)')].map(b=>b.dataset.t);assert.deepStrictEqual([...tabs].sort(),['c','e','i','k','o','p','r','v','z'],'las mismas pantallas de siempre (ahora algunas están en el menú Más)');
+const tabs=[...d.querySelectorAll('nav button:not(.hide)')].map(b=>b.dataset.t);assert.deepStrictEqual([...tabs].sort(),['c','e','i','k','o','p','r','v','w','z'],'las mismas pantallas de siempre (ahora algunas están en el menú Más)');
 assert(!$('#i').querySelector('#fg'),'el formulario ya no está en Inventario');assert($('#p').querySelector('#fg'),'el formulario está en Productos');
 // agregar producto desde la pestaña Productos
 click('nav button[data-t=p]');assert(!$('#p').classList.contains('hide')&&$('#i').classList.contains('hide'));
@@ -18,7 +18,7 @@ $('#os').value='Distribuidora Sur';
 const add=(pid,q)=>{$('#op').value=db().prods.find(p=>p.id===pid).name;$('#oq').value=String(q);click('#oa')};
 add(fid.id,20);add(1,10);assert.strictEqual($('#od').querySelectorAll('tbody tr').length,2);
 click('#og');let o=db().orders[0];assert.strictEqual(o.items.length,2);assert.strictEqual(o.supplier,'Distribuidora Sur');
-assert($('nav button[data-t=o]').textContent==='Pedidos (1)');
+assert($('nav button[data-t=o]').textContent==='Mercadería');   // desde la 5.5 el menú dice Mercadería (sin contador de pedidos abiertos)
 // recibir parcialmente: 12 de fideos (vence), 10 de coca
 click('#ol [data-rv]');
 const setr=(k,q,n,x)=>{$(`#ol [data-r='${k}']`).value=q;$(`#ol [data-n='${k}']`).value=n;$(`#ol [data-x='${k}']`).value=x};
@@ -32,7 +32,7 @@ assert.strictEqual(db().prods.find(p=>p.id===1).lots.reduce((a,l)=>a+l.qty,0),st
 // segunda recepción: llegan los 8 que faltaban
 click('#ol [data-rv]');setr(0,8,'F-2','2027-04-01');click('#ol [data-ok]');
 o=db().orders[0];assert.strictEqual(faltanTotal(o),0);function faltanTotal(o){return o.items.reduce((a,i)=>a+Math.max(0,i.qty-i.rec),0)}
-assert(/Completo/.test($('#ol').textContent));assert.strictEqual($('nav button[data-t=o]').textContent,'Pedidos');
+assert(/Completo/.test($('#ol').textContent));assert.strictEqual($('nav button[data-t=o]').textContent,'Mercadería');
 assert.strictEqual(db().prods.find(p=>p.id===fid.id).lots.length,2);
 // cerrar con faltantes (2 pasos)
 add(2,5);click('#og');click('#ol [data-cl]');assert(/Seguro\? Cerrar/.test($('#ol').textContent));click('#ol [data-cl]');

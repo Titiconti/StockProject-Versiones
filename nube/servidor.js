@@ -24,6 +24,18 @@ const scrypt = (clave, salt) => crypto.scryptSync(String(clave), Buffer.from(sal
 const nuevoToken = () => 'spn_' + crypto.randomBytes(24).toString('hex');
 const nuevaClave = () => Array.from({ length: 10 }, () => LETRAS_CLAVE[crypto.randomInt(LETRAS_CLAVE.length)]).join('');
 
+// Clave elegida por el cliente: 8 a 64 caracteres, con letras y números, distinta del nombre del negocio.
+function errorClave(clave, nombre) {
+  if (typeof clave !== 'string') return 'La clave tiene que ser un texto';
+  const k = clave.trim();
+  if (k.length < 8 || k.length > 64) return 'La clave tiene que tener entre 8 y 64 caracteres';
+  if (!/\p{L}/u.test(k) || !/\p{N}/u.test(k)) return 'La clave tiene que tener al menos una letra y un número';
+  if (nombre && k.toLowerCase() === String(nombre).trim().toLowerCase()) return 'La clave no puede ser igual al nombre del negocio';
+  return '';
+}
+// Las claves generadas (y las de comercios viejos, sin claveTipo) no distinguen mayúsculas; las propias sí.
+const normalizarClave = (clave, tipo) => tipo === 'propia' ? clave.trim() : clave.trim().toLowerCase();
+
 class ErrorHttp extends Error { constructor(estado, mensaje) { super(mensaje); this.estado = estado; } }
 
 // almacen: dónde se guardan los datos (por defecto, archivos en dataDir). recargar: releer el almacén en cada pedido
@@ -157,13 +169,17 @@ function crear({ dataDir, almacen, recargar = false, frescuraMs = 120 * 1000, do
   }
 
   // ---------- Alta de un comercio (la usan la administración y el registro automático) ----------
-  function alta(nombre, sub, origen) {
+  function ponerClave(c, clave, tipo) {
+    c.claveSalt = crypto.randomBytes(16).toString('hex'); c.claveTipo = tipo; c.claveHash = scrypt(normalizarClave(clave, tipo), c.claveSalt);
+  }
+  function alta(nombre, sub, origen, propia) {
     const n = comercios.reduce((m, c) => Math.max(m, Number(c.id.slice(6)) || 0), 0) + 1;
-    const token = nuevoToken(), clave = nuevaClave(), claveSalt = crypto.randomBytes(16).toString('hex');
-    const c = { id: 'store_' + String(n).padStart(3, '0'), nombre, sub, activo: true, alta: iso(), origen, tokenHash: sha256(token), claveHash: scrypt(clave, claveSalt), claveSalt, ultimaSync: null, seq: 0 };
+    const token = nuevoToken(), clave = propia ? propia.trim() : nuevaClave();
+    const c = { id: 'store_' + String(n).padStart(3, '0'), nombre, sub, activo: true, alta: iso(), origen, tokenHash: sha256(token), ultimaSync: null, seq: 0 };
+    ponerClave(c, clave, propia ? 'propia' : 'generada');
     comercios.push(c); guardarComercios(); guardarEstado(c);
     console.log(`[${origen}] alta ${c.id} (${c.sub})`);
-    return { id: c.id, sub: c.sub, token, clave };
+    return propia ? { id: c.id, sub: c.sub, token } : { id: c.id, sub: c.sub, token, clave };
   }
   // Dirección corta a partir del nombre ("Kiosco Ana" → "kiosco-ana"); si está ocupada se agrega un número.
   function subLibre(nombre) {
@@ -187,8 +203,10 @@ function crear({ dataDir, almacen, recargar = false, frescuraMs = 120 * 1000, do
     const b = await leerJson(req, LIMITE_CHICO);
     const nombre = typeof b.nombre === 'string' ? b.nombre.replace(/\s+/g, ' ').trim() : '';
     if (nombre.length < 2 || nombre.length > 80) throw new ErrorHttp(400, 'El nombre del negocio tiene que tener entre 2 y 80 caracteres');
+    if (b.clave !== undefined && b.clave !== null && b.clave !== '') { const e = errorClave(b.clave, nombre); if (e) throw new ErrorHttp(400, e); }
+    const propia = typeof b.clave === 'string' && b.clave ? b.clave : '';
     anotarFallo(kip); anotarFallo('registro|total');   // cuentan las altas, no solo los errores
-    const r = alta(nombre, subLibre(nombre), 'registro'), base = baseDe(req);
+    const r = alta(nombre, subLibre(nombre), 'registro', propia), base = baseDe(req);
     const panel = dominioBase ? `https://${r.sub}.${dominioBase}` : (base ? base : '') + `/c/${r.sub}`;
     return json(res, 201, { ...r, panel });
   }
@@ -228,7 +246,7 @@ function crear({ dataDir, almacen, recargar = false, frescuraMs = 120 * 1000, do
     if (m[2] === 'clave') {
       req.resume();
       const clave = nuevaClave();
-      c.claveSalt = crypto.randomBytes(16).toString('hex'); c.claveHash = scrypt(clave, c.claveSalt);
+      ponerClave(c, clave, 'generada');
       guardarComercios(); cerrarSesiones(c.id);
       console.log(`[admin] clave nueva para ${c.id}`);
       return json(res, 200, { id: c.id, clave });
@@ -260,6 +278,21 @@ function crear({ dataDir, almacen, recargar = false, frescuraMs = 120 * 1000, do
     return json(res, 200, { ok: true, seq: c.seq });
   }
 
+  // ---------- Cambio de clave desde el programa (token de instalación; la PC ya es dueña del comercio) ----------
+  async function claveInstalacion(req, res) {
+    if (req.method !== 'POST') { req.resume(); return json(res, 405, { error: 'Método no permitido' }, { Allow: 'POST' }); }
+    const kf = 'ingesta|' + ipDe(req);
+    if (fallos(kf, FALLOS_VENTANA) >= FALLOS_MAX) { req.resume(); return json(res, 429, { error: 'Demasiados intentos. Probá más tarde.' }); }
+    const t = bearer(req), h = t ? sha256(t) : '';
+    const c = h && comercios.find(x => x.tokenHash === h);
+    if (!c || !c.activo) { anotarFallo(kf); req.resume(); return json(res, 401, { error: 'No autorizado' }); }
+    const b = await leerJson(req, LIMITE_CHICO);
+    const e = errorClave(b.nueva, c.nombre); if (e) throw new ErrorHttp(400, e);
+    ponerClave(c, b.nueva, 'propia'); guardarComercios(); cerrarSesiones(c.id);
+    console.log(`[clave] clave cambiada desde la instalación de ${c.id}`);
+    return json(res, 200, { ok: true });
+  }
+
   // ---------- Panel del comercio ----------
   function sesionDe(req, c) {
     const t = cookieSesion(req);
@@ -269,8 +302,10 @@ function crear({ dataDir, almacen, recargar = false, frescuraMs = 120 * 1000, do
     if (s.vence <= ahora()) { sesiones.delete(k); guardarSesiones(); return null; }
     return s.id === c.id ? k : null;   // una sesión de otro comercio acá no vale
   }
+  const claveBien = (c, clave) => typeof clave === 'string' && clave.trim().length > 0 && clave.length <= 200 &&
+    crypto.timingSafeEqual(Buffer.from(scrypt(normalizarClave(clave, c.claveTipo), c.claveSalt), 'hex'), Buffer.from(c.claveHash, 'hex'));
   async function api(req, res, ruta, c) {
-    const metodos = { '/api/login': 'POST', '/api/logout': 'POST', '/api/datos': 'GET' };
+    const metodos = { '/api/login': 'POST', '/api/logout': 'POST', '/api/clave': 'POST', '/api/datos': 'GET' };
     if (!metodos[ruta]) return json(res, 404, { error: 'No existe' });
     if (req.method !== metodos[ruta]) { req.resume(); return json(res, 405, { error: 'Método no permitido' }, { Allow: metodos[ruta] }); }
     if (!c) return json(res, 404, { error: 'Comercio no encontrado' });
@@ -279,9 +314,7 @@ function crear({ dataDir, almacen, recargar = false, frescuraMs = 120 * 1000, do
       const kf = 'login|' + ipDe(req) + '|' + c.id;
       if (fallos(kf, LOGIN_VENTANA) >= LOGIN_MAX) { req.resume(); return json(res, 429, { error: 'Demasiados intentos. Esperá unos minutos y probá de nuevo.' }); }
       const b = await leerJson(req, LIMITE_CHICO);
-      const clave = typeof b.clave === 'string' ? b.clave.trim().toLowerCase() : '';
-      const bien = c.activo && clave.length > 0 && clave.length <= 200 &&
-        crypto.timingSafeEqual(Buffer.from(scrypt(clave, c.claveSalt), 'hex'), Buffer.from(c.claveHash, 'hex'));
+      const bien = c.activo && claveBien(c, b.clave);
       if (!bien) { anotarFallo(kf); return json(res, 401, { error: 'Clave incorrecta' }); }
       if (intentos.delete(kf)) guardarIntentos();
       for (const [k, s] of sesiones) if (s.vence <= ahora()) sesiones.delete(k);
@@ -295,6 +328,20 @@ function crear({ dataDir, almacen, recargar = false, frescuraMs = 120 * 1000, do
       const k = sesionDe(req, c);
       if (k) { sesiones.delete(k); guardarSesiones(); }
       return json(res, 200, { ok: true }, { 'Set-Cookie': ponerCookie(req, '', 0) });
+    }
+    if (ruta === '/api/clave') {
+      const k = c.activo && sesionDe(req, c);
+      if (!k) { req.resume(); return json(res, 401, { error: 'Sesión no válida' }); }
+      const kf = 'login|' + ipDe(req) + '|' + c.id;
+      if (fallos(kf, LOGIN_VENTANA) >= LOGIN_MAX) { req.resume(); return json(res, 429, { error: 'Demasiados intentos. Esperá unos minutos y probá de nuevo.' }); }
+      const b = await leerJson(req, LIMITE_CHICO);
+      if (!claveBien(c, b.actual)) { anotarFallo(kf); return json(res, 401, { error: 'La clave actual no es correcta' }); }
+      const e = errorClave(b.nueva, c.nombre); if (e) throw new ErrorHttp(400, e);
+      ponerClave(c, b.nueva, 'propia'); guardarComercios();
+      let n = 0; for (const [x, s] of sesiones) if (s.id === c.id && x !== k) { sesiones.delete(x); n++; }
+      if (n) guardarSesiones();
+      if (intentos.delete(kf)) guardarIntentos();
+      return json(res, 200, { ok: true });
     }
     // GET /api/datos
     if (!c.activo || !sesionDe(req, c)) return json(res, 401, { error: 'Sesión no válida' });
@@ -324,6 +371,7 @@ function crear({ dataDir, almacen, recargar = false, frescuraMs = 120 * 1000, do
     }
     if (ruta === '/ingesta') return ingesta(req, res);
     if (ruta === '/registro') return registro(req, res);
+    if (ruta === '/clave-instalacion') return claveInstalacion(req, res);
 
     const sub = subDe(req);
     if (ruta === '/admin' || ruta.startsWith('/admin/')) {

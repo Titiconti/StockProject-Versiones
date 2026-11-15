@@ -12,6 +12,7 @@ TM.IC={h:'M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z',v:'M4 5h2l2
   c:'M16 19v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1M9.5 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M21 19v-1a4 4 0 0 0-3-3.9M15.5 3.2a3.5 3.5 0 0 1 0 6.6',r:'M4 20V10M10 20V4M16 20v-7M22 20H2',
   o:'M2 6h11v10H2zM13 9h4l4 4v3h-8M6.5 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4M17.5 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4',f:'M3 7a2 2 0 0 1 2-2h13v4M3 7v10a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2M16.5 14h.01',
   a:'M3 17l6-6 4 4 8-8M15 7h6v6',e:'M12 3 21 8v8l-9 5-9-5V8zM8.5 12.5 12 16l3.5-3.5M12 16V9',g:'M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M19 12l2-1.2-2-3.5-2.3.7-1.7-1L14.5 4.5h-5L9 7l-1.7 1L5 7.3l-2 3.5L5 12l-2 1.2 2 3.5 2.3-.7 1.7 1 .5 2.5h5l.5-2.5 1.7-1 2.3.7 2-3.5z',
+  w:'M3 7h18v12H3zM3 7l3-3h12l3 3M16 13h2',
   u:'M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6zM9 12l2 2 4-4',k:'M3 13h18v7H3zM5 13l2-8h10l2 8M10 17h4',z:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M12 7v5l3 2'};
 TM.css=`
 @font-face{font-family:"SP Marca";src:url(data:font/woff2;base64,${typeof SP_FUENTE!=='undefined'?SP_FUENTE:''}) format("woff2");font-weight:300 700;font-display:swap}
@@ -86,7 +87,7 @@ document.head.insertAdjacentHTML('beforeend','<style id="tmcss">'+TM.css+Object.
 {const l=$('.logo');if(l)l.innerHTML=TM.MARCA(30)}
 $('main').insertAdjacentHTML('afterbegin','<div id="ph"><div><h1 id="pht"></h1><span id="phd" class="mu"></span></div><span id="phu"></span></div>');
 {const u=$('#phu'),a=$('#ayuda'),w=$('#avw');if(w)u.appendChild(w);if(a){a.textContent='Ayuda';u.appendChild(a)}}
-TM.TIT={h:'Inicio',v:'Ventas',p:'Productos',i:'Inventario',c:'Clientes',r:'Reportes',o:'Pedidos',f:'Finanzas',a:'Analítica',e:'Baja de Stock',g:'Configuración',u:'Usuarios',k:'Caja',z:'Actividad'};
+TM.TIT={h:'Inicio',v:'Ventas',p:'Productos',i:'Inventario',c:'Clientes',r:'Reportes',o:'Mercadería',w:'Plata del negocio',f:'Finanzas',a:'Analítica',e:'Baja de Stock',g:'Configuración',u:'Usuarios',k:'Caja',z:'Actividad'};
 TM.ult='';TM.titulo=()=>{const t=tabNow();if(t!==TM.ult){TM.ult=t;const h=$('#pht');h.textContent=TM.TIT[t]||'';h.style.animation='none';void h.offsetWidth;h.style.animation='';TM.barrido()}
   const d=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});$('#phd').textContent=((db.shop&&db.shop.n)||'')+(db.shop&&db.shop.n?' · ':'')+d.charAt(0).toUpperCase()+d.slice(1)};
 MODS.push(TM.titulo);

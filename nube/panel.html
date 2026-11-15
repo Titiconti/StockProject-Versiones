@@ -45,6 +45,12 @@ svg{display:block;flex:none}
 .primario{width:100%;height:48px;margin-top:14px;border:0;border-radius:10px;background:var(--cobalto);color:#fff;font-weight:600;font-size:16px}
 .primario:disabled{opacity:.6;cursor:default}
 .msj-error{margin-top:12px;color:var(--error-t);font-size:14px;min-height:20px}
+.ing .ayuda{color:var(--suave);font-size:13px;margin:6px 0 0}
+.ing .campo+label,.ing .ayuda+label{margin-top:14px}
+.segundo{width:100%;height:44px;margin-top:10px;border:1px solid var(--linea);border-radius:10px;background:transparent;color:var(--texto);font-weight:600;font-size:15px}
+.msj-ok{margin-top:12px;color:var(--ok-t,#0E7A55);font-size:14px;font-weight:600}
+#cambio{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:24px 16px;background:rgba(12,22,38,.55);overflow:auto}
+#cambio[hidden]{display:none}
 .ing .pie{margin-top:14px;color:var(--suave);font-size:13px}
 
 /* Cromo */
@@ -201,6 +207,7 @@ nav button[aria-current="page"]{background:var(--activo);color:#fff}
         <div class="bajo"><span class="marca"><b>Stock</b>Project</span> · Solo consulta</div>
       </div>
       <button class="bbtn" id="b-act" type="button" aria-label="Actualizar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 6.3"/><path d="M20 4v7h-7"/></svg><span class="txt">Actualizar</span></button>
+      <button class="bbtn" id="b-clave" type="button" aria-label="Cambiar clave" aria-haspopup="dialog"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/></svg><span class="txt">Cambiar clave</span></button>
       <button class="bbtn" id="b-salir" type="button" aria-label="Salir"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 4H5v16h5"/><path d="M15 8l4 4-4 4"/><path d="M19 12H9"/></svg><span class="txt">Salir</span></button>
     </header>
     <div class="fres" id="fres" role="status"><span class="punto"></span><span id="fres-t">Cargando…</span></div>
@@ -215,10 +222,28 @@ nav button[aria-current="page"]{background:var(--activo);color:#fff}
   </nav>
 </div>
 
+<div id="cambio" hidden role="dialog" aria-modal="true" aria-labelledby="cambio-t">
+  <form class="ing" id="f-cambio" autocomplete="off" novalidate>
+    <h1 id="cambio-t">Cambiar clave</h1>
+    <p class="sub">La nueva clave distingue mayúsculas y minúsculas. Se cierra la sesión en los demás dispositivos.</p>
+    <label for="c-actual">Clave actual</label>
+    <input class="campo" id="c-actual" type="password" autocomplete="current-password" autocapitalize="none" spellcheck="false" required>
+    <label for="c-nueva">Clave nueva</label>
+    <input class="campo" id="c-nueva" type="password" autocomplete="new-password" autocapitalize="none" spellcheck="false" required minlength="8" maxlength="64" aria-describedby="c-ayuda">
+    <p class="ayuda" id="c-ayuda">De 8 a 64 caracteres, con al menos una letra y un número.</p>
+    <label for="c-repe">Repetí la clave nueva</label>
+    <input class="campo" id="c-repe" type="password" autocomplete="new-password" autocapitalize="none" spellcheck="false" required>
+    <button class="primario" id="b-cambiar" type="submit">Guardar la clave nueva</button>
+    <button class="segundo" id="b-cancelar" type="button">Cancelar</button>
+    <p class="msj-error" id="e-cambio" role="alert"></p>
+    <p class="msj-ok" id="ok-cambio" role="status"></p>
+  </form>
+</div>
+
 <script>
 (function () {
   'use strict';
-  // Panel de SOLO LECTURA: lo único que se le pide al servidor es GET /api/datos (más ingresar y salir).
+  // Panel de SOLO LECTURA: lo único que se le pide al servidor es GET /api/datos (más ingresar, salir y cambiar la clave de acceso).
   // Todo dato que llega del comercio se escribe con textContent (función h): nunca se arma HTML con datos.
   var $ = function (id) { return document.getElementById(id); };
   var DIA = 86400000, FRESCURA = 120000;
@@ -608,6 +633,37 @@ nav button[aria-current="page"]{background:var(--activo);color:#fff}
       .then(function () { b.disabled = false; b.textContent = 'Ingresar'; });
   });
   $('b-act').addEventListener('click', function () { cargar(true); });
+  // Cambiar la clave del panel (no toca datos del negocio). Mismas reglas que el servidor.
+  function errorClave(k) {
+    k = k.trim();
+    if (k.length < 8 || k.length > 64) return 'La clave nueva tiene que tener entre 8 y 64 caracteres.';
+    if (!/\p{L}/u.test(k) || !/\p{N}/u.test(k)) return 'La clave nueva tiene que tener al menos una letra y un número.';
+    if (datos && datos.negocio && k.toLowerCase() === String(datos.negocio.nombre || '').trim().toLowerCase()) return 'La clave no puede ser igual al nombre del negocio.';
+    return '';
+  }
+  function cerrarCambio() { $('cambio').hidden = true; $('b-clave').focus(); }
+  $('b-clave').addEventListener('click', function () {
+    ['c-actual', 'c-nueva', 'c-repe'].forEach(function (i) { $(i).value = ''; });
+    $('e-cambio').textContent = ''; $('ok-cambio').textContent = ''; $('cambio').hidden = false; $('c-actual').focus();
+  });
+  $('b-cancelar').addEventListener('click', cerrarCambio);
+  $('cambio').addEventListener('keydown', function (ev) { if (ev.key === 'Escape') cerrarCambio(); });
+  $('f-cambio').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var e = $('e-cambio'), ok = $('ok-cambio'), b = $('b-cambiar'), nueva = $('c-nueva').value;
+    e.textContent = ''; ok.textContent = '';
+    if (!$('c-actual').value) { e.textContent = 'Escribí tu clave actual.'; return $('c-actual').focus(); }
+    var m = errorClave(nueva); if (m) { e.textContent = m; return $('c-nueva').focus(); }
+    if (nueva !== $('c-repe').value) { e.textContent = 'Las dos claves nuevas no coinciden.'; return $('c-repe').focus(); }
+    b.disabled = true;
+    fetch('/api/clave', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ actual: $('c-actual').value, nueva: nueva }) }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) {
+        if (r.ok) { ['c-actual', 'c-nueva', 'c-repe'].forEach(function (i) { $(i).value = ''; }); ok.textContent = 'Listo: tu clave nueva ya está guardada.'; }
+        else e.textContent = r.status === 401 ? 'La clave actual no es correcta.' : r.status === 429 ? 'Demasiados intentos. Esperá unos minutos y probá de nuevo.' : (j && j.error) || 'No se pudo cambiar la clave. Probá de nuevo en un momento.';
+      });
+    }).catch(function () { e.textContent = 'No se pudo conectar con el servidor. Revisá tu conexión a internet.'; })
+      .then(function () { b.disabled = false; });
+  });
   $('b-salir').addEventListener('click', function () {
     fetch('/api/logout', { method: 'POST', credentials: 'same-origin' }).catch(function () {}).then(function () { pedirClave(''); });
   });

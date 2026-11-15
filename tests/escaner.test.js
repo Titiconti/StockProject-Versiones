@@ -44,7 +44,7 @@ const assert = require('assert'), { web } = require('./helpers');
   w.eval('clr()');
 
   // ---- PEDIDOS y ESCUELA: elige el producto y pasa a la cantidad ----
-  tab('o'); $('#op').focus(); scan('7792001', $('#op')); assert.strictEqual($('#op').value, 'Galletitas de agua'); assert.strictEqual(d.activeElement.id, 'oq');
+  tab('o'); click('#me_t [data-me="a"]'); $('#op').focus(); scan('7792001', $('#op')); assert.strictEqual($('#op').value, 'Galletitas de agua'); assert.strictEqual(d.activeElement.id, 'oq');
   $('#oq').value = '5'; click('#oa'); assert(/Galletitas de agua/.test(txt('#od')) && />5</.test($('#od').innerHTML));
   tab('e'); $('#ep').focus(); scan('7790895', $('#ep')); assert.strictEqual($('#ep').value, 'Coca-Cola 1,5 L'); assert.strictEqual(d.activeElement.id, 'eq');
   scan('9999999999', $('#eq')); assert(/no encontrado/.test(toast()), 'código desconocido en Escuela'); assert.strictEqual($('#eq').value, '', 'tampoco ensucia la cantidad');
