@@ -5,8 +5,12 @@
 //   (producto principal sin stock propio; cada combinación es un producto hijo con padre e attrs, su código y su stock)
 //   reqVto · minimo · tramos [{desde,precio}] · cat · garantia (meses) · marca · modelo
 const PX={};
-PX.caps=()=>db.cfg.caps||null;   // null = el negocio no hizo la entrevista: se ofrecen todas las opciones
-PX.on=c=>{const k=PX.caps();return !k||!!k[c]};
+// Capacidades del negocio. Sin entrevista: las del rubro equivalente a la encuesta anterior; si tampoco hay, lo básico
+// (categoría, peso y vencimiento). Marca, modelo, garantía, series, variantes y precios por cantidad solo aparecen si el rubro los usa.
+PX.BASE={peso:true,vencimientos:true,series:false,garantias:false,variantes:false,tramos:false,minimos:false};
+PX.caps=()=>{if(db.cfg.caps)return db.cfg.caps;const e=db.cfg.encuesta,rb=typeof RB!=='undefined'&&e&&RB.deTipo(e.tipo);return rb?RB.resolver({rubro:rb,r:{},extra:[]}).caps:PX.BASE};
+PX.rubro=()=>typeof RB!=='undefined'?RB.PERFILES[db.cfg.rubro||(db.cfg.encuesta&&RB.deTipo(db.cfg.encuesta.tipo))||'']||null:null;
+PX.on=c=>!!PX.caps()[c];
 PX.hijos=p=>db.prods.filter(x=>x.padre===p.id);
 PX.stockPadre=p=>PX.hijos(p).reduce((a,h)=>a+avail(h),0);
 PX.cantidad=(p,v)=>{v=String(v==null?'':v).trim().replace(',','.');if(!v)return 0;const n=parseFloat(v);if(!isFinite(n))return 0;if(n<0)return -1;return esPeso(p)?Math.round(n*1000):Math.floor(n)};
@@ -28,14 +32,16 @@ $('#fg').closest('.form').insertAdjacentHTML('afterend',`<details class="dt" id=
 <div data-cap="garantias"><label>Marca</label><input id="px_ma"></div><div data-cap="garantias"><label>Modelo</label><input id="px_mo"></div>
 <div data-cap="vencimientos" style="align-self:center"><label class="opt" style="margin:0"><input type="checkbox" id="px_vr"> Exige fecha de vencimiento</label></div></div></details>`);
 PX.vis=()=>{$$('#pxo [data-cap]').forEach(x=>{const c=x.dataset.cap;x.classList.toggle('hide',c==='control'?!(PX.on('series')||PX.on('variantes')):!PX.on(c));if(x.tagName==='OPTION'){x.hidden=!PX.on(c);x.disabled=!PX.on(c)}});
-  $('#px_cats').innerHTML=[...new Set(db.prods.map(p=>p.cat).filter(Boolean))].sort().map(c=>`<option value="${esc(c)}">`).join('');
+  {const rb=PX.rubro();if(rb){fn.placeholder='Ej.: '+rb.ej;$('#px_cat').placeholder=rb.cats[0]?'Ej.: '+rb.cats[0]:'Opcional'}
+  }
+  $('#px_cats').innerHTML=[...new Set([...db.prods.map(p=>p.cat).filter(Boolean),...((PX.rubro()||{}).cats||[])])].sort().map(c=>`<option value="${esc(c)}">`).join('');
   const u=$('#px_u').value,c=$('#px_ctl').value,lq=fs.previousElementSibling,ll=fl.previousElementSibling;
   if(lq)lq.textContent=c==='variantes'?'Cantidad (se carga en cada variante)':u==='kg'?'Cantidad a ingresar (kg)':'Cantidad a ingresar';if(ll)ll.textContent=c==='serie'?'N.º de serie (uno por unidad, separados por coma)':'N.º de lote (opcional)';
   fs.disabled=c==='variantes';fp.previousElementSibling.textContent=u==='kg'?'Precio por kg ('+MON+')':'Precio de venta ('+MON+')';
   $('#pxr').textContent=[u==='kg'?'por peso':'',c==='serie'?'con N.º de serie':c==='variantes'?'con variantes':'',$('#px_vr').checked?'vence':'',$('#px_cat').value].filter(Boolean).join(' · ')};
 ['#px_u','#px_ctl','#px_vr','#px_cat'].forEach(x=>$(x).addEventListener('change',PX.vis));
 PX.llenarForm=p=>{const d=p||{};$('#px_cat').value=d.cat||'';$('#px_u').value=d.unidad==='kg'?'kg':'u';$('#px_ctl').value=d.control||'';$('#px_min').value=d.minimo||'';$('#px_tr').value=(d.tramos||[]).map(t=>t.desde+'='+t.precio).join('; ');
-  $('#px_ga').value=d.garantia||'';$('#px_ma').value=d.marca||'';$('#px_mo').value=d.modelo||'';$('#px_vr').checked=p?!!d.reqVto:!!(PX.caps()&&PX.caps().vtoPorDefecto);if(!p&&PX.caps()&&PX.caps().unidadPorDefecto)$('#px_u').value=PX.caps().unidadPorDefecto;PX.vis()};
+  $('#px_ga').value=d.garantia||'';$('#px_ma').value=d.marca||'';$('#px_mo').value=d.modelo||'';$('#px_vr').checked=p?!!d.reqVto:!!PX.caps().vtoPorDefecto;if(!p&&PX.caps().unidadPorDefecto&&PX.on('peso'))$('#px_u').value=PX.caps().unidadPorDefecto;PX.vis()};
 // Lee y valida las opciones. Nunca cambia la forma de venta o el control de un producto que ya tiene stock (cambiaría el significado de sus cantidades).
 PX.leerForm=prev=>{const u=$('#px_u').value==='kg'?'kg':'u',c=['serie','variantes'].includes($('#px_ctl').value)?$('#px_ctl').value:'',tr=PX.parseTramos($('#px_tr').value);if(tr.err)return{err:tr.err};
   const mi=$('#px_min').value===''?0:+$('#px_min').value,ga=$('#px_ga').value===''?0:+$('#px_ga').value;if(!(mi>=0)||!Number.isInteger(mi))return{err:'La compra mínima tiene que ser un número entero'};if(!(ga>=0&&ga<=240)||!Number.isInteger(ga))return{err:'La garantía va en meses enteros (0 a 240)'};

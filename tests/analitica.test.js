@@ -1,6 +1,7 @@
 const assert = require('assert'), { web } = require('./helpers.js');
 (async () => {
   const a = web(), { $, w } = a, ev = w.eval.bind(w), J = e => JSON.parse(w.eval('JSON.stringify(' + e + ')'));
+  ev('db.cfg.avanzado=true;draw()');   // Analítica es una función avanzada: oculta por defecto
   const hoy = ev('UT.hoy()');
   ev('db.sales.length=0;db.pays.length=0;db.sid=1');
   // 90 días con patrón semanal fijo (domingo..sábado) y dos productos; los últimos 30 días venden el doble de unidades de "Yerba"

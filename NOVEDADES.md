@@ -1,6 +1,12 @@
 # Novedades de StockProject
 
-## 5.1.0 (preparada, sin publicar)
+## 5.2.0 (preparada, sin publicar)
+- **El programa se adapta a tu rubro:** la encuesta inicial ahora pregunta el rubro (Kiosco, Almacén, Verdulería, Carnicería, Cafetería o restaurante, Ropa, Electrónica, Mayorista, Servicios u Otro) y hace preguntas propias de cada uno. Según las respuestas cambia qué se pide al cargar un producto, la unidad por defecto, las categorías sugeridas y los motivos de baja.
+- Marca, modelo, garantía, números de serie, variantes y precios por cantidad solo aparecen en los rubros que los usan.
+- **Marca propia:** símbolo nuevo (la caja sellada con cinta), tipografía de la marca y animaciones propias: inicio, venta sellada al cobrar, cinta de carga y cambio de pantalla.
+- **Interfaz más simple:** Analítica, conciliación bancaria, sueldos, análisis de clientes y puntos, y empresas y monedas quedan ocultas. Se recuperan en Configuración > Mi negocio > Funciones avanzadas.
+
+## 5.1.0 (sin publicar)
 - **Nueva imagen:** logo de StockProject, colores nuevos, menú lateral con iconos y título en cada pantalla.
 - **Animaciones:** pantalla de inicio animada y transiciones en cada pantalla. Se apagan desde la campana > Preferencias de este equipo.
 - **Ver el negocio desde el celular, desde cualquier lugar:** Configuración > Mi negocio > "Ver mi negocio desde el celular". Solo consulta (ventas, estadísticas, stock, caja, saldos). Necesita la dirección y la clave que entrega soporte.
