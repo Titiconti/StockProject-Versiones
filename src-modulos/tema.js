@@ -51,7 +51,7 @@ label{font-size:12.5px;font-weight:500}
 th{font-weight:600;font-size:12.5px}tbody tr{transition:background .12s}tbody tr:hover{background:color-mix(in srgb,var(--ac) 5%,transparent)}
 .tag{font-weight:600}.pills button{font-weight:500}.pills button.on{color:var(--act)}
 .row{padding:10px 0}.tip{border-radius:10px}
-.ov,.mod{background:rgba(10,19,34,.55);backdrop-filter:blur(5px)}.ov .card{border-radius:18px;padding:22px;box-shadow:0 30px 80px -20px rgba(0,0,0,.5)}
+.ov,.mod{background:rgba(10,19,34,.55);backdrop-filter:blur(5px)}#enc .card{max-width:760px}.ov .card{border-radius:18px;padding:22px;box-shadow:0 30px 80px -20px rgba(0,0,0,.5)}
 #toast{background:var(--ink);color:#fff;border-radius:12px;padding:12px 18px;font-weight:500;box-shadow:0 14px 34px -12px rgba(0,0,0,.5);transform:translate(-50%,12px);transition:opacity .2s,transform .25s var(--ease);max-width:min(560px,92vw)}#toast.show{transform:translate(-50%,0)}
 /* ---- animaciones ---- */
 html.anim main>section:not(.hide){animation:tmIn .26s var(--ease)}html.anim main>section:not(.hide)>.card,html.anim main>section:not(.hide)>.grid>.card,html.anim main>section:not(.hide) .kpis>.card{animation:tmUp .34s var(--ease) backwards}

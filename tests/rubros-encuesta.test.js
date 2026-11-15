@@ -29,6 +29,14 @@ const assert = require('assert'), { web } = require('./helpers');
   // carnicería y electrónica
   encuesta('carniceria', { c_vto: true, c_elab: true, c_merma: false }); c = db().cfg; assert(c.caps.peso && c.caps.vencimientos && c.caps.unidadPorDefecto === 'kg' && !c.motivosBaja.includes('Merma por desposte'));
   encuesta('electronica'); tab('p'); ev('draw()'); assert(!oculto('garantias') && !oculto('control') && oculto('peso'), 'electrónica sí usa marca, modelo y series');
+  // rubros agregados el 15/11: cada uno con sus preguntas y sus capacidades
+  ['panaderia', 'ferreteria', 'farmacia', 'libreria', 'petshop', 'dietetica', 'perfumeria'].forEach(r => { assert(ev(`!!RB.PERFILES.${r}`), r); assert.strictEqual(ev(`RB.validar({rubro:'${r}',r:{},extra:[]})`), '', r + ' válido con sus valores por defecto'); assert(ev(`RB.PERFILES.${r}.pregs.every(q=>!!RB.PREGS[q])`), r + ': preguntas definidas'); });
+  encuesta('farmacia'); c = db().cfg; assert(c.caps.vencimientos && c.caps.vtoPorDefecto && !c.caps.peso && !c.caps.garantias); tab('p'); click('#fx'); assert($('#px_vr').checked, 'farmacia: el producto nuevo exige vencimiento');
+  assert(c.motivosBaja.includes('Devolución a droguería'));
+  encuesta('ferreteria', { fe_peso: true, fe_tramos: true, fe_gar: true, fe_serie: false }); tab('p'); ev('draw()'); assert(!oculto('garantias') && !oculto('tramos') && !oculto('peso') && oculto('vencimientos'), 'ferretería: marca y modelo sí, vencimiento no');
+  encuesta('perfumeria', { pf_vto: true, pf_var: true }); c = db().cfg; assert(c.caps.variantes); assert.deepStrictEqual(c.atributos, ['Tono']);
+  encuesta('dietetica'); tab('p'); click('#fx'); assert.strictEqual($('#px_u').value, 'kg'); assert(db().cfg.motivosBaja.includes('Merma por fraccionado'));
+  encuesta('panaderia', { pa_peso: true, pa_vto: false, pa_merma: true }); assert(db().cfg.motivosBaja.includes('Sobrante del día') && !db().cfg.motivosBaja.includes('Merma por fraccionado'));
   // servicios: sin preguntas de rubro (4 pasos)
   ev('CF.abrirEncuesta(true)'); radio('tipo', 'servicios'); click('#e_sig'); assert(/Paso 2 de 4/.test(txt('#enc'))); quitar('#enc');
   assert.deepStrictEqual(errs, []); console.log('RUBROS_ENCUESTA_OK'); process.exit(0);
