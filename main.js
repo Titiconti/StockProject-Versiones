@@ -52,7 +52,7 @@ app.whenReady().then(() => {
   ipcMain.handle('auth:login', (e, u, c) => { const r = usr.login(u, c, 'Escritorio'); if (!r.ok) return r; tok = r.token; win.loadFile(pagina()); return { ok: true }; });
   ipcMain.handle('auth:logout', () => { usr.logout(tok); tok = null; win.loadFile(pagina()); return { ok: true }; });
   ipcMain.handle('auth:ir', () => { win.loadFile(pagina()); return true; });
-  if (!faltaClave) try { store.load(); } catch (x) {}   // inicializa la versión de los datos antes de abrir el acceso remoto
+  if (!faltaClave) try { store.load(); } catch (x) {}   // inicializa la versión de los datos
   ipcMain.handle('save', (e, s, base) => { try { if (usr.habilitado()) { const q = quien(); if (!q) return { ok: false, auth: true, err: 'La sesión venció: volvé a ingresar' }; if (!usr.puedeEscribir(q)) return { ok: false, err: 'Tu usuario es de solo consulta' }; } return store.put(s, base) } catch (x) { return { ok: false, err: String((x && x.message) || x) } } });
   ipcMain.on('version', e => { e.returnValue = store.rev(); });
   ipcMain.on('defaults', e => { e.returnValue = defaults() });
@@ -123,8 +123,8 @@ app.whenReady().then(() => {
   ipcMain.handle('emp:consolidado', (e, o) => permite('reporte', 'ver') && permite('configuracion', 'ver') ? emp.consolidado({ desde: String(o.desde), hasta: String(o.hasta), base: String(o.base), estado: o.estado || {} }) : null);
   ipcMain.handle('fx:actualizar', async (e, base) => permite('configuracion', 'editar') ? require('./monedas').actualizar((...a) => fetch(...a), base) : sinPermiso);
   ipcMain.handle('sys:metricas', () => {
-    const m = app.getAppMetrics(), os = require('os'), r = remoto.info(), inf = store.info();
-    return { cpu: Math.round(m.reduce((a, x) => a + ((x.cpu && x.cpu.percentCPU) || 0), 0) * 10) / 10, memMB: Math.round(m.reduce((a, x) => a + ((x.memory && x.memory.workingSetSize) || 0), 0) / 1024), libreMB: Math.round(os.freemem() / 1048576), archivoMB: Math.round(store.tam() / 1048576 * 100) / 100, iniciada: Math.round(process.uptime()), ultimoRespaldo: inf.last, servidor: r.running ? { puerto: r.port, https: r.https, ...(r.stats || {}) } : null, rev: store.rev() };
+    const m = app.getAppMetrics(), os = require('os'), inf = store.info();
+    return { cpu: Math.round(m.reduce((a, x) => a + ((x.cpu && x.cpu.percentCPU) || 0), 0) * 10) / 10, memMB: Math.round(m.reduce((a, x) => a + ((x.memory && x.memory.workingSetSize) || 0), 0) / 1024), libreMB: Math.round(os.freemem() / 1048576), archivoMB: Math.round(store.tam() / 1048576 * 100) / 100, iniciada: Math.round(process.uptime()), ultimoRespaldo: inf.last, rev: store.rev() };
   });
   // Actualizaciones automáticas (GitHub Releases del repositorio configurado en package.json)
   let au = null; try { au = require('electron-updater').autoUpdater; } catch (x) {}
@@ -172,38 +172,24 @@ app.whenReady().then(() => {
     if (!store.restoreFrom(r.filePaths[0], pw)) return { ok: false, err: 'Contraseña incorrecta o archivo dañado.' };
     usr.audit(quien(), 'respaldo.restaurar_protegido'); win.reload(); return { ok: true };
   });
-  // Acceso remoto (celular u otras PC): mismo programa y mismos datos, protegido con clave.
-  const remoto = require('./servidor').gestor({ store, usuarios: usr, certDir: path.join(ud, 'https'), indexPath: path.join(__dirname, 'index.html'), defaults: defaults() });
-  const qrCache = {};
-  ipcMain.handle('remote:info', async () => {
-    const i = remoto.info();
-    let qr = '';
-    if (i.running && i.urls[0]) {
-      try { qr = qrCache[i.urls[0]] || (qrCache[i.urls[0]] = await require('qrcode').toDataURL(i.urls[0], { margin: 1, width: 170 })); } catch (x) {}
-    }
-    return { ...i, qr };
-  });
   // Panel para el celular desde cualquier lugar: envío de datos de solo lectura al servidor central (nube.js).
-  const nube = require('./nube')({ leer: () => store.snapshot(), getCfg: () => principal.getConfig(), setCfg: p => principal.setConfig(p),
+  const nube = require('./nube')({ leer: () => store.snapshot(), getCfg: () => principal.getConfig(), setCfg: p => principal.setConfig(p), servidor: defaults().nube || '',
     proteger: t => safeStorage.isEncryptionAvailable() ? 'ss:' + safeStorage.encryptString(t).toString('base64') : t,
     desproteger: t => String(t).startsWith('ss:') ? safeStorage.decryptString(Buffer.from(String(t).slice(3), 'base64')) : t });
   ipcMain.handle('nube:estado', () => nube.estado());
   ipcMain.handle('nube:call', async (e, n, a) => {
     if (!permite('acceso_remoto', 'editar')) return { ok: false, err: 'Tu usuario no tiene permiso para cambiar el acceso remoto' };
-    const f = { configurar: nube.configurar, activar: nube.activar, quitar: nube.quitar, ahora: () => nube.sincronizar(true) }[n]; if (!f) return { ok: false };
-    const r = await f(a); usr.audit(quien(), 'nube.' + n, ''); if (n === 'configurar' && r && r.ok) { nube.detener(); nube.iniciar(); }
+    const f = { configurar: nube.configurar, activar: nube.activar, quitar: nube.quitar, registrar: nube.registrar, clave: async () => ({ ok: true, clave: nube.clave() }), ahora: () => nube.sincronizar(true) }[n]; if (!f) return { ok: false };
+    const r = await f(a); if (n !== 'clave') usr.audit(quien(), 'nube.' + n, ''); if (n === 'configurar' && r && r.ok) { nube.detener(); nube.iniciar(); }
     return r;
   });
   nube.iniciar(); app.on('before-quit', () => nube.detener());
-  ipcMain.handle('remote:set', (e, cfg) => { if (!permite('acceso_remoto', 'editar')) return remoto.info(); usr.audit(quien(), 'acceso_remoto.cambio', Object.keys(cfg || {}).join(',')); return remoto.setConfig(cfg || {}); });
   ipcMain.handle('b:export', async () => {
     if (!permite('respaldo', 'ver')) return { ok: false };
     const r = await dialog.showSaveDialog(win, { title: 'Guardar copia de seguridad', defaultPath: path.join(app.getPath('documents'), 'StockProject-copia-' + new Date().toISOString().slice(0, 10) + '.json'), filters: [{ name: 'Copia de StockProject', extensions: ['json'] }] });
     if (r.canceled || !r.filePath) return { ok: false };
     try { fs.writeFileSync(r.filePath, store.snapshot() || '{}'); usr.audit(quien(), 'respaldo.exportar'); return { ok: true, file: r.filePath }; } catch (x) { return { ok: false, err: String(x.message || x) }; }
   });
-  if (!faltaClave) remoto.start();
-  app.on('before-quit', () => { try { remoto.stop(); } catch (x) {} });
   crear();
   if (!faltaClave) store.backup();
   setInterval(() => { if (!faltaClave) store.backup(); }, 36e5);

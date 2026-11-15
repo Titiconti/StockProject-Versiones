@@ -7,5 +7,5 @@
     "t": ""
   },
   "imprimirDirecto": false,
-  "accesoRemoto": true
+  "nube": "https://stock-project-versiones.vercel.app"
 }

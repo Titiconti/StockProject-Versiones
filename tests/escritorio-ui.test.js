@@ -23,7 +23,6 @@ const assert = require('assert'), { JSDOM, HTML, until, api } = require('./helpe
   A.click('#clv_d'); assert(/StockProject-clave/.test(ev('window.__f[0]')) && ev('window.__f[1]').includes('ab'.repeat(32)));
   const ok = $('#clv_ok'); ok.checked = true; A.ev(ok, 'change'); assert(!$('#clv_x').disabled); A.click('#clv_x'); assert(!$('#clv'));
   A.set('#sg_pw', 'corta'); A.click('#sg_cp'); assert(await until(() => /al menos 8/.test(A.txt('#toast')))); A.set('#sg_pw', 'una-clave-larga'); A.click('#sg_cp'); await until(() => hubo('copiaProtegida').length === 2); assert.strictEqual(hubo('copiaProtegida')[1][1], 'una-clave-larga');
-  assert(await until(() => /Desactivado: el acceso/.test(A.txt('#sg_hs')))); A.click('#sg_https'); assert(await until(() => hubo('setRemote').length === 1)); assert.strictEqual(JSON.stringify(hubo('setRemote')[0][1]), '{"https":true}');
 
 
   // ---- Empresas, datos fiscales, tipos de cambio ----
@@ -37,7 +36,7 @@ const assert = require('assert'), { JSDOM, HTML, until, api } = require('./helpe
   A.set('#fi_m', 'EUR'); A.set('#fi_r', 'Mi SRL'); A.set('#fi_id', '30-12345678-9'); A.set('#fi_t', '21'); A.click('#fi_g'); assert.strictEqual(ev('MON'), 'EUR'); assert(/€/.test(A.f(10))); assert.strictEqual(ev('db.cfg.fiscalCustom.tasa'), 21);
 
   // ---- Sistema ----
-  A.click('#gp2 [data-s=x]'); assert(await until(() => /memoria 210 MB/.test(A.txt('#g_x'))), A.txt('#g_x').slice(0, 100)); assert(/12 pedidos atendidos/.test(A.txt('#g_x')) && !/Redis/.test(A.txt('#g_x')), 'estado en una línea, sin texto técnico');
+  A.click('#gp2 [data-s=x]'); assert(await until(() => /memoria 210 MB/.test(A.txt('#g_x'))), A.txt('#g_x').slice(0, 100)); assert(!/pedidos atendidos/.test(A.txt('#g_x')) && !/Redis/.test(A.txt('#g_x')), 'estado en una línea, sin texto técnico (ya no hay acceso por red local)');
   A.click('#sy_m'); assert(await until(() => /Guardar/.test(A.txt('#g_x')) && /Todo en orden/.test(A.txt('#g_x'))));
   // ---- Actualizaciones ----
   assert(/Versión 2\.0\.0/.test(A.txt('#g_x')) && /Tenés la última versión/.test(A.txt('#g_x')), A.txt('#g_x').slice(0, 150)); assert(!$('#up_i'), 'sin versión nueva no hay botón de actualizar');
