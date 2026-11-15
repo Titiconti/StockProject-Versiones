@@ -736,23 +736,27 @@ CF.drawInicio=()=>{const s=$('#h');if(s.classList.contains('hide'))return;const 
   const tips=CF.tips().slice(0,2);
   s.querySelector('#hk').innerHTML=ws.map(w=>CF.W[w]()).join('')+(CF.W.cobros&&ws.includes('cobros')?'':'');
   $('#htips').innerHTML=tips.length?'<h3>Recomendaciones</h3>'+tips.map(([id,tx,tab])=>`<div class="tip">${esc(tx)} <button class="btn sec" data-ir="${tab}" style="padding:3px 9px;margin-left:6px">Ir</button> <button class="btn sec" data-nt="${id}" style="padding:3px 9px">No mostrar más</button></div>`).join(''):'';
-  $('#hnom').textContent=(db.shop&&db.shop.n)||'Tu negocio';$('#hsub').textContent=e?`${CF.TIPOS[e.tipo]||''} · ${CF.PAISES[e.pais]?CF.PAISES[e.pais].n:''}`:'Contestá la encuesta de Configuración para personalizar este panel.'};
+  $('#hnom').textContent=(db.shop&&db.shop.n)||'Tu negocio';$('#hsub').textContent=e?`${(typeof RB!=='undefined'&&e.rubro&&RB.PERFILES[e.rubro]?RB.PERFILES[e.rubro].n:CF.TIPOS[e.tipo])||''} · ${CF.PAISES[e.pais]?CF.PAISES[e.pais].n:''}`:'Contestá la encuesta de Configuración para personalizar este panel.'};
 MODS.push(CF.drawInicio);
 
 // ---------- Encuesta inicial ----------
 CF.paisAuto=()=>{const l=(navigator.language||'es-AR').split('-')[1];return CF.PAISES[l]?l:'AR'};
-CF.abrirEncuesta=(forzar)=>{if($('#enc'))return;const e=CF.enc()||{};let paso=0;const st={tipo:e.tipo||'minorista',vol:e.vol||'pequeno',necs:e.necs||['inventario','clientes','reportes'],pais:e.pais||CF.paisAuto(),mon:e.mon||null,ha:(e.horario||{}).a||'09:00',hc:(e.horario||{}).c||'18:00',notif:e.notif!==false};
+CF.abrirEncuesta=(forzar)=>{if($('#enc'))return;const e=CF.enc()||{};let paso=0;const RBok=typeof RB!=='undefined',ent=db.cfg.entrevista||{};const st={rubro:e.rubro||db.cfg.rubro||(RBok?RB.deTipo(e.tipo):'')||'',r:{...(ent.r||{})},extra:[...(ent.extra||[])],tipo:e.tipo||'minorista',vol:e.vol||'pequeno',necs:e.necs||['inventario','clientes','reportes'],pais:e.pais||CF.paisAuto(),mon:e.mon||null,ha:(e.horario||{}).a||'09:00',hc:(e.horario||{}).c||'18:00',notif:e.notif!==false};
   const ov=document.createElement('div');ov.className='ov';ov.id='enc';document.body.appendChild(ov);
   const rad=(n,o,v)=>Object.entries(o).map(([k,t])=>`<label class="opt"><input type="radio" name="${n}" value="${k}" ${v===k?'checked':''}> ${esc(t)}</label>`).join('');
-  const pasos=[()=>`<h3>1. ¿Qué tipo de comercio tenés?</h3>${rad('tipo',CF.TIPOS,st.tipo)}`,()=>`<h3>2. ¿Cuántas operaciones hacés por día?</h3>${rad('vol',CF.VOLS,st.vol)}`,
-    ()=>`<h3>3. ¿Qué necesitás resolver?</h3>${Object.entries(CF.NECS).map(([k,t])=>`<label class="opt"><input type="checkbox" name="necs" value="${k}" ${st.necs.includes(k)?'checked':''}> ${esc(t)}</label>`).join('')}`,
-    ()=>{const p=CF.PAISES[st.pais];return `<h3>4. Configuración inicial</h3><div class="form"><div><label>País (define impuestos y formato)</label><select id="e_pais">${Object.entries(CF.PAISES).map(([k,v])=>`<option value="${k}" ${st.pais===k?'selected':''}>${v.n}</option>`).join('')}</select></div><div><label>Moneda principal</label><select id="e_mon">${Object.entries(CF.MONEDAS).map(([k,v])=>`<option value="${k}" ${(st.mon||p.mon)===k?'selected':''}>${k} · ${v}</option>`).join('')}</select></div><div><label>Abrís desde</label><input id="e_ha" type="time" value="${st.ha}"></div><div><label>Cerrás a las</label><input id="e_hc" type="time" value="${st.hc}"></div></div><label class="opt" style="margin-top:10px"><input type="checkbox" id="e_not" ${st.notif?'checked':''}> Avisarme con notificaciones del sistema (stock bajo, deudas, recomendaciones)</label><p class="mu">Impuesto sugerido para ${p.n}: ${p.imp} ${p.tasa}% (podés cambiarlo después).</p>`}];
-  const leer=()=>{const q=n=>[...ov.querySelectorAll(`[name=${n}]:checked`)].map(x=>x.value);if(paso===0)st.tipo=q('tipo')[0]||st.tipo;if(paso===1)st.vol=q('vol')[0]||st.vol;if(paso===2)st.necs=q('necs');if(paso===3){st.pais=$('#e_pais').value;st.mon=$('#e_mon').value;st.ha=$('#e_ha').value;st.hc=$('#e_hc').value;st.notif=$('#e_not').checked}};
-  const dibujar=()=>{ov.innerHTML=`<div class="card"><div class="mu" style="margin-bottom:6px">Paso ${paso+1} de 4 · Configuración inicial</div>${pasos[paso]()}<div style="display:flex;gap:8px;margin-top:14px;justify-content:space-between"><button class="btn sec" id="e_atras" ${paso?'':'disabled'}>Atrás</button><span style="display:flex;gap:8px"><button class="btn sec" id="e_cerrar">${forzar?'Cancelar':'Más tarde'}</button><button class="btn" id="e_sig">${paso===3?'Terminar':'Siguiente'}</button></span></div></div>`;
-    if(paso===3)$('#e_pais').onchange=()=>{leer();st.mon=null;dibujar()};
+  // Pasos: rubro → preguntas propias del rubro (solo si las tiene) → volumen → necesidades → país y horario.
+  const claves=()=>['tipo',...(RBok&&st.rubro&&RB.visibles(st).length?['rubro']:[]),'vol','necs','conf'],clave=()=>claves()[paso];
+  const P={tipo:()=>RBok?`<h3>¿Cuál es tu rubro?</h3><p class="mu" style="margin-top:0">El programa se adapta a lo que elijas: qué te pregunta al cargar un producto, cómo se vende y qué avisos ves.</p>${Object.entries(RB.PERFILES).map(([k,p])=>`<label class="opt"><input type="radio" name="tipo" value="${k}" ${st.rubro===k?'checked':''}> <span><b>${p.n}</b><br><span class="mu">${p.d}</span></span></label>`).join('')}`:`<h3>¿Qué tipo de comercio tenés?</h3>${rad('tipo',CF.TIPOS,st.tipo)}`,
+    rubro:()=>`<h3>${esc(RB.PERFILES[st.rubro].n)}: contanos cómo trabajás</h3>${RB.htmlPregs(st,'#enc')}`,
+    vol:()=>`<h3>¿Cuántas operaciones hacés por día?</h3>${rad('vol',CF.VOLS,st.vol)}`,
+    necs:()=>`<h3>¿Qué necesitás resolver?</h3>${Object.entries(CF.NECS).map(([k,t])=>`<label class="opt"><input type="checkbox" name="necs" value="${k}" ${st.necs.includes(k)?'checked':''}> ${esc(t)}</label>`).join('')}`,
+    conf:()=>{const p=CF.PAISES[st.pais];return `<h3>Configuración inicial</h3><div class="form"><div><label>País (define impuestos y formato)</label><select id="e_pais">${Object.entries(CF.PAISES).map(([k,v])=>`<option value="${k}" ${st.pais===k?'selected':''}>${v.n}</option>`).join('')}</select></div><div><label>Moneda principal</label><select id="e_mon">${Object.entries(CF.MONEDAS).map(([k,v])=>`<option value="${k}" ${(st.mon||p.mon)===k?'selected':''}>${k} · ${v}</option>`).join('')}</select></div><div><label>Abrís desde</label><input id="e_ha" type="time" value="${st.ha}"></div><div><label>Cerrás a las</label><input id="e_hc" type="time" value="${st.hc}"></div></div><label class="opt" style="margin-top:10px"><input type="checkbox" id="e_not" ${st.notif?'checked':''}> Avisarme con notificaciones del sistema (stock bajo, deudas, recomendaciones)</label><p class="mu">Impuesto sugerido para ${p.n}: ${p.imp} ${p.tasa}% (podés cambiarlo después).</p>`}};
+  const leer=()=>{const q=n=>[...ov.querySelectorAll(`[name=${n}]:checked`)].map(x=>x.value);const k=clave();if(k==='tipo'){const v=q('tipo')[0];if(RBok){if(v&&v!==st.rubro){st.rubro=v;st.r={};st.extra=[]}if(st.rubro)st.tipo=RB.PERFILES[st.rubro].tipo}else st.tipo=v||st.tipo}if(k==='rubro')RB.leerPregs(st,'#enc');if(k==='vol')st.vol=q('vol')[0]||st.vol;if(k==='necs')st.necs=q('necs');if(k==='conf'){st.pais=$('#e_pais').value;st.mon=$('#e_mon').value;st.ha=$('#e_ha').value;st.hc=$('#e_hc').value;st.notif=$('#e_not').checked}};
+  const dibujar=()=>{ov.innerHTML=`<div class="card"><div class="mu" style="margin-bottom:6px">Paso ${paso+1} de ${claves().length} · Configuración inicial</div>${P[clave()]()}<div style="display:flex;gap:8px;margin-top:14px;justify-content:space-between"><button class="btn sec" id="e_atras" ${paso?'':'disabled'}>Atrás</button><span style="display:flex;gap:8px"><button class="btn sec" id="e_cerrar">${forzar?'Cancelar':'Más tarde'}</button><button class="btn" id="e_sig">${clave()==='conf'?'Terminar':'Siguiente'}</button></span></div></div>`;
+    if(clave()==='conf')$('#e_pais').onchange=()=>{leer();st.mon=null;dibujar()};if(clave()==='rubro')ov.querySelectorAll('input[type=radio]').forEach(i=>i.onchange=()=>{leer();dibujar()});
     $('#e_atras').onclick=()=>{leer();paso--;dibujar()};$('#e_cerrar').onclick=()=>ov.remove();
-    $('#e_sig').onclick=()=>{leer();if(paso<3){paso++;return dibujar()}const p=CF.PAISES[st.pais];
-      db.cfg.moneda=st.mon||p.mon;db.cfg.loc=p.loc;db.cfg.encuesta={fecha:new Date().toISOString(),tipo:st.tipo,vol:st.vol,necs:st.necs,pais:st.pais,mon:st.mon||p.mon,loc:p.loc,horario:{a:st.ha,c:st.hc},notif:st.notif,fiscal:{imp:p.imp,tasa:p.tasa,id:p.id}};
+    $('#e_sig').onclick=()=>{leer();if(RBok&&clave()==='tipo'&&!st.rubro)return toast('Elegí tu rubro');if(clave()==='rubro'){const er=RB.validar(st);if(er)return toast(er)}if(clave()!=='conf'){paso++;return dibujar()}const p=CF.PAISES[st.pais];
+      db.cfg.moneda=st.mon||p.mon;db.cfg.loc=p.loc;if(RBok&&st.rubro)RB.aplicar(st);db.cfg.encuesta={fecha:new Date().toISOString(),rubro:st.rubro||undefined,tipo:st.tipo,vol:st.vol,necs:st.necs,pais:st.pais,mon:st.mon||p.mon,loc:p.loc,horario:{a:st.ha,c:st.hc},notif:st.notif,fiscal:{imp:p.imp,tasa:p.tasa,id:p.id}};
       delete db.cfg.tabs;delete db.cfg.orden;delete db.cfg.widgets;delete db.cfg.gastosCats;
       if(call&&AU.habilitado)call('audit','config.encuesta',st.tipo);save();ov.remove();CF.aplicar();draw();CF.drawCfg();
       const ir=$('nav button:not(.hide)[data-t=h]');if(ir)ir.click();if(!db.cfg.tourVisto)setTimeout(CF.tour,300)}};
@@ -782,7 +786,7 @@ CF.sub='n';CF.extras={};
 CF.drawCfg=()=>{if($('#g').classList.contains('hide'))return;const av=['i','m','x'].includes(CF.sub);$$('#gp button').forEach(b=>b.classList.toggle('on',b.dataset.s==='x'?av:b.dataset.s===CF.sub));$('#gp2').classList.toggle('hide',!av);$$('#gp2 button').forEach(b=>b.classList.toggle('on',b.dataset.s===CF.sub));$$('#g [data-sub]').forEach(x=>x.classList.toggle('hide',x.dataset.sub!==CF.sub));
   const e=CF.enc();
   if(CF.sub==='n'){
-    $('#g_res').innerHTML=e?`<b>${esc(CF.TIPOS[e.tipo])}</b> · ${esc(CF.VOLS[e.vol])}<br>Necesidades: ${e.necs.map(n=>esc(CF.NECS[n])).join(', ')||'ninguna'}<br>${esc(CF.PAISES[e.pais].n)} · ${e.mon} · ${e.fiscal.imp} ${e.fiscal.tasa}% · Horario ${e.horario.a} a ${e.horario.c}`:'Todavía no completaste la encuesta de configuración.';
+    $('#g_res').innerHTML=e?`<b>${esc((typeof RB!=='undefined'&&e.rubro&&RB.PERFILES[e.rubro]?RB.PERFILES[e.rubro].n:CF.TIPOS[e.tipo])||'')}</b> · ${esc(CF.VOLS[e.vol])}<br>Necesidades: ${e.necs.map(n=>esc(CF.NECS[n])).join(', ')||'ninguna'}<br>${esc(CF.PAISES[e.pais].n)} · ${e.mon} · ${e.fiscal.imp} ${e.fiscal.tasa}% · Horario ${e.horario.a} a ${e.horario.c}`:'Todavía no completaste la encuesta de configuración.';
     const act=CF.tabsActivas()||[],ord=db.cfg.orden||CF.perfil().menu;$('#g_tabs').innerHTML=ord.filter(t=>t!=='u'&&t!=='g'&&t!=='h').map(t=>`<label class="opt"><input type="checkbox" data-tab="${t}" ${act.includes(t)?'checked':''}> ${CF.NAVN[t]}</label>`).join('');
     const ws=db.cfg.widgets||CF.perfil().w.slice(0,5);$('#g_ws').innerHTML=Object.keys(CF.W).map(w=>`<label class="opt"><input type="checkbox" data-w="${w}" ${ws.includes(w)?'checked':''}> ${CF.WN[w]||w}</label>`).join('');
     $('#g_gc').value=CF.gastosCats().join(', ');
@@ -1300,8 +1304,12 @@ if(EDA&&sp.upd){sp.upd.alCambiar(e=>{UPD.est=e;UPD.banner(e);if(!$('#g').classLi
 //   (producto principal sin stock propio; cada combinación es un producto hijo con padre e attrs, su código y su stock)
 //   reqVto · minimo · tramos [{desde,precio}] · cat · garantia (meses) · marca · modelo
 const PX={};
-PX.caps=()=>db.cfg.caps||null;   // null = el negocio no hizo la entrevista: se ofrecen todas las opciones
-PX.on=c=>{const k=PX.caps();return !k||!!k[c]};
+// Capacidades del negocio. Sin entrevista: las del rubro equivalente a la encuesta anterior; si tampoco hay, lo básico
+// (categoría, peso y vencimiento). Marca, modelo, garantía, series, variantes y precios por cantidad solo aparecen si el rubro los usa.
+PX.BASE={peso:true,vencimientos:true,series:false,garantias:false,variantes:false,tramos:false,minimos:false};
+PX.caps=()=>{if(db.cfg.caps)return db.cfg.caps;const e=db.cfg.encuesta,rb=typeof RB!=='undefined'&&e&&RB.deTipo(e.tipo);return rb?RB.resolver({rubro:rb,r:{},extra:[]}).caps:PX.BASE};
+PX.rubro=()=>typeof RB!=='undefined'?RB.PERFILES[db.cfg.rubro||(db.cfg.encuesta&&RB.deTipo(db.cfg.encuesta.tipo))||'']||null:null;
+PX.on=c=>!!PX.caps()[c];
 PX.hijos=p=>db.prods.filter(x=>x.padre===p.id);
 PX.stockPadre=p=>PX.hijos(p).reduce((a,h)=>a+avail(h),0);
 PX.cantidad=(p,v)=>{v=String(v==null?'':v).trim().replace(',','.');if(!v)return 0;const n=parseFloat(v);if(!isFinite(n))return 0;if(n<0)return -1;return esPeso(p)?Math.round(n*1000):Math.floor(n)};
@@ -1323,14 +1331,16 @@ $('#fg').closest('.form').insertAdjacentHTML('afterend',`<details class="dt" id=
 <div data-cap="garantias"><label>Marca</label><input id="px_ma"></div><div data-cap="garantias"><label>Modelo</label><input id="px_mo"></div>
 <div data-cap="vencimientos" style="align-self:center"><label class="opt" style="margin:0"><input type="checkbox" id="px_vr"> Exige fecha de vencimiento</label></div></div></details>`);
 PX.vis=()=>{$$('#pxo [data-cap]').forEach(x=>{const c=x.dataset.cap;x.classList.toggle('hide',c==='control'?!(PX.on('series')||PX.on('variantes')):!PX.on(c));if(x.tagName==='OPTION'){x.hidden=!PX.on(c);x.disabled=!PX.on(c)}});
-  $('#px_cats').innerHTML=[...new Set(db.prods.map(p=>p.cat).filter(Boolean))].sort().map(c=>`<option value="${esc(c)}">`).join('');
+  {const rb=PX.rubro();if(rb){fn.placeholder='Ej.: '+rb.ej;$('#px_cat').placeholder=rb.cats[0]?'Ej.: '+rb.cats[0]:'Opcional'}
+  }
+  $('#px_cats').innerHTML=[...new Set([...db.prods.map(p=>p.cat).filter(Boolean),...((PX.rubro()||{}).cats||[])])].sort().map(c=>`<option value="${esc(c)}">`).join('');
   const u=$('#px_u').value,c=$('#px_ctl').value,lq=fs.previousElementSibling,ll=fl.previousElementSibling;
   if(lq)lq.textContent=c==='variantes'?'Cantidad (se carga en cada variante)':u==='kg'?'Cantidad a ingresar (kg)':'Cantidad a ingresar';if(ll)ll.textContent=c==='serie'?'N.º de serie (uno por unidad, separados por coma)':'N.º de lote (opcional)';
   fs.disabled=c==='variantes';fp.previousElementSibling.textContent=u==='kg'?'Precio por kg ('+MON+')':'Precio de venta ('+MON+')';
   $('#pxr').textContent=[u==='kg'?'por peso':'',c==='serie'?'con N.º de serie':c==='variantes'?'con variantes':'',$('#px_vr').checked?'vence':'',$('#px_cat').value].filter(Boolean).join(' · ')};
 ['#px_u','#px_ctl','#px_vr','#px_cat'].forEach(x=>$(x).addEventListener('change',PX.vis));
 PX.llenarForm=p=>{const d=p||{};$('#px_cat').value=d.cat||'';$('#px_u').value=d.unidad==='kg'?'kg':'u';$('#px_ctl').value=d.control||'';$('#px_min').value=d.minimo||'';$('#px_tr').value=(d.tramos||[]).map(t=>t.desde+'='+t.precio).join('; ');
-  $('#px_ga').value=d.garantia||'';$('#px_ma').value=d.marca||'';$('#px_mo').value=d.modelo||'';$('#px_vr').checked=p?!!d.reqVto:!!(PX.caps()&&PX.caps().vtoPorDefecto);if(!p&&PX.caps()&&PX.caps().unidadPorDefecto)$('#px_u').value=PX.caps().unidadPorDefecto;PX.vis()};
+  $('#px_ga').value=d.garantia||'';$('#px_ma').value=d.marca||'';$('#px_mo').value=d.modelo||'';$('#px_vr').checked=p?!!d.reqVto:!!PX.caps().vtoPorDefecto;if(!p&&PX.caps().unidadPorDefecto&&PX.on('peso'))$('#px_u').value=PX.caps().unidadPorDefecto;PX.vis()};
 // Lee y valida las opciones. Nunca cambia la forma de venta o el control de un producto que ya tiene stock (cambiaría el significado de sus cantidades).
 PX.leerForm=prev=>{const u=$('#px_u').value==='kg'?'kg':'u',c=['serie','variantes'].includes($('#px_ctl').value)?$('#px_ctl').value:'',tr=PX.parseTramos($('#px_tr').value);if(tr.err)return{err:tr.err};
   const mi=$('#px_min').value===''?0:+$('#px_min').value,ga=$('#px_ga').value===''?0:+$('#px_ga').value;if(!(mi>=0)||!Number.isInteger(mi))return{err:'La compra mínima tiene que ser un número entero'};if(!(ga>=0&&ga<=240)||!Number.isInteger(ga))return{err:'La garantía va en meses enteros (0 a 240)'};
@@ -1390,13 +1400,22 @@ MODS.push(()=>{PX.vis();PX.drawVar()});
 // Nunca modifica productos existentes. El progreso se guarda (db.cfg.entrevistaBorrador) y se puede retomar.
 const RB={};
 RB.CAPS={peso:'Venta por peso',vencimientos:'Lotes y vencimientos obligatorios por producto',series:'Números de serie',garantias:'Garantías, marca y modelo',variantes:'Variantes (talle, color…)',tramos:'Precios por cantidad',minimos:'Compra mínima'};
+// Cada rubro: tipo (perfil general de menú e Inicio), capacidades de arranque, preguntas propias, categorías sugeridas,
+// motivos de baja propios y textos de ejemplo. Lo que un rubro no usa no aparece en el programa.
 RB.PERFILES={
-  kiosco:{n:'Kiosco',d:'Productos de consumo diario, bebidas, golosinas y mercadería general.',caps:{},pregs:['k_vto','k_peso','stock']},
-  almacen:{n:'Almacén y fiambres',d:'Alimentos envasados, perecederos, fiambres y venta por peso.',caps:{peso:true},pregs:['a_peso','a_vto','a_vtodef','alvto','stock']},
-  electronica:{n:'Electrónica',d:'Dispositivos, accesorios, números de serie y garantías.',caps:{series:true,garantias:true},pregs:['e_serie','e_gar','stock']},
-  ropa:{n:'Ropa',d:'Prendas con talles, colores y stock por variante.',caps:{variantes:true},pregs:['r_var','r_atr','r_desc','stock']},
-  mayorista:{n:'Mayorista y distribuidora',d:'Ventas por volumen, cantidades mínimas y precios escalonados.',caps:{tramos:true,minimos:true},pregs:['m_tramos','m_min','stock']}
+  kiosco:{n:'Kiosco',d:'Golosinas, bebidas, cigarrillos y mercadería general.',tipo:'minorista',caps:{},pregs:['k_vto','k_peso','stock'],cats:['Golosinas','Bebidas','Cigarrillos','Snacks','Lácteos','Librería','Varios'],ej:'Alfajor triple'},
+  almacen:{n:'Almacén',d:'Alimentos envasados, fiambres, lácteos y limpieza.',tipo:'minorista',caps:{peso:true},pregs:['a_peso','a_vto','a_vtodef','alvto','stock'],cats:['Almacén','Fiambres','Lácteos','Bebidas','Limpieza','Panificados','Congelados'],ej:'Queso cremoso'},
+  verduleria:{n:'Verdulería',d:'Frutas y verduras por peso, por unidad o por atado.',tipo:'minorista',caps:{peso:true,unidadPorDefecto:'kg'},pregs:['v_unidad','v_merma','v_huevos','stock'],cats:['Frutas','Verduras','Hojas','Huevos','Frutos secos'],motivos:['Merma / maduración'],ej:'Tomate redondo'},
+  carniceria:{n:'Carnicería',d:'Cortes por peso, pollo, cerdo y elaborados.',tipo:'minorista',caps:{peso:true,unidadPorDefecto:'kg'},pregs:['c_vto','c_elab','c_merma','stock'],cats:['Vacuno','Cerdo','Pollo','Achuras','Elaborados','Embutidos'],motivos:['Merma por desposte'],ej:'Asado de tira'},
+  cafeteria:{n:'Cafetería o restaurante',d:'Café, comidas y bebidas que se preparan y se venden en el momento.',tipo:'restaurante',caps:{},pregs:['f_insumos','f_peso'],cats:['Cafetería','Pastelería','Sándwiches','Platos','Bebidas','Insumos'],motivos:['Preparación fallida','Consumo del personal'],ej:'Café con leche'},
+  ropa:{n:'Ropa y calzado',d:'Prendas con talles, colores y stock por variante.',tipo:'minorista',caps:{variantes:true},pregs:['r_var','r_atr','r_desc','stock'],cats:['Remeras','Pantalones','Abrigos','Calzado','Accesorios'],ej:'Remera básica'},
+  electronica:{n:'Electrónica',d:'Dispositivos y accesorios con número de serie y garantía.',tipo:'minorista',caps:{series:true,garantias:true},pregs:['e_serie','e_gar','stock'],cats:['Celulares','Accesorios','Audio','Computación','Cables'],ej:'Auricular inalámbrico'},
+  mayorista:{n:'Mayorista o distribuidora',d:'Ventas por volumen, cantidades mínimas y precios por cantidad.',tipo:'mayorista',caps:{tramos:true,minimos:true},pregs:['m_tramos','m_min','m_peso','stock'],cats:['Bebidas','Almacén','Limpieza','Golosinas'],ej:'Gaseosa 2,25 L x 6'},
+  servicios:{n:'Servicios',d:'Trabajos, reparaciones o consultoría: se cobra el servicio, casi sin stock.',tipo:'servicios',caps:{},pregs:[],cats:['Servicios','Repuestos'],ej:'Mano de obra'},
+  otro:{n:'Otro comercio',d:'Elegí vos qué funciones querés tener disponibles.',tipo:'otro',caps:{},pregs:['o_peso','o_vto','stock'],cats:[],ej:'Producto'}
 };
+// Rubro equivalente para negocios que contestaron la encuesta anterior (por tipo de comercio).
+RB.deTipo=t=>({restaurante:'cafeteria',mayorista:'mayorista',servicios:'servicios'}[t]||'');
 // Catálogo de preguntas. tipo: 'sino' | 'texto'. si(r): condición para mostrarse. ap(caps,valor,cfg): consecuencia.
 RB.PREGS={
   k_vto:{t:'¿Tenés productos que necesitan control de vencimiento?',tipo:'sino',def:false,ap:(c,v)=>{c.vencimientos=v}},
@@ -1405,6 +1424,14 @@ RB.PREGS={
   a_vto:{t:'¿Necesitás registrar lotes y fechas de vencimiento?',tipo:'sino',def:true,ap:(c,v)=>{c.vencimientos=v}},
   a_vtodef:{t:'¿Querés que los productos nuevos exijan vencimiento por defecto?',d:'Se puede cambiar en cada producto.',tipo:'sino',def:false,si:r=>r.a_vto!==false,ap:(c,v)=>{c.vtoPorDefecto=v}},
   alvto:{t:'¿Querés alertas de vencimiento?',tipo:'sino',def:true,si:r=>r.a_vto!==false,ap:(c,v)=>{c.alertaVto=v}},
+  v_unidad:{t:'¿Lo más común es vender por kilo?',d:'Si decís que sí, los productos nuevos arrancan "por peso". Igual podés cargar productos por unidad o por atado.',tipo:'sino',def:true,ap:(c,v)=>{c.unidadPorDefecto=v?'kg':'u'}},
+  v_merma:{t:'¿Querés registrar la merma (fruta o verdura que se echa a perder)?',tipo:'sino',def:true,ap:(c,v,cfg)=>{cfg.sinMotivos=!v}},
+  v_huevos:{t:'¿Vendés también productos envasados con vencimiento (huevos, frutos secos)?',tipo:'sino',def:false,ap:(c,v)=>{c.vencimientos=v}},
+  c_vto:{t:'¿Querés controlar la fecha de vencimiento de la mercadería?',tipo:'sino',def:true,ap:(c,v)=>{c.vencimientos=v;c.alertaVto=v}},
+  c_elab:{t:'¿Vendés elaborados por unidad (milanesas, hamburguesas, chorizos)?',d:'Podés cargarlos por unidad o por peso, producto por producto.',tipo:'sino',def:true,ap:()=>{}},
+  c_merma:{t:'¿Querés registrar la merma por desposte y recortes?',tipo:'sino',def:true,ap:(c,v,cfg)=>{cfg.sinMotivos=!v}},
+  f_insumos:{t:'¿Controlás insumos con fecha de vencimiento (leche, fiambres, pastelería)?',tipo:'sino',def:true,ap:(c,v)=>{c.vencimientos=v;c.alertaVto=v}},
+  f_peso:{t:'¿Vendés algo por peso (café en grano, tortas por kilo)?',tipo:'sino',def:false,ap:(c,v)=>{c.peso=v}},
   e_serie:{t:'¿Hay productos que requieren seguimiento por número de serie?',tipo:'sino',def:true,ap:(c,v)=>{c.series=v}},
   e_gar:{t:'¿Querés registrar garantía, marca y modelo?',tipo:'sino',def:true,ap:(c,v)=>{c.garantias=v}},
   r_var:{t:'¿Querés controlar el stock por combinación (por ejemplo talle y color)?',tipo:'sino',def:true,ap:(c,v)=>{c.variantes=v}},
@@ -1413,16 +1440,23 @@ RB.PREGS={
   r_desc:{t:'¿Vas a ofrecer descuentos por cantidad?',tipo:'sino',def:false,ap:(c,v)=>{c.tramos=v}},
   m_tramos:{t:'¿Manejás precios diferentes según la cantidad?',tipo:'sino',def:true,ap:(c,v)=>{c.tramos=v}},
   m_min:{t:'¿Necesitás cantidades mínimas de compra por producto?',tipo:'sino',def:true,ap:(c,v)=>{c.minimos=v}},
+  m_peso:{t:'¿Vendés mercadería por peso?',tipo:'sino',def:false,ap:(c,v)=>{c.peso=v}},
+  o_peso:{t:'¿Vendés algún producto por peso?',tipo:'sino',def:false,ap:(c,v)=>{c.peso=v}},
+  o_vto:{t:'¿Tenés productos con fecha de vencimiento?',tipo:'sino',def:false,ap:(c,v)=>{c.vencimientos=v}},
   stock:{t:'¿Querés alertas de stock mínimo?',tipo:'sino',def:true,ap:(c,v)=>{c.alertaStock=v}}
 };
+// Preguntas del rubro como HTML y su lectura (las usan la encuesta inicial y la entrevista por rubro).
+RB.htmlPregs=st=>RB.visibles(st).map(id=>{const q=RB.PREGS[id],v=RB.valor(st,id);return`<div style="margin-bottom:12px" data-rp="${id}"><b>${q.t}</b>${q.req||q.tipo==='sino'?'':' <span class="mu">(opcional)</span>'}${q.d?`<br><span class="mu">${q.d}</span>`:''}<div style="margin-top:4px">${q.tipo==='sino'?`<label style="display:inline-flex;gap:6px;margin-right:14px;font-size:14px;color:var(--tx)"><input type="radio" name="rb_${id}" value="1" ${v?'checked':''} style="width:auto"> Sí</label><label style="display:inline-flex;gap:6px;font-size:14px;color:var(--tx)"><input type="radio" name="rb_${id}" value="0" ${v?'':'checked'} style="width:auto"> No</label>`:`<input data-rq="${id}" value="${esc(v||'')}">`}</div></div>`}).join('');
+RB.leerPregs=(st,raiz)=>RB.visibles(st).forEach(id=>{const q=RB.PREGS[id];if(q.tipo==='sino'){const c=$(`${raiz} [name="rb_${id}"]:checked`);if(c)st.r[id]=c.value==='1'}else{const i=$(`${raiz} [data-rq="${id}"]`);if(i)st.r[id]=i.value.trim()}});
 RB.lista=v=>[...new Set(String(v||'').split(',').map(x=>x.trim()).filter(Boolean))];
 RB.visibles=st=>(RB.PERFILES[st.rubro]||{pregs:[]}).pregs.filter(id=>{const q=RB.PREGS[id];return !q.si||q.si(st.r)});
 RB.valor=(st,id)=>st.r[id]!==undefined?st.r[id]:RB.PREGS[id].def;
 // Configuración resultante: perfil + respuestas visibles + capacidades adicionales elegidas a mano.
 RB.resolver=st=>{const pf=RB.PERFILES[st.rubro],caps={...pf.caps},cfg={};RB.visibles(st).forEach(id=>RB.PREGS[id].ap(caps,RB.valor(st,id),cfg));(st.extra||[]).forEach(k=>{if(RB.CAPS[k])caps[k]=true});
-  Object.keys(RB.CAPS).forEach(k=>{caps[k]=!!caps[k]});if(caps.variantes&&!cfg.atributos)cfg.atributos=['Talle','Color'];return{caps,atributos:cfg.atributos||null}};
+  Object.keys(RB.CAPS).forEach(k=>{caps[k]=!!caps[k]});if(caps.variantes&&!cfg.atributos)cfg.atributos=['Talle','Color'];if(!caps.peso)delete caps.unidadPorDefecto;return{caps,atributos:cfg.atributos||null,motivos:cfg.sinMotivos?[]:(pf.motivos||[])}};
+RB.motivosDeRubros=()=>Object.values(RB.PERFILES).flatMap(p=>p.motivos||[]);
 RB.validar=st=>{if(!RB.PERFILES[st.rubro])return'Elegí un rubro';for(const id of RB.visibles(st)){const q=RB.PREGS[id],v=RB.valor(st,id);if(q.req&&(v===''||v==null))return'Falta responder: '+q.t;if(q.val){const e=q.val(v);if(e)return e}}return''};
-RB.aplicar=st=>{const e=RB.validar(st);if(e)return{err:e};const r=RB.resolver(st);db.cfg.rubro=st.rubro;db.cfg.caps=r.caps;if(r.atributos)db.cfg.atributos=r.atributos;db.cfg.entrevista={fecha:new Date().toISOString(),rubro:st.rubro,r:st.r,extra:st.extra||[]};delete db.cfg.entrevistaBorrador;return{ok:true,...r}};
+RB.aplicar=st=>{const e=RB.validar(st);if(e)return{err:e};const r=RB.resolver(st);db.cfg.rubro=st.rubro;db.cfg.caps=r.caps;if(r.atributos)db.cfg.atributos=r.atributos;db.cfg.motivosBaja=[...new Set([...(db.cfg.motivosBaja||[]).filter(m=>!RB.motivosDeRubros().includes(m)),...r.motivos])];db.cfg.entrevista={fecha:new Date().toISOString(),rubro:st.rubro,r:st.r,extra:st.extra||[]};delete db.cfg.entrevistaBorrador;return{ok:true,...r}};
 RB.resumen=st=>{const r=RB.resolver(st),on=Object.keys(RB.CAPS).filter(k=>r.caps[k]);return{rubro:RB.PERFILES[st.rubro].n,funciones:on.map(k=>RB.CAPS[k]),
   stock:[...new Set(['Por unidad',r.caps.peso?'Por peso (gramos)':'',r.caps.variantes?'Por variante':'',r.caps.series?'Por número de serie':''])].filter(Boolean),
   atributos:r.atributos||[],precios:['Precio unitario',r.caps.peso?'Precio por kg':'',r.caps.tramos?'Precios por cantidad':'',r.caps.minimos?'Compra mínima':''].filter(Boolean),
@@ -1433,11 +1467,11 @@ RB.abrir=()=>{if($('#rbo'))return;const b=db.cfg.entrevistaBorrador,prev=db.cfg.
   document.body.insertAdjacentHTML('beforeend','<div class="ov" id="rbo" role="dialog" aria-modal="true"><div class="card" id="rbc"></div></div>');
   const guardar=()=>{db.cfg.entrevistaBorrador=JSON.parse(JSON.stringify(st));save()},cerrar=()=>{const o=$('#rbo');if(o)o.remove()};
   const leer=()=>{if(st.paso===0){const c=$('#rbc [name=rb_r]:checked');if(c)st.rubro=c.value}
-    if(st.paso===1)RB.visibles(st).forEach(id=>{const q=RB.PREGS[id];if(q.tipo==='sino'){const c=$(`#rbc [name="rb_${id}"]:checked`);if(c)st.r[id]=c.value==='1'}else{const i=$(`#rbc [data-rq="${id}"]`);if(i)st.r[id]=i.value.trim()}});
+    if(st.paso===1)RB.leerPregs(st,'#rbc');
     if(st.paso===2)st.extra=$$('#rbc [data-rx]').filter(c=>c.checked).map(c=>c.dataset.rx)};
   const dib=()=>{let h='';
     if(st.paso===0)h=`<h3>¿Cuál es tu rubro?</h3><p class="mu" style="margin-top:0">Es una plantilla inicial: después podés activar otras funciones.</p>${Object.entries(RB.PERFILES).map(([k,p])=>`<label class="opt"><input type="radio" name="rb_r" value="${k}" ${st.rubro===k?'checked':''}> <span><b>${p.n}</b><br><span class="mu">${p.d}</span></span></label>`).join('')}`;
-    if(st.paso===1)h=`<h3>${RB.PERFILES[st.rubro].n}: algunas preguntas</h3>${RB.visibles(st).map(id=>{const q=RB.PREGS[id],v=RB.valor(st,id);return`<div style="margin-bottom:12px" data-rp="${id}"><b>${q.t}</b>${q.req?'':' <span class="mu">(opcional)</span>'}${q.d?`<br><span class="mu">${q.d}</span>`:''}<div style="margin-top:4px">${q.tipo==='sino'?`<label style="display:inline-flex;gap:6px;margin-right:14px;font-size:14px;color:var(--tx)"><input type="radio" name="rb_${id}" value="1" ${v?'checked':''} style="width:auto"> Sí</label><label style="display:inline-flex;gap:6px;font-size:14px;color:var(--tx)"><input type="radio" name="rb_${id}" value="0" ${v?'':'checked'} style="width:auto"> No</label>`:`<input data-rq="${id}" value="${esc(v||'')}">`}</div></div>`}).join('')}`;
+    if(st.paso===1)h=`<h3>${RB.PERFILES[st.rubro].n}: algunas preguntas</h3>${RB.htmlPregs(st)||'<p class="mu">Este rubro no necesita más datos.</p>'}`;
     if(st.paso===2){const base=RB.resolver({...st,extra:[]}).caps;h=`<h3>¿Querés sumar algo más?</h3><p class="mu" style="margin-top:0">Un mismo negocio puede vender productos muy distintos. Marcá lo que también necesites.</p>${Object.entries(RB.CAPS).map(([k,t])=>`<label class="opt"><input type="checkbox" data-rx="${k}" ${base[k]?'checked disabled':(st.extra||[]).includes(k)?'checked':''}> ${t}${base[k]?' <span class="mu">(ya incluido)</span>':''}</label>`).join('')}`}
     if(st.paso===3){const r=RB.resumen(st),L=(t,v)=>`<div class="row"><span class="mu">${t}</span><b style="text-align:right">${esc(Array.isArray(v)?(v.join(' · ')||'—'):v)}</b></div>`;
       h=`<h3>Resumen</h3>${L('Rubro',r.rubro)}${L('Funciones activadas',r.funciones)}${L('Control de stock',r.stock)}${L('Características de variantes',r.atributos)}${L('Reglas de precios',r.precios)}${L('Vencimientos',r.venc)}${L('Alertas',r.alertas)}<p class="mu">Tus productos actuales no se modifican: las funciones nuevas quedan disponibles en "Opciones del producto".</p>`}
