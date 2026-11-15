@@ -27,6 +27,7 @@ nav button:hover,#masb:hover{background:rgba(255,255,255,.08);color:#fff}nav but
 #ses .mu{color:rgba(255,255,255,.7)}header .btn.sec{background:rgba(255,255,255,.08);color:#fff;border-color:rgba(255,255,255,.16)}
 main{max-width:1320px;padding:18px 20px 40px}
 #ph{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:2px 0 16px}#pht{margin:0;font:700 26px/1.15 "Segoe UI Variable Display","Segoe UI",system-ui,sans-serif;letter-spacing:-.025em}#phd{font-size:13px}#phu{display:flex;gap:8px;align-items:center}
+@media(max-width:1099px){nav button::before{display:none}nav button,#masb{padding:7px 11px;font-size:14px}.bar{gap:8px;padding:8px 12px}#ph{margin-bottom:12px}#pht{font-size:22px}.tot{font-size:38px}}
 @media(min-width:1100px){
  header{position:fixed;inset:0 auto 0 0;width:236px;z-index:8}.bar{flex-direction:column;align-items:stretch;flex-wrap:nowrap;height:100%;padding:20px 12px 14px;gap:18px;max-width:none}
  .logo{padding:0 8px}nav{flex-direction:column;align-items:stretch;flex-wrap:nowrap;gap:2px;overflow:auto;flex:1}nav button{width:100%;text-align:left;padding:10px 12px}
