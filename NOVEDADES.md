@@ -1,6 +1,15 @@
 # Novedades de StockProject
 
-## 5.4.0 (preparada, sin publicar)
+## 5.5.0 (preparada, sin publicar)
+- **Mercadería en un solo paso:** cuando llega el proveedor escaneás lo que vino, ponés cantidad y costo, y elegís cómo pagás (con la caja, le quedás debiendo u otro medio). Suma el stock al instante.
+- **Lista para pedir:** el programa arma solo lo que conviene pedir con tus ventas reales, y la mandás por WhatsApp, la copiás o la imprimís.
+- **Plata del negocio:** lo que entró por cada medio de pago, la ganancia estimada, lo que te deben y lo que debés, sin cargar nada. Desde ahí le pagás al proveedor.
+- **Retiros de caja con tipo de gasto** (proveedor, insumos, servicios, sueldos u otros).
+- **Reportes › Tendencias:** la analítica ahora está dentro de Reportes.
+- **Elegí la clave de tu panel:** en la encuesta, o cambiala después desde el programa o desde el panel en el celular.
+- Los pedidos con seguimiento y Finanzas completa pasan a Funciones avanzadas.
+
+## 5.4.0
 - **Tu panel se crea solo:** al terminar la encuesta escribís el nombre del negocio y el programa crea tu panel en Internet, empieza a enviarle los datos y te muestra la dirección y la clave para entrar desde el celular. Sin Internet en ese momento, se crea solo cuando vuelve.
 - Quien ya hizo la encuesta lo crea con un toque en Configuración > Mi negocio > Ver mi negocio desde el celular, donde también puede volver a ver la clave.
 - **Se quitó el acceso desde el celular por la red local** (la PC funcionando como servidor): lo reemplaza el panel en Internet.
