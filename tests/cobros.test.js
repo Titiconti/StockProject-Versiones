@@ -3,6 +3,7 @@
 const assert = require('assert'), { web } = require('./helpers.js');
 (async () => {
   const a = web(), { $, w } = a, ev = w.eval.bind(w), J = e => JSON.parse(w.eval('JSON.stringify(' + e + ')'));
+  ev('db.cfg.avanzado=true;draw()');   // Finanzas completa es una función avanzada
   const hoy = ev('UT.hoy()'), ago = n => ev(`UT.add('${hoy}',${-n})`);
   ev('db.sales.length=0;db.pays.length=0;db.cargos.length=0;db.clients.length=0;db.cid=1;db.sid=1;db.cgid=1;db.avisos.length=0');
   ev(`db.clients.push({id:db.cid++,name:'Moroso',phone:'+54 9 341 555-1234',mail:'m@x.com',disc:0},{id:db.cid++,name:'Puntual',phone:'',disc:0})`);

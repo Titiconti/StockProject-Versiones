@@ -1,6 +1,7 @@
 const assert = require('assert'), { web } = require('./helpers.js');
 (async () => {
   const a = web(), { $, w } = a, ev = w.eval.bind(w), hoy = ev('UT.hoy()'), J = e => JSON.parse(w.eval('JSON.stringify(' + e + ')'));
+  ev('db.cfg.avanzado=true;draw()');   // Finanzas completa es una función avanzada
   // ---- utilidades de importación ----
   const N = s => ev(`UT.num(${JSON.stringify(s)})`);
   assert.deepStrictEqual([N('1.234,56'), N('1,234.56'), N('$ 1.500'), N('12,5'), N('-50,25'), N('1234'), N('')], [1234.56, 1234.56, 1500, 12.5, -50.25, 1234, null]); assert(Number.isNaN(N('abc')));

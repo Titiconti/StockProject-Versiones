@@ -2,6 +2,7 @@
 const assert = require('assert'), { web } = require('./helpers');
 (async () => {
   const { w, $, click, set, tab, txt, f, errs } = web();
+  w.eval('db.cfg.avanzado=true;draw()');   // Finanzas completa es una función avanzada
   const hoy = w.eval('UT.hoy()'), ayer = w.eval(`UT.add('${hoy}',-1)`), ev = w.eval.bind(w);
   // ventas de contado (ingreso), una a cuenta corriente (no es ingreso), un cobro de deuda y gastos manuales
   ev(`db.sales.push({id:900,date:'${ayer}T12:00:00',items:[],total:1000,pay:'Efectivo'},{id:901,date:'${hoy}T10:00:00',items:[],total:500,pay:'Transferencia'},{id:902,date:'${hoy}T11:00:00',items:[],total:700,pay:'Cuenta corriente',cid:1})`);
