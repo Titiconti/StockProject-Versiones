@@ -1,0 +1,34 @@
+# StockProject Nube: servidor (nube) + Caddy adelante para HTTPS.
+# Las variables salen del archivo .env de esta carpeta (copiá .env.ejemplo).
+services:
+  nube:
+    build: .
+    restart: unless-stopped
+    environment:
+      PORT: "8080"
+      DATA_DIR: /datos
+      DOMAIN_BASE: ${DOMAIN_BASE:?Falta DOMAIN_BASE en .env}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:?Falta ADMIN_TOKEN en .env}
+      # Caddy es el único que le habla al servidor: se confía en su X-Forwarded-For para los límites por IP.
+      CONFIAR_PROXY: "1"
+    volumes:
+      - ./datos-nube:/datos
+    expose:
+      - "8080"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - nube
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data        # certificados: no borrar
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

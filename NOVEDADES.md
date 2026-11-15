@@ -1,6 +1,13 @@
 # Novedades de StockProject
 
-## 5.0.0 (preparada, sin publicar)
+## 5.1.0 (preparada, sin publicar)
+- **Nueva imagen:** logo de StockProject, colores nuevos, menú lateral con iconos y título en cada pantalla.
+- **Animaciones:** pantalla de inicio animada y transiciones en cada pantalla. Se apagan desde la campana > Preferencias de este equipo.
+- **Ver el negocio desde el celular, desde cualquier lugar:** Configuración > Mi negocio > "Ver mi negocio desde el celular". Solo consulta (ventas, estadísticas, stock, caja, saldos). Necesita la dirección y la clave que entrega soporte.
+- **Se quitó Integraciones (API REST y webhooks).**
+- Corrección: el reporte consolidado de empresas no contaba las ventas hechas después de las 21 h.
+
+## 5.0.0
 
 ### Caja
 - Apertura con dinero inicial, ingresos y retiros con motivo, y cierre contando el efectivo. Diferencia = contado − esperado.

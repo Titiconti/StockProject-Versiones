@@ -121,7 +121,7 @@ details.card>summary{font-weight:700;cursor:pointer;padding:2px 0;list-style:non
 <div class="card"><h3>Bajas registradas</h3><div class="form"><div><label>Desde</label><input id="efd" type="date"></div><div><label>Hasta</label><input id="efh" type="date"></div><div><label>Motivo</label><select id="efm"></select></div><div><label>Producto</label><input id="efp" placeholder="Nombre o código"></div><div><label>Responsable</label><select id="efu"></select></div></div><p id="elp" class="mu" style="margin-top:0"></p><div class="wrap"><table><thead><tr><th>Fecha</th><th>Detalle</th><th class="n">Costo</th><th></th></tr></thead><tbody id="el"></tbody></table></div></div>
 </section>
 <section id="h" class="hide"><div class="card"><h3 id="hnom" style="margin:0"></h3><p id="hsub" class="mu" style="margin:4px 0 0"></p></div><div class="kpis" id="hk" style="margin-top:12px"></div><div class="card" id="htips" style="margin-top:12px"></div></section>
-<section id="g" class="hide"><div class="pills" id="gp"><button data-s="n" class="on">Mi negocio</button><button data-s="s">Seguridad</button><button data-s="d">Datos</button><button data-s="x">Avanzado</button></div><div class="pills sub hide" id="gp2"><button data-s="x">Sistema y actualizaciones</button><button data-s="i">Integraciones</button><button data-s="m">Empresas y monedas</button></div>
+<section id="g" class="hide"><div class="pills" id="gp"><button data-s="n" class="on">Mi negocio</button><button data-s="s">Seguridad</button><button data-s="d">Datos</button><button data-s="x">Avanzado</button></div><div class="pills sub hide" id="gp2"><button data-s="x">Sistema y actualizaciones</button><button data-s="m">Empresas y monedas</button></div>
 <div data-sub="n"><div class="card"><h3>Tu negocio</h3><p id="g_res" class="mu"></p><button class="btn" id="g_enc">Completar o repetir la encuesta</button></div>
 <details class="card"><summary>Personalizar el menú y el panel de Inicio</summary><div class="grid"><div><h3>Pantallas que querés ver</h3><div id="g_tabs"></div></div><div><h3>Cuadros del panel de Inicio</h3><div id="g_ws"></div></div></div><button class="btn sec" id="g_rst" style="margin-top:8px">Volver a lo sugerido para mi negocio</button></details>
 <details class="card"><summary>Categorías de gastos</summary><p class="mu" style="margin-top:0">Separadas por coma. Se usan en Finanzas.</p><input id="g_gc" style="width:100%"><button class="btn" id="g_gcs" style="margin-top:8px">Guardar categorías</button></details>
@@ -130,7 +130,7 @@ details.card>summary{font-weight:700;cursor:pointer;padding:2px 0;list-style:non
 <div class="card"><h3>Copia protegida con contraseña</h3><p class="mu" style="margin-top:0">Sirve para llevar tus datos a otra PC. Se abre solo con esta contraseña (mínimo 8 caracteres).</p><input id="sg_pw" type="password" autocomplete="new-password" placeholder="Contraseña de la copia" style="width:100%"><div style="display:flex;gap:8px;margin-top:8px"><button class="btn" id="sg_cp">Guardar copia</button><button class="btn sec" id="sg_rp">Restaurar copia</button></div></div></div>
 <div class="card"><h3>Acceso desde el celular con HTTPS</h3><p id="sg_hs" class="mu"></p><button class="btn sec" id="sg_https">Activar HTTPS</button></div></div>
 <div class="card"><h3>Privacidad de datos personales (RGPD / LOPDGDD)</h3><p class="mu" style="margin-top:0">El programa te da las herramientas; el cumplimiento depende también de cómo las uses. No es una certificación.</p><ul style="line-height:1.7;margin:0;padding-left:20px"><li><b>Datos en tu equipo:</b> nada sale de tu PC salvo que actives el acceso desde el celular o las integraciones.</li><li><b>Acceso y portabilidad:</b> en Clientes, <i>Exportar datos del cliente</i> descarga todo lo que guardás de esa persona.</li><li><b>Supresión:</b> en Clientes, <i>Anonimizar cliente</i> borra sus datos personales y conserva las ventas para la contabilidad (no se puede si tiene deuda).</li><li><b>Seguridad:</b> usuarios con contraseña, cifrado opcional, HTTPS opcional y registro de actividad en Usuarios.</li><li><b>Tu parte:</b> informar a tus clientes para qué usás sus datos, pedirles consentimiento cuando haga falta y borrar los datos que ya no necesites.</li></ul></div></div>
-<div data-sub="d" class="hide" id="g_d"></div><div data-sub="i" class="hide" id="g_i"></div><div data-sub="m" class="hide" id="g_m"></div><div data-sub="x" class="hide" id="g_x"></div></section>
+<div data-sub="d" class="hide" id="g_d"></div><div data-sub="m" class="hide" id="g_m"></div><div data-sub="x" class="hide" id="g_x"></div></section>
 <section id="u" class="hide">
 <div class="card hide" id="uact"><h3>Activar usuarios</h3><p class="mu">Hoy cualquiera que abra el programa ve y modifica todo. Al activar usuarios, el programa pide usuario y contraseña al abrirse, cada persona ve solo lo que su rol permite y se registra quién hizo cada cosa. También el acceso desde el celular pasa a pedir usuario y contraseña. Creá primero la cuenta del administrador.</p>
 <div class="form"><div><label>Usuario</label><input id="a_u" autocomplete="off"></div><div><label>Nombre</label><input id="a_n" autocomplete="off"></div><div><label>Contraseña (8 o más, con letras y números)</label><input id="a_p" type="password" autocomplete="new-password"></div></div>
@@ -759,7 +759,7 @@ CF.abrirEncuesta=(forzar)=>{if($('#enc'))return;const e=CF.enc()||{};let paso=0;
   dibujar()};
 
 // ---------- Recorrido guiado y ayuda contextual ----------
-CF.HELP={h:'Es tu panel del día: ventas, caja, stock y deudas de un vistazo. Los cuadros que ves dependen de tu tipo de comercio y los podés elegir en Configuración > Negocio.',v:'Buscá o escaneá el producto, elegí el medio de pago y tocá Cobrar. Si vendés en cuenta corriente, elegí primero al cliente. Para cobrar tiene que haber una caja abierta. Atajos: F2 buscar, F4 efectivo, F5 tarjeta, F6 transferencia, F7 cuenta corriente, F8 cobrar (pide confirmación).',k:'Historial de cajas: apertura, dinero inicial, esperado, contado y diferencia de cada turno. Filtrá por empleado, fecha o las que tuvieron diferencia.',z:'Actividad reciente: ventas, anulaciones, cobros, cajas, bajas, pedidos, ajustes de stock y cambios de precio, con su responsable.',p:'Cargá productos con código, costo, precio y stock mínimo. Con el costo cargado el programa calcula tu ganancia real.',i:'Muestra el stock por lote y vencimiento. Los productos en rojo están por debajo del mínimo o vencidos.',o:'Armá pedidos a proveedores y registrá lo que recibís: el stock sube solo al recibir.',c:'Fichas de clientes con deuda, descuentos, historial de contactos, puntos y planes de pago.',e:'Baja de Stock: registra salidas sin venta (vencimientos, daños, extravíos, retiros) con motivo y justificación, para encontrar pérdidas.',f:'Movimientos de caja, cuentas a pagar, conciliación bancaria, libro mayor y recordatorios de cobro.',r:'Resumen de ventas por período, con exportación a PDF.',a:'Compará períodos, mirá tendencias y un pronóstico de ventas. Podés exportar a Excel (CSV) o imprimir.',g:'Datos del negocio, seguridad, importación de datos, integraciones, empresas y estado del sistema.',u:'Usuarios, roles, permisos y registro de actividad.'};
+CF.HELP={h:'Es tu panel del día: ventas, caja, stock y deudas de un vistazo. Los cuadros que ves dependen de tu tipo de comercio y los podés elegir en Configuración > Negocio.',v:'Buscá o escaneá el producto, elegí el medio de pago y tocá Cobrar. Si vendés en cuenta corriente, elegí primero al cliente. Para cobrar tiene que haber una caja abierta. Atajos: F2 buscar, F4 efectivo, F5 tarjeta, F6 transferencia, F7 cuenta corriente, F8 cobrar (pide confirmación).',k:'Historial de cajas: apertura, dinero inicial, esperado, contado y diferencia de cada turno. Filtrá por empleado, fecha o las que tuvieron diferencia.',z:'Actividad reciente: ventas, anulaciones, cobros, cajas, bajas, pedidos, ajustes de stock y cambios de precio, con su responsable.',p:'Cargá productos con código, costo, precio y stock mínimo. Con el costo cargado el programa calcula tu ganancia real.',i:'Muestra el stock por lote y vencimiento. Los productos en rojo están por debajo del mínimo o vencidos.',o:'Armá pedidos a proveedores y registrá lo que recibís: el stock sube solo al recibir.',c:'Fichas de clientes con deuda, descuentos, historial de contactos, puntos y planes de pago.',e:'Baja de Stock: registra salidas sin venta (vencimientos, daños, extravíos, retiros) con motivo y justificación, para encontrar pérdidas.',f:'Movimientos de caja, cuentas a pagar, conciliación bancaria, libro mayor y recordatorios de cobro.',r:'Resumen de ventas por período, con exportación a PDF.',a:'Compará períodos, mirá tendencias y un pronóstico de ventas. Podés exportar a Excel (CSV) o imprimir.',g:'Datos del negocio, seguridad, importación de datos, empresas y estado del sistema.',u:'Usuarios, roles, permisos y registro de actividad.'};
 CF.tabActual=()=>{const b=$$('nav button').find(b=>$('#'+b.dataset.t)&&!$('#'+b.dataset.t).classList.contains('hide'));return b?b.dataset.t:'v'};
 $('#ayuda').onclick=()=>{if($('#ayu'))return;const t=CF.tabActual(),ov=document.createElement('div');ov.className='ov';ov.id='ayu';ov.innerHTML=`<div class="card"><h3>Ayuda: ${CF.NAVN[t]||''}</h3><p>${esc(CF.HELP[t]||'')}</p><p class="mu">Atajos: Alt+1, Alt+2… cambian de pantalla en el orden del menú · F8 cobra en Ventas (con confirmación).</p><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn sec" id="ay_t">Repetir el recorrido guiado</button><button class="btn" id="ay_x">Cerrar</button></div></div>`;document.body.appendChild(ov);$('#ay_x').onclick=()=>ov.remove();$('#ay_t').onclick=()=>{ov.remove();CF.tour()}};
 CF.tour=()=>{if($('#tour'))return;const pasos=$$('nav button:not(.hide)').map(b=>({el:b.closest('#masmenu')?$('#masb'):b,b,t:b.dataset.t})).filter(x=>CF.HELP[x.t]);let i=0;if(!pasos.length)return;
@@ -1256,42 +1256,6 @@ CF.extras.empresas=sub=>{if(sub==='m'&&!$('#g_m').dataset.r){$('#g_m').dataset.r
 document.querySelector('#gp').addEventListener('click',e=>{if(e.target.dataset&&e.target.dataset.s==='m')$('#g_m').dataset.r=''});
 </script>
 <script>
-// ===== Integraciones: claves de API, webhooks y catálogo de recetas =====
-const IG={nuevo:null};
-IG.CAT=[
- {t:'Excel o Google Sheets',d:'Cada venta en una planilla. Usá un webhook hacia Make, Zapier o n8n (que tienen conector a Sheets), o en Excel: Datos > Obtener datos > Desde la Web hacia /api/v1/ventas con el encabezado Authorization.'},
- {t:'Tienda online (Tiendanube, WooCommerce, Shopify)',d:'Un flujo en Make o Zapier llama a POST /api/v1/ventas cuando entra un pedido y descuenta tu stock. Con POST /api/v1/productos mantenés precios y stock sincronizados.'},
- {t:'Avisos al celular (Telegram, WhatsApp, correo)',d:'Un webhook de stock.bajo o venta.creada hacia n8n, Make o IFTTT te manda el aviso donde quieras.'},
- {t:'Contabilidad',d:'Exportá el libro de caja (Finanzas) y ventas o clientes (Configuración > Datos) en CSV, o consultá /api/v1/resumen mes a mes.'},
- {t:'ERP (SAP, Oracle, Odoo y similares)',d:'No incluimos conectores nativos. Se integran con la API REST en JSON o con los archivos CSV/JSON; un integrador puede armar el puente con la documentación.'},
- {t:'Otros programas de Windows',d:'Cualquier programa que pueda hacer un pedido HTTP puede consultar tus datos. Los CSV se abren con doble clic en Excel.'}];
-IG.copiar=t=>{if(navigator.clipboard)navigator.clipboard.writeText(t).then(()=>toast('Copiado'));else toast(t)};
-IG.render=async()=>{const box=$('#g_i');if(!EDA||!sp.int){box.innerHTML='<div class="card"><p>Las claves y webhooks se administran desde el programa de escritorio de la PC principal.</p></div>';return}
-  const [tk,hk,hist,rem]=await Promise.all([sp.int.call('listarTokens'),sp.int.call('listarHooks'),sp.int.call('historial'),sp.remote()]);
-  if(tk&&tk.ok===false){box.innerHTML=`<div class="card"><p>${esc(tk.err||'Sin permiso')}</p></div>`;return}
-  const base=rem.running&&rem.urls[0]?rem.urls[0]:null,EV=['venta.creada','venta.anulada','stock.bajo','cliente.creado','producto.creado','pago.registrado'];
-  box.innerHTML=`<div class="card"><h3>API REST</h3><p>${base?`Tu API está en <b>${esc(base)}/api/v1</b> · <a href="#" id="ig_doc">Ver documentación</a> <button class="btn sec" id="ig_cp">Copiar dirección</button>`:'Para usar la API tenés que activar el acceso remoto (pantalla Ventas &gt; Acceso desde el celular). La API responde en el mismo puerto.'}</p>
-  ${IG.nuevo?`<div class="tip"><b>${esc(IG.nuevo.titulo)}:</b> <code style="word-break:break-all">${esc(IG.nuevo.valor)}</code> <button class="btn sec" id="ig_cv">Copiar</button><br><span class="mu">Guardala ahora: no se vuelve a mostrar.</span></div>`:''}
-  <div class="form"><div><label>Nombre de la clave</label><input id="ig_n" placeholder="Tienda online"></div><div><label>Permiso</label><select id="ig_s"><option value="lectura">Solo lectura</option><option value="escritura">Lectura y escritura</option></select></div><div><button class="btn" id="ig_t">Crear clave</button></div></div>
-  <div class="wrap" style="margin-top:8px"><table><thead><tr><th>Clave</th><th>Permiso</th><th>Último uso</th><th></th></tr></thead><tbody>${tk.map(t=>`<tr><td><b>${esc(t.nombre)}</b> <span class="mu">${esc(t.pref)}…</span></td><td>${t.scope==='lectura'?'Solo lectura':'Lectura y escritura'}</td><td>${t.ultimo?new Date(t.ultimo).toLocaleString('es-AR'):'Nunca'}</td><td><button class="btn del" data-tr="${t.id}">Revocar</button></td></tr>`).join('')||'<tr><td colspan="4" class="mu">Sin claves.</td></tr>'}</tbody></table></div></div>
-  <div class="card" style="margin-top:12px"><h3>Webhooks (avisos automáticos)</h3><p class="mu" style="margin-top:0">Cuando pasa algo, StockProject avisa a la dirección que elijas con un mensaje firmado. Se reintenta 3 veces y se pausa tras 20 fallos seguidos.</p>
-  <div class="form"><div style="grid-column:span 2"><label>Dirección que recibe los avisos</label><input id="hk_u" placeholder="https://…"></div></div><div style="margin:8px 0">${EV.map(e=>`<label class="opt" style="display:inline-flex;margin-right:6px"><input type="checkbox" data-ev="${e}" ${['venta.creada','stock.bajo'].includes(e)?'checked':''}> ${e}</label>`).join('')}</div><button class="btn" id="hk_g">Crear webhook</button>
-  <div class="wrap" style="margin-top:8px"><table><tbody>${hk.map(h=>`<tr><td style="word-break:break-all"><b>${esc(h.url)}</b><br><span class="mu">${h.eventos.join(', ')}</span></td><td>${h.activo?'<span class="tag">Activo</span>':'<span class="tag out">Pausado</span>'}<br><span class="mu">${esc(h.estado||'Sin envíos')}</span></td><td><button class="btn sec" data-hp="${h.id}">Probar</button> ${h.activo?'':`<button class="btn sec" data-ha="${h.id}">Reactivar</button> `}<button class="btn del" data-hd="${h.id}">Borrar</button></td></tr>`).join('')||'<tr><td class="mu">Sin webhooks.</td></tr>'}</tbody></table></div>
-  ${hist.length?`<details><summary>Últimos envíos</summary><div class="wrap"><table><tbody>${hist.slice(0,15).map(x=>`<tr><td>${esc(x.evento)}</td><td>${x.ok?'✓':'✗'} ${esc(x.estado)}</td></tr>`).join('')}</tbody></table></div></details>`:''}</div>
-  <div class="card" style="margin-top:12px"><h3>Recetas para conectar</h3><div class="grid">${IG.CAT.map(c=>`<div class="tip"><b>${esc(c.t)}</b><br>${esc(c.d)}</div>`).join('')}</div></div>`;IG.base=base};
-IG.ver=r=>{if(r&&r.ok===false){toast(r.err||'No se pudo completar');return false}return true};
-$('#g_i').onclick=async e=>{const b=e.target.closest('button,a');if(!b)return;const d=b.dataset;if(b.id==='ig_doc'){e.preventDefault();window.open(IG.base+'/api/v1/docs','_blank')}
-  if(b.id==='ig_cp')IG.copiar(IG.base+'/api/v1');if(b.id==='ig_cv')IG.copiar(IG.nuevo.valor);
-  if(b.id==='ig_t'){const r=await sp.int.call('crearToken',$('#ig_n').value,$('#ig_s').value);if(!IG.ver(r))return;IG.nuevo={titulo:'Tu clave',valor:r.token};IG.render()}
-  if(d.tr){if(!armed('tr'+d.tr))return;await sp.int.call('revocarToken',+d.tr);IG.nuevo=null;IG.render()}
-  if(b.id==='hk_g'){const ev=$$('#g_i [data-ev]:checked').map(x=>x.dataset.ev),r=await sp.int.call('crearHook',{url:$('#hk_u').value.trim(),eventos:ev});if(!IG.ver(r))return;IG.nuevo={titulo:'Secreto para verificar la firma',valor:r.secreto};IG.render()}
-  if(d.hp){const r=await sp.int.call('probar',+d.hp);toast(r.ok?'El destino respondió bien':'El destino no respondió bien');IG.render()}
-  if(d.ha){await sp.int.call('activarHook',+d.ha);IG.render()}
-  if(d.hd){if(!armed('hd'+d.hd))return;await sp.int.call('borrarHook',+d.hd);IG.render()}};
-CF.extras.integraciones=sub=>{if(sub==='i'&&!$('#g_i').dataset.r){$('#g_i').dataset.r=1;IG.render()}};
-document.querySelector('#gp').addEventListener('click',e=>{if(e.target.dataset&&e.target.dataset.s==='i'){$('#g_i').dataset.r='';}});
-</script>
-<script>
 // ===== Sistema: estado, rendimiento y monitoreo =====
 const SY={t:null};
 SY.cuentas=()=>({ventas:db.sales.length,productos:db.prods.length,clientes:db.clients.length,pagos:db.pays.length,cargos:db.cargos.length,movs:db.fin.mov.length});
@@ -1720,11 +1684,114 @@ AV.primeraVez=()=>{if(KIND==='local'||$('#v').classList.contains('hide')||AV.pre
 document.head.insertAdjacentHTML('beforeend',`<style id="avcss">#avn{position:absolute;top:-6px;right:-6px;background:var(--bad);color:#fff;border-radius:99px;font-size:11px;min-width:18px;padding:1px 5px;line-height:16px}#avn.hide{display:none}
 #avp{position:absolute;right:0;top:calc(100% + 6px);width:min(360px,92vw);max-height:70vh;overflow:auto;background:var(--card);border:1px solid var(--bd);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.18);padding:12px;z-index:45}#avp.hide{display:none}
 html.anim main>section:not(.hide){animation:spIn .16s ease-out}html.anim .ov>.card{animation:spPop .14s ease-out}html.anim .p:active:not(:disabled){transform:scale(.97)}html.anim .btn{transition:transform .08s,opacity .15s}html.anim .btn:active:not(:disabled){transform:scale(.97)}
-@keyframes spIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}@keyframes spPop{from{opacity:0;transform:scale(.98)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){html.anim main>section,html.anim .ov>.card{animation:none}}</style>`);
+@keyframes spIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}@keyframes spPop{from{opacity:0;transform:scale(.98)}to{opacity:1;transform:none}}</style>`);
 AV.aplicar=()=>{const P=AV.prefs();document.documentElement.classList.toggle('anim',!!P.anim);const h=$('#athelp');if(h)h.classList.toggle('hide',!P.atajos)};
 {let t=null;setInterval(()=>{const g=$('#guard');if(!g)return;if(pending>0){if(!t)t=Date.now();if(Date.now()-t>300)g.classList.remove('hide')}else{t=null;g.classList.add('hide')}},150)}
 AV.aplicar();MODS.push(()=>{AV.draw();AV.aplicar();setTimeout(AV.primeraVez,0)});
+</script>
+<script>
+// ===== Panel para el celular desde cualquier lugar (solo consulta) =====
+// La PC envía los datos al servidor; desde el celular se ven ventas y estadísticas con una dirección propia del comercio.
+// Solo aparece en el programa instalado. La dirección y la clave de instalación las entrega soporte al dar de alta el comercio.
+const NB={};
+if(ED&&sp.nube){const n=$('[data-sub="n"]');n.insertAdjacentHTML('beforeend',`<details class="card" id="nb"><summary>Ver mi negocio desde el celular (desde cualquier lugar)</summary><div id="nb_e"></div>
+<div class="form" style="margin-top:10px"><div style="grid-column:span 2"><label>Dirección del servidor</label><input id="nb_u" placeholder="https://stockproject.qd.je" autocomplete="off"></div><div style="grid-column:span 2"><label>Clave de instalación</label><input id="nb_t" type="password" placeholder="spn_…" autocomplete="off"></div><div style="grid-column:span 2"><label>Dirección de tu panel (para compartir)</label><input id="nb_p" placeholder="https://minegocio.stockproject.qd.je" autocomplete="off"></div></div>
+<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="nb_g">Guardar y conectar</button><button class="btn sec" id="nb_s">Enviar ahora</button><button class="btn sec" id="nb_a"></button><button class="btn del" id="nb_q">Quitar</button></div>
+<p class="mu" style="margin:10px 0 0;font-size:13px">Desde el celular solo se puede consultar: no se puede vender, cobrar ni cambiar nada. Se envían ventas, stock, cajas y los saldos de clientes (nombre y saldo). Si se corta Internet el programa sigue funcionando y se pone al día solo.</p></details>`);
+  NB.draw=async()=>{if($('#g').classList.contains('hide')||!$('#nb').open)return;const e=await sp.nube.estado(),F=x=>new Date(x).toLocaleString('es-AR',{dateStyle:'short',timeStyle:'medium'});
+    $('#nb_e').innerHTML=!e.configurado?'<p class="mu" style="margin:0">Todavía no está conectado. Pedí a soporte la dirección y la clave de instalación de tu comercio.</p>':`<div class="tip" style="border-left-color:var(--${e.error?'warn':e.activo?'ok':'bd'})"><b>${e.activo?(e.error?'Con problemas':'Conectado'):'En pausa'}</b>${e.ultima?' · último envío: '+F(e.ultima):' · todavía no se envió nada'}${e.error?'<br>'+esc(e.error):''}${e.panel?`<br>Tu panel: <b>${esc(e.panel)}</b>`:''}</div>`;
+    if(document.activeElement.id!=='nb_u'&&!$('#nb_u').value)$('#nb_u').value=e.url;if(document.activeElement.id!=='nb_p'&&!$('#nb_p').value)$('#nb_p').value=e.panel;
+    $('#nb_a').textContent=e.activo?'Pausar':'Reanudar';['#nb_s','#nb_a','#nb_q'].forEach(x=>$(x).classList.toggle('hide',!e.configurado))};
+  const hacer=async(n,a,ok)=>{const r=await sp.nube.call(n,a);if(r&&r.err)toast(r.err);else if(ok)toast(ok);NB.draw();return r};
+  $('#nb_g').onclick=async()=>{const r=await hacer('configurar',{url:$('#nb_u').value,token:$('#nb_t').value,panel:$('#nb_p').value},'Guardado: enviando los datos…');if(r&&r.ok){$('#nb_t').value='';setTimeout(NB.draw,2500)}};
+  $('#nb_s').onclick=async()=>{const r=await hacer('ahora');if(r&&!r.err)toast(r.error?r.error:'Datos enviados')};
+  $('#nb_a').onclick=async()=>{const e=await sp.nube.estado();hacer('activar',!e.activo,e.activo?'Envío en pausa':'Envío reanudado')};
+  $('#nb_q').onclick=()=>{if(!armed('nbq'))return toast('Tocá de nuevo para quitar la conexión con el panel');arm='';hacer('quitar',null,'Conexión quitada');$('#nb_u').value=$('#nb_p').value=''};
+  $('#nb').addEventListener('toggle',()=>NB.draw());MODS.push(NB.draw)}
+</script>
+<script>
+// ===== Identidad visual de StockProject: logo, tema, barra lateral, encabezado de pantalla y animaciones =====
+// Paleta: tinta (azul marino, cromo) · papel (fondo) · cobalto (acciones) · verde caja (dinero) · ámbar (avisos).
+// Las animaciones se controlan con la preferencia "Animaciones suaves" del programa (clase html.anim, en la campana).
+// A pedido del dueño no dependen de la opción de Windows: muchas PCs de mostrador la traen desactivada.
+const TM={};
+TM.LOGO=(n=28)=>`<svg viewBox="0 0 64 64" width="${n}" height="${n}" aria-hidden="true" class="lg"><rect width="64" height="64" rx="15" fill="#12233D"/><path class="lg-t" d="M32 14 48 23 32 32 16 23Z" fill="#0E9F6E"/><path class="lg-l" d="M16 23 32 32V50L16 41Z" fill="#2447F9"/><path class="lg-r" d="M48 23 32 32V50L48 41Z" fill="#6E8BFF"/><path class="lg-c" d="M24 18.5 40 27.5" stroke="#fff" stroke-width="3" stroke-linecap="round" pathLength="1"/></svg>`;
+TM.MARCA=n=>`${TM.LOGO(n)}<span class="wm"><b>Stock</b>Project</span>`;
+// Iconos del menú (trazo, 24×24) por pantalla.
+TM.IC={h:'M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z',v:'M4 5h2l2.2 10h9.6L20 8H7.2M9 19.5h.01M17 19.5h.01',p:'M3 12V4h8l10 10-8 8zM7.5 8.5h.01',i:'M12 3 21 8v8l-9 5-9-5V8zM3 8l9 5 9-5M12 13v8',
+  c:'M16 19v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1M9.5 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M21 19v-1a4 4 0 0 0-3-3.9M15.5 3.2a3.5 3.5 0 0 1 0 6.6',r:'M4 20V10M10 20V4M16 20v-7M22 20H2',
+  o:'M2 6h11v10H2zM13 9h4l4 4v3h-8M6.5 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4M17.5 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4',f:'M3 7a2 2 0 0 1 2-2h13v4M3 7v10a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2M16.5 14h.01',
+  a:'M3 17l6-6 4 4 8-8M15 7h6v6',e:'M12 3 21 8v8l-9 5-9-5V8zM8.5 12.5 12 16l3.5-3.5M12 16V9',g:'M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M19 12l2-1.2-2-3.5-2.3.7-1.7-1L14.5 4.5h-5L9 7l-1.7 1L5 7.3l-2 3.5L5 12l-2 1.2 2 3.5 2.3-.7 1.7 1 .5 2.5h5l.5-2.5 1.7-1 2.3.7 2-3.5z',
+  u:'M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6zM9 12l2 2 4-4',k:'M3 13h18v7H3zM5 13l2-8h10l2 8M10 17h4',z:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M12 7v5l3 2'};
+TM.css=`
+:root{--bg:#F4F6FA;--card:#fff;--tx:#14213A;--mu:#5F6B7E;--bd:#E2E7F0;--ac:#2447F9;--act:#fff;--ok:#0E9F6E;--bad:#D92D20;--warn:#B45309;--ink:#12233D;--ink2:#1B3157;--sh:0 1px 2px rgba(18,35,61,.05),0 10px 28px -14px rgba(18,35,61,.18);--r:14px;--ease:cubic-bezier(.2,.8,.2,1)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0C1626;--card:#14223A;--tx:#E8EDF7;--mu:#9AA8BF;--bd:#24344F;--ac:#6E8BFF;--act:#0C1626;--ok:#2BC48E;--bad:#FF6B5E;--warn:#F5A524;--ink:#0A1322;--ink2:#14223A;--sh:0 1px 2px rgba(0,0,0,.3),0 12px 30px -16px rgba(0,0,0,.6)}}
+:root[data-theme="dark"]{--bg:#0C1626;--card:#14223A;--tx:#E8EDF7;--mu:#9AA8BF;--bd:#24344F;--ac:#6E8BFF;--act:#0C1626;--ok:#2BC48E;--bad:#FF6B5E;--warn:#F5A524;--ink:#0A1322;--ink2:#14223A;--sh:0 1px 2px rgba(0,0,0,.3),0 12px 30px -16px rgba(0,0,0,.6)}
+body{font:15px/1.45 "Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+h3{font:600 16px/1.3 "Segoe UI Variable Display","Segoe UI",system-ui,sans-serif;letter-spacing:-.01em}
+/* ---- cromo: barra superior (pantallas chicas) o lateral (pantallas anchas) ---- */
+header{background:var(--ink);border:0;color:#fff;box-shadow:0 1px 0 rgba(255,255,255,.06) inset}
+.logo{display:inline-flex;align-items:center;gap:10px;color:#fff;font-size:17px;font-weight:400;letter-spacing:-.01em}.logo .lg{border-radius:8px;box-shadow:0 0 0 1px rgba(255,255,255,.16)}.wm b{font-weight:700}
+nav button,#masb{color:rgba(255,255,255,.74);font-weight:500;border-radius:10px;display:inline-flex;align-items:center;gap:10px;transition:background .15s,color .15s}
+nav button::before{content:"";flex:none;width:18px;height:18px;background:currentColor;-webkit-mask:var(--i) center/contain no-repeat;mask:var(--i) center/contain no-repeat;opacity:.9}
+nav button:hover,#masb:hover{background:rgba(255,255,255,.08);color:#fff}nav button.on,#masb.on{background:rgba(255,255,255,.13);color:#fff;box-shadow:inset 3px 0 0 var(--ok)}
+#masmenu{background:var(--ink2);border-color:rgba(255,255,255,.12)}
+#ses .mu{color:rgba(255,255,255,.7)}header .btn.sec{background:rgba(255,255,255,.08);color:#fff;border-color:rgba(255,255,255,.16)}
+main{max-width:1320px;padding:18px 20px 40px}
+#ph{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:2px 0 16px}#pht{margin:0;font:700 26px/1.15 "Segoe UI Variable Display","Segoe UI",system-ui,sans-serif;letter-spacing:-.025em}#phd{font-size:13px}#phu{display:flex;gap:8px;align-items:center}
+@media(max-width:1099px){nav button::before{display:none}nav button,#masb{padding:7px 11px;font-size:14px}.bar{gap:8px;padding:8px 12px}#ph{margin-bottom:12px}#pht{font-size:22px}.tot{font-size:38px}}
+@media(min-width:1100px){
+ header{position:fixed;inset:0 auto 0 0;width:236px;z-index:8}.bar{flex-direction:column;align-items:stretch;flex-wrap:nowrap;height:100%;padding:20px 12px 14px;gap:18px;max-width:none}
+ .logo{padding:0 8px}nav{flex-direction:column;align-items:stretch;flex-wrap:nowrap;gap:2px;overflow:auto;flex:1}nav button{width:100%;text-align:left;padding:10px 12px}
+ .mas{display:flex;flex-direction:column;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.1)}#masb{display:none}
+ #masmenu,#masmenu.hide{display:flex;position:static;background:none;border:0;box-shadow:none;padding:0;min-width:0}
+ #ses{margin:0!important;padding:10px 8px 0;border-top:1px solid rgba(255,255,255,.1);flex-wrap:wrap;font-size:13px}
+ main{margin:0 0 0 236px;padding:26px 34px 48px}}
+/* ---- superficies ---- */
+.card{border-radius:var(--r);border-color:var(--bd);box-shadow:var(--sh);padding:18px}.kpis .card,.herr .card,.ov .card .card{box-shadow:none}
+.kpis .card{border-top:3px solid var(--bd);padding:14px 16px}.kpis .card:first-child{border-top-color:var(--ok)}.kpis .big,.kpi div{font:700 26px/1.2 "Segoe UI Variable Display","Segoe UI",system-ui,sans-serif;letter-spacing:-.025em}
+input,select,textarea{background:var(--card);border-color:var(--bd);border-radius:10px;transition:border-color .15s,box-shadow .15s}input:focus,select:focus,textarea:focus{outline:0;border-color:var(--ac);box-shadow:0 0 0 3px color-mix(in srgb,var(--ac) 22%,transparent)}
+label{font-size:12.5px;font-weight:500}
+.btn{border-radius:10px;font-weight:600;transition:transform .08s,filter .15s,box-shadow .15s}.btn:hover:not(:disabled){filter:brightness(1.07)}.btn:focus-visible,.p:focus-visible,nav button:focus-visible{outline:0;box-shadow:0 0 0 3px color-mix(in srgb,var(--ac) 40%,transparent)}
+.btn.sec{background:var(--card);border-color:var(--bd)}.btn.sec:hover:not(:disabled){border-color:var(--ac);filter:none}
+#cobrar{background:var(--ok);color:#fff;font-size:18px!important;padding:14px 16px;box-shadow:0 8px 20px -10px var(--ok)}
+.tot{font:700 46px/1.05 "Segoe UI Variable Display","Segoe UI",system-ui,sans-serif;letter-spacing:-.035em;margin:2px 0 10px}.tot.bump{animation:tmBump .28s var(--ease)}
+.p{background:var(--card);border-radius:12px;padding:12px;transition:transform .12s var(--ease),border-color .12s,box-shadow .12s}.p:hover:not(:disabled){transform:translateY(-2px);box-shadow:var(--sh)}.p b{font-weight:600;line-height:1.25}.p .pt{display:flex;flex-wrap:wrap;gap:4px}.p .pt i{white-space:nowrap}#ses:empty{display:none}.p em{font-size:16px;letter-spacing:-.01em}
+th{font-weight:600;font-size:12.5px}tbody tr{transition:background .12s}tbody tr:hover{background:color-mix(in srgb,var(--ac) 5%,transparent)}
+.tag{font-weight:600}.pills button{font-weight:500}.pills button.on{color:var(--act)}
+.row{padding:10px 0}.tip{border-radius:10px}
+.ov,.mod{background:rgba(10,19,34,.55);backdrop-filter:blur(5px)}.ov .card{border-radius:18px;padding:22px;box-shadow:0 30px 80px -20px rgba(0,0,0,.5)}
+#toast{background:var(--ink);color:#fff;border-radius:12px;padding:12px 18px;font-weight:500;box-shadow:0 14px 34px -12px rgba(0,0,0,.5);transform:translate(-50%,12px);transition:opacity .2s,transform .25s var(--ease);max-width:min(560px,92vw)}#toast.show{transform:translate(-50%,0)}
+/* ---- animaciones ---- */
+html.anim main>section:not(.hide){animation:tmIn .26s var(--ease)}html.anim main>section:not(.hide)>.card,html.anim main>section:not(.hide)>.grid>.card,html.anim main>section:not(.hide) .kpis>.card{animation:tmUp .34s var(--ease) backwards}
+html.anim main>section:not(.hide)>:nth-child(2),html.anim main>section:not(.hide) .kpis>:nth-child(2),html.anim main>section:not(.hide)>.grid>:nth-child(2){animation-delay:.05s}html.anim main>section:not(.hide)>:nth-child(3),html.anim main>section:not(.hide) .kpis>:nth-child(3){animation-delay:.1s}html.anim main>section:not(.hide)>:nth-child(4),html.anim main>section:not(.hide) .kpis>:nth-child(4){animation-delay:.15s}html.anim main>section:not(.hide)>:nth-child(n+5),html.anim main>section:not(.hide) .kpis>:nth-child(n+5){animation-delay:.2s}
+html.anim #pht{animation:tmIn .3s var(--ease)}html.anim .ov>.card{animation:tmPop .22s var(--ease)}html.anim #cart .row{animation:tmIn .2s var(--ease)}
+@keyframes tmIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}@keyframes tmUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}@keyframes tmPop{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}@keyframes tmBump{0%{transform:scale(1)}40%{transform:scale(1.045)}100%{transform:scale(1)}}
+/* ---- inicio: la caja se arma, se cierra con cinta y da paso al programa ---- */
+#splash{position:fixed;inset:0;z-index:200;background:var(--ink);background-image:radial-gradient(60% 50% at 50% 42%,#1D3B6E 0,transparent 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;color:#fff;transition:opacity .38s ease,visibility .38s}#splash.fin{opacity:0;visibility:hidden}
+#splash .lg{width:112px;height:112px;filter:drop-shadow(0 18px 30px rgba(0,0,0,.45))}#splash .lg rect{fill:transparent}
+#splash .lg-l{animation:spL .5s var(--ease) both}#splash .lg-r{animation:spR .5s var(--ease) .1s both}#splash .lg-t{animation:spT .5s var(--ease) .26s both}#splash .lg-c{stroke-dasharray:1;animation:spC .32s ease-out .62s both}
+#splash .wm{font:400 30px/1 "Segoe UI Variable Display","Segoe UI",system-ui,sans-serif;letter-spacing:-.03em;animation:tmIn .45s var(--ease) .5s both}#splash small{color:rgba(255,255,255,.6);font-size:13px;animation:tmIn .45s var(--ease) .7s both}
+@keyframes spL{from{opacity:0;transform:translate(-14px,10px)}to{opacity:1;transform:none}}@keyframes spR{from{opacity:0;transform:translate(14px,10px)}to{opacity:1;transform:none}}@keyframes spT{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:none}}@keyframes spC{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@media print{#splash,#ph{display:none!important}}
+`;
+document.head.insertAdjacentHTML('beforeend','<style id="tmcss">'+TM.css+Object.entries(TM.IC).map(([t,d])=>`nav button[data-t="${t}"]{--i:url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='${d}'/></svg>`)}")}`).join('')+'</style>');
+// Logo en la barra y encabezado de cada pantalla (título + fecha, con ayuda y avisos a la derecha).
+{const l=$('.logo');if(l)l.innerHTML=TM.MARCA(30)}
+$('main').insertAdjacentHTML('afterbegin','<div id="ph"><div><h1 id="pht"></h1><span id="phd" class="mu"></span></div><span id="phu"></span></div>');
+{const u=$('#phu'),a=$('#ayuda'),w=$('#avw');if(w)u.appendChild(w);if(a){a.textContent='Ayuda';u.appendChild(a)}}
+TM.TIT={h:'Inicio',v:'Ventas',p:'Productos',i:'Inventario',c:'Clientes',r:'Reportes',o:'Pedidos',f:'Finanzas',a:'Analítica',e:'Baja de Stock',g:'Configuración',u:'Usuarios',k:'Caja',z:'Actividad'};
+TM.ult='';TM.titulo=()=>{const t=tabNow();if(t!==TM.ult){TM.ult=t;const h=$('#pht');h.textContent=TM.TIT[t]||'';h.style.animation='none';void h.offsetWidth;h.style.animation=''}
+  const d=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});$('#phd').textContent=((db.shop&&db.shop.n)||'')+(db.shop&&db.shop.n?' · ':'')+d.charAt(0).toUpperCase()+d.slice(1)};
+MODS.push(TM.titulo);
+// El total "late" cuando cambia.
+{const t=$('#total');let v=t.textContent;new MutationObserver(()=>{if(t.textContent===v)return;v=t.textContent;t.classList.remove('bump');void t.offsetWidth;t.classList.add('bump')}).observe(t,{childList:true,characterData:true,subtree:true})}
+// Animación de inicio (una vez por apertura). Sin animaciones: no se muestra.
+TM.splash=()=>{let on=true;try{on=AV.prefs().anim}catch(e){}if(!on)return;
+  document.body.insertAdjacentHTML('beforeend',`<div id="splash" aria-hidden="true">${TM.MARCA(112)}<small>Preparando tu negocio…</small></div>`);const s=$('#splash');setTimeout(()=>s.classList.add('fin'),1150);setTimeout(()=>s.remove(),1600)};
+TM.splash();
+// Primer dibujo con el tema ya aplicado (título de la pantalla y barra de caja).
+draw();
 </script>
 <script>
 // ===== Movilidad: trabajo sin conexión con sincronización =====

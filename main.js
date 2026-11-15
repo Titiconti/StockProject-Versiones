@@ -5,7 +5,7 @@ if (!app.requestSingleInstanceLock()) app.quit();
 let win, store;
 const defaults = () => { try { return JSON.parse(fs.readFileSync(path.join(__dirname, 'defaults.json'), 'utf8')) } catch (e) { return {} } };
 
-let usr, integ, emp, upd, tok = null;                                   // usuarios y sesión de esta ventana (el token nunca llega a la interfaz)
+let usr, emp, upd, tok = null;                                   // usuarios y sesión de esta ventana (el token nunca llega a la interfaz)
 const quien = () => (usr && usr.habilitado() ? usr.sesion(tok) : null);
 const permite = (m, a) => !usr.habilitado() || usr.tiene(quien(), m, a);
 let faltaClave = false;                               // datos cifrados y sin la clave de este equipo: se pide la clave de recuperación
@@ -32,15 +32,13 @@ app.whenReady().then(() => {
   const opcionesStore = { docsDir: app.getPath('documents'), home: app.getPath('home'), defaults: defaults() };
   const principal = require('./store')({ dataFile: path.join(ud, 'stockproject-data.json'), configFile: path.join(ud, 'config.json'), ...opcionesStore });
   // Varias empresas: `store` apunta siempre a la empresa activa (el resto del programa no se entera del cambio).
-  emp = require('./empresas')({ dir: ud, principal, crearStore: o => require('./store')(o), opcionesComunes: opcionesStore, alCrear: s => s.onPut(t => integ && integ.alGuardar(t)) });
+  emp = require('./empresas')({ dir: ud, principal, crearStore: o => require('./store')(o), opcionesComunes: opcionesStore });
   store = new Proxy({}, { get: (_, k) => { const s = emp.activa(), v = s[k]; return typeof v === 'function' ? v.bind(s) : v; } });
   // Cifrado en reposo (opcional): la clave vive en este equipo protegida por Windows (DPAPI) y se puede recuperar con la clave de respaldo.
   const keyFile = path.join(ud, 'clave-datos.bin'), cfgS = () => principal.getConfig();
   const guardarClave = k => fs.writeFileSync(keyFile, safeStorage.encryptString(k.toString('hex')));
   const leerClave = () => { try { return Buffer.from(safeStorage.decryptString(fs.readFileSync(keyFile)), 'hex'); } catch (x) { return null; } };
   if (cfgS().cifrado) { const k = safeStorage.isEncryptionAvailable() ? leerClave() : null; if (k && k.length === 32) emp.setKey(k); else faltaClave = true; }
-  integ = require('./integraciones')({ file: path.join(ud, 'integraciones.json') });
-  store.onPut(t => integ.alGuardar(t));
   usr = require('./usuarios')({ usersFile: path.join(ud, 'usuarios.json'), auditFile: path.join(ud, 'auditoria.jsonl') });
   ipcMain.on('load', e => { try { e.returnValue = usr.habilitado() && !quien() ? '' : store.load() } catch (x) { e.returnValue = '' } });
   ipcMain.on('auth:estado', e => { e.returnValue = usr.llamar(tok, 'estado'); });
@@ -112,15 +110,6 @@ app.whenReady().then(() => {
       try { fs.unlinkSync(tmp); } catch (x) {}
     }
   });
-  ipcMain.handle('int:call', async (e, n, a) => {
-    if (!permite('configuracion', 'editar')) return { ok: false, err: 'Solo un administrador puede cambiar las integraciones' };
-    const f = { crearToken: integ.crearToken, listarTokens: integ.listarTokens, revocarToken: integ.revocarToken, crearHook: integ.crearHook, listarHooks: integ.listarHooks, borrarHook: integ.borrarHook, activarHook: integ.activarHook, probar: integ.probar, historial: integ.historial }[n];
-    if (!f) return { ok: false };
-    const r = await f(...(Array.isArray(a) ? a : []));
-    if (/^(crear|revocar|borrar)/.test(n)) usr.audit(quien(), 'integraciones.' + n, '');
-    if (n === 'crearHook' || n === 'activarHook') integ.iniciar(store.snapshot());
-    return r;
-  });
   // Empresas y tipos de cambio
   const sinPermiso = { ok: false, err: 'Solo un administrador puede cambiar esto' };
   ipcMain.handle('emp:listar', () => emp.listar());
@@ -129,7 +118,7 @@ app.whenReady().then(() => {
   ipcMain.handle('emp:cambiar', (e, id) => {
     if (!permite('configuracion', 'editar')) return sinPermiso;
     const r = emp.cambiar(id); if (!r.ok) return r;
-    try { store.load(); } catch (x) {} integ.iniciar(store.snapshot()); usr.audit(quien(), 'empresa.cambiar', id); win.loadFile(pagina()); return { ok: true };
+    try { store.load(); } catch (x) {} usr.audit(quien(), 'empresa.cambiar', id); win.loadFile(pagina()); return { ok: true };
   });
   ipcMain.handle('emp:consolidado', (e, o) => permite('reporte', 'ver') && permite('configuracion', 'ver') ? emp.consolidado({ desde: String(o.desde), hasta: String(o.hasta), base: String(o.base), estado: o.estado || {} }) : null);
   ipcMain.handle('fx:actualizar', async (e, base) => permite('configuracion', 'editar') ? require('./monedas').actualizar((...a) => fetch(...a), base) : sinPermiso);
@@ -184,7 +173,7 @@ app.whenReady().then(() => {
     usr.audit(quien(), 'respaldo.restaurar_protegido'); win.reload(); return { ok: true };
   });
   // Acceso remoto (celular u otras PC): mismo programa y mismos datos, protegido con clave.
-  const remoto = require('./servidor').gestor({ store, usuarios: usr, integraciones: integ, certDir: path.join(ud, 'https'), indexPath: path.join(__dirname, 'index.html'), defaults: defaults() });
+  const remoto = require('./servidor').gestor({ store, usuarios: usr, certDir: path.join(ud, 'https'), indexPath: path.join(__dirname, 'index.html'), defaults: defaults() });
   const qrCache = {};
   ipcMain.handle('remote:info', async () => {
     const i = remoto.info();
@@ -194,6 +183,18 @@ app.whenReady().then(() => {
     }
     return { ...i, qr };
   });
+  // Panel para el celular desde cualquier lugar: envío de datos de solo lectura al servidor central (nube.js).
+  const nube = require('./nube')({ leer: () => store.snapshot(), getCfg: () => principal.getConfig(), setCfg: p => principal.setConfig(p),
+    proteger: t => safeStorage.isEncryptionAvailable() ? 'ss:' + safeStorage.encryptString(t).toString('base64') : t,
+    desproteger: t => String(t).startsWith('ss:') ? safeStorage.decryptString(Buffer.from(String(t).slice(3), 'base64')) : t });
+  ipcMain.handle('nube:estado', () => nube.estado());
+  ipcMain.handle('nube:call', async (e, n, a) => {
+    if (!permite('acceso_remoto', 'editar')) return { ok: false, err: 'Tu usuario no tiene permiso para cambiar el acceso remoto' };
+    const f = { configurar: nube.configurar, activar: nube.activar, quitar: nube.quitar, ahora: () => nube.sincronizar(true) }[n]; if (!f) return { ok: false };
+    const r = await f(a); usr.audit(quien(), 'nube.' + n, ''); if (n === 'configurar' && r && r.ok) { nube.detener(); nube.iniciar(); }
+    return r;
+  });
+  nube.iniciar(); app.on('before-quit', () => nube.detener());
   ipcMain.handle('remote:set', (e, cfg) => { if (!permite('acceso_remoto', 'editar')) return remoto.info(); usr.audit(quien(), 'acceso_remoto.cambio', Object.keys(cfg || {}).join(',')); return remoto.setConfig(cfg || {}); });
   ipcMain.handle('b:export', async () => {
     if (!permite('respaldo', 'ver')) return { ok: false };

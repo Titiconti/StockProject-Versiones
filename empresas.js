@@ -33,7 +33,8 @@ module.exports = function ({ dir, principal, crearStore, opcionesComunes, alCrea
       let db = null; try { db = JSON.parse(store(e.id).snapshot() || 'null'); } catch (x) {}
       if (!db || !db.prods) return { id: e.id, nombre: e.nombre, moneda: base, vacia: true, ventas: 0, ganancia: 0, tickets: 0, porCobrar: 0, inventario: 0 };
       const mon = (db.cfg && (db.cfg.moneda || (db.cfg.encuesta && db.cfg.encuesta.mon))) || 'ARS';
-      const v = (db.sales || []).filter(s => !s.void && s.date.slice(0, 10) >= desde && s.date.slice(0, 10) <= hasta);
+      const dia = iso => new Date(iso).toLocaleDateString('sv-SE');   // día local de la venta (las fechas se guardan en UTC: una venta de las 22 h no es del día siguiente)
+      const v = (db.sales || []).filter(s => !s.void && dia(s.date) >= desde && dia(s.date) <= hasta);
       const ventas = v.reduce((a, s) => a + s.total, 0), costo = v.reduce((a, s) => a + s.items.reduce((x, i) => x + i.qty * (i.cost || 0), 0), 0);
       const porCobrar = (db.clients || []).reduce((a, c) => a + Math.max(0, deuda(db, c)), 0), inventario = (db.prods || []).reduce((a, p) => a + (p.lots || []).reduce((x, l) => x + l.qty, 0) * (p.cost || 0), 0);
       const k = x => convertir(estado, x, mon, base), vc = k(ventas);
