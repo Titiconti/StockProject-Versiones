@@ -128,8 +128,8 @@ details.card>summary{font-weight:700;cursor:pointer;padding:2px 0;list-style:non
 <details class="card"><summary>Motivos de baja de stock</summary><p class="mu" style="margin-top:0">Siempre están Vencimiento, Retiro del local, Daños, Extravío y Otro. Agregá otros separados por coma.</p><input id="g_mb" style="width:100%"><button class="btn" id="g_mbs" style="margin-top:8px">Guardar motivos</button></details></div>
 <div data-sub="s" class="hide"><div id="sg_ed"><div class="grid"><div class="card"><h3>Cifrado de datos en esta PC</h3><p id="sg_c"></p><p class="mu">Protege tus datos y respaldos si alguien copia los archivos. La clave queda guardada por Windows y recibís una clave de recuperación para guardar aparte.</p><button class="btn" id="sg_on">Activar cifrado</button><button class="btn sec" id="sg_off">Desactivar cifrado</button></div>
 <div class="card"><h3>Copia protegida con contraseña</h3><p class="mu" style="margin-top:0">Sirve para llevar tus datos a otra PC. Se abre solo con esta contraseña (mínimo 8 caracteres).</p><input id="sg_pw" type="password" autocomplete="new-password" placeholder="Contraseña de la copia" style="width:100%"><div style="display:flex;gap:8px;margin-top:8px"><button class="btn" id="sg_cp">Guardar copia</button><button class="btn sec" id="sg_rp">Restaurar copia</button></div></div></div>
-<div class="card"><h3>Acceso desde el celular con HTTPS</h3><p id="sg_hs" class="mu"></p><button class="btn sec" id="sg_https">Activar HTTPS</button></div></div>
-<div class="card"><h3>Privacidad de datos personales (RGPD / LOPDGDD)</h3><p class="mu" style="margin-top:0">El programa te da las herramientas; el cumplimiento depende también de cómo las uses. No es una certificación.</p><ul style="line-height:1.7;margin:0;padding-left:20px"><li><b>Datos en tu equipo:</b> nada sale de tu PC salvo que actives el acceso desde el celular o las integraciones.</li><li><b>Acceso y portabilidad:</b> en Clientes, <i>Exportar datos del cliente</i> descarga todo lo que guardás de esa persona.</li><li><b>Supresión:</b> en Clientes, <i>Anonimizar cliente</i> borra sus datos personales y conserva las ventas para la contabilidad (no se puede si tiene deuda).</li><li><b>Seguridad:</b> usuarios con contraseña, cifrado opcional, HTTPS opcional y registro de actividad en Usuarios.</li><li><b>Tu parte:</b> informar a tus clientes para qué usás sus datos, pedirles consentimiento cuando haga falta y borrar los datos que ya no necesites.</li></ul></div></div>
+</div>
+<div class="card"><h3>Privacidad de datos personales (RGPD / LOPDGDD)</h3><p class="mu" style="margin-top:0">El programa te da las herramientas; el cumplimiento depende también de cómo las uses. No es una certificación.</p><ul style="line-height:1.7;margin:0;padding-left:20px"><li><b>Datos en tu equipo:</b> nada sale de tu PC salvo que actives el panel para el celular (solo se envían ventas, stock, cajas y saldos).</li><li><b>Acceso y portabilidad:</b> en Clientes, <i>Exportar datos del cliente</i> descarga todo lo que guardás de esa persona.</li><li><b>Supresión:</b> en Clientes, <i>Anonimizar cliente</i> borra sus datos personales y conserva las ventas para la contabilidad (no se puede si tiene deuda).</li><li><b>Seguridad:</b> usuarios con contraseña, cifrado opcional, y registro de actividad en Usuarios.</li><li><b>Tu parte:</b> informar a tus clientes para qué usás sus datos, pedirles consentimiento cuando haga falta y borrar los datos que ya no necesites.</li></ul></div></div>
 <div data-sub="d" class="hide" id="g_d"></div><div data-sub="m" class="hide" id="g_m"></div><div data-sub="x" class="hide" id="g_x"></div></section>
 <section id="u" class="hide">
 <div class="card hide" id="uact"><h3>Activar usuarios</h3><p class="mu">Hoy cualquiera que abra el programa ve y modifica todo. Al activar usuarios, el programa pide usuario y contraseña al abrirse, cada persona ve solo lo que su rol permite y se registra quién hizo cada cosa. También el acceso desde el celular pasa a pedir usuario y contraseña. Creá primero la cuenta del administrador.</p>
@@ -154,8 +154,8 @@ details.card>summary{font-weight:700;cursor:pointer;padding:2px 0;list-style:non
 <div class="kpis" id="kpis"></div>
 <div class="grid" style="grid-template-columns:1fr 1fr"><div class="card"><h3>Más vendidos</h3><div id="top"></div></div><div class="card"><h3>Por medio de pago</h3><div id="bypay"></div><h3 style="margin-top:16px">Stock bajo</h3><div id="low"></div></div></div>
 <div class="card"><h3>Vencimientos (vencidos y próximos 30 días)</h3><div class="wrap"><table><thead><tr><th>Producto</th><th>Lote</th><th>Cantidad</th><th>Vence</th><th>Estado</th></tr></thead><tbody id="venc"></tbody></table></div></div>
-<details class="card herr" id="herr"><summary>Herramientas: acceso desde el celular, respaldos y datos del ticket</summary><div class="card"><h3>Acceso desde el celular u otros dispositivos</h3><div id="rmi" class="mu"></div><div id="rmq"></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center"><button class="btn sec" id="rmt">Desactivar acceso remoto</button><input id="rmp" placeholder="Nueva clave (4 a 12 caracteres)" style="max-width:240px"><button class="btn sec" id="rmc">Cambiar clave</button><button class="btn sec" id="bx">Descargar copia (1 archivo)</button></div></div>
-<div class="card"><h3>Respaldo de datos</h3><div id="bki" class="mu"></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn" id="bn">Respaldar ahora</button><button class="btn sec" id="bc">Cambiar carpeta</button><button class="btn sec" id="br">Restaurar copia…</button></div></div>
+<details class="card herr" id="herr"><summary>Herramientas: respaldos y datos del ticket</summary>
+<div class="card"><h3>Respaldo de datos</h3><div id="bki" class="mu"></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn" id="bn">Respaldar ahora</button><button class="btn sec" id="bc">Cambiar carpeta</button><button class="btn sec" id="br">Restaurar copia…</button><button class="btn sec" id="bx">Descargar copia (1 archivo)</button></div></div>
 <div class="card"><h3>Datos del comercio (aparecen en el ticket)</h3><div class="form" style="margin:0"><div><label>Nombre</label><input id="shn"></div><div><label>Dirección</label><input id="sha"></div><div><label>Teléfono</label><input id="sht"></div><div><button class="btn" id="ss">Guardar</button></div></div></div>
 </details>
 <div class="card"><h3>Últimas ventas</h3><div class="wrap"><table><thead><tr><th>Fecha</th><th>Detalle</th><th>Pago</th><th>Total</th><th></th></tr></thead><tbody id="hist"></tbody></table></div></div>
@@ -551,14 +551,7 @@ if(!p&&tab==='v'&&PX.agregarSerie(code)){beep(1);return}if(!p){beep(0);return to
 if(tab==='v'){if(noVendible(p))return;beep(1);return add(p.id)}beep(1);if(tab==='v')add(p.id);else if(tab==='o')oPick(p);else if(tab==='e')ePick(p);else toast(p.name+' · stock '+tot(p)+' · '+fmt(p.price))}
 
 /* ===== Acceso remoto y copia de seguridad (un solo archivo) ===== */
-async function drawRm(){if($('#r').classList.contains('hide'))return;const el=$('#rmi');['#rmt','#rmp','#rmc'].forEach(x=>$(x).classList.toggle('hide',!ED));$('#bx').classList.toggle('hide',KIND==='local');$('#rmq').innerHTML='';
-if(KIND==='local'){el.textContent='El acceso desde otros dispositivos está disponible en la versión instalada para Windows.';return}
-if(SRV){el.textContent='Estás conectado por acceso remoto: ves y modificás los mismos datos de la PC principal.';return}
-try{const i=await sp.remote();$('#rmt').textContent=i.enabled?'Desactivar acceso remoto':'Activar acceso remoto';
-el.innerHTML=i.running?`Abrí esta dirección en el celular o en otra PC <b>conectados a la misma red Wi-Fi</b>:<br><b>${(i.urls.length?i.urls:['http://localhost:'+i.port]).map(esc).join('<br>')}</b><br>Clave de acceso: <b>${esc(i.pin)}</b><br><span class="mu">La PC principal tiene que estar encendida. Si Windows pregunta por el Firewall, elegí "Permitir" en redes privadas. Todos los dispositivos ven y guardan en los mismos datos.</span>`:i.error?`<span style="color:var(--bad)">${esc(i.error)}</span>`:'El acceso remoto está desactivado.';
-$('#rmq').innerHTML=i.qr?`<img src="${i.qr}" width="150" height="150" alt="Código QR" style="margin-top:10px;border-radius:8px;background:#fff">`:''}catch(e){}}
-$('#rmt').onclick=async()=>{const i=await sp.remote();await sp.setRemote({enabled:!i.enabled});drawRm()};
-$('#rmc').onclick=async()=>{const v=$('#rmp').value.trim();if(!/^[A-Za-z0-9]{4,12}$/.test(v))return toast('La clave debe tener entre 4 y 12 letras o números');await sp.setRemote({pin:v});$('#rmp').value='';toast('Clave cambiada: los dispositivos tendrán que ingresar de nuevo');drawRm()};
+function drawRm(){$('#bx').classList.toggle('hide',KIND==='local')}
 $('#bx').onclick=async()=>{if(ED){const r=await sp.exportBackup();if(r&&r.ok)toast('Copia guardada en un solo archivo');else if(r&&r.err)toast('No se pudo guardar: '+r.err)}else location.href='/api/backup'};
 const MODS=[];MODS.push(()=>{const i=$('#g_mb');if(i&&document.activeElement!==i)i.value=(db.cfg.motivosBaja||[]).join(', ')});
 // Solo se redibuja la pestaña que se está viendo; las otras se dibujan al abrirlas (el clic en la pestaña llama a draw()).
@@ -570,7 +563,7 @@ draw();
 // ---- Usuarios, roles y permisos ----
 const MODT={v:'ventas',i:'inventario',p:'productos',o:'pedidos',c:'clientes',e:'escuela',r:'reporte',f:'finanzas',a:'reporte',g:'configuracion'};
 // Qué permiso exige cada botón que modifica datos (el servidor y el programa de escritorio vuelven a controlar el guardado).
-const GATE=[['#cobrar','ventas','crear'],['[data-v]','ventas','eliminar'],['[data-c]','ventas','editar'],['#fg',()=>editId?['productos','editar']:['productos','crear']],['#inv [data-d]','productos','eliminar'],['#lg','inventario','editar'],['#lb button','inventario','eliminar'],['#cg',()=>cEd?['clientes','editar']:['clientes','crear']],['#cli [data-d]','clientes','eliminar'],['#cpay','clientes','editar'],['#cdet [data-p]','clientes','eliminar'],['#cdet [data-g]','clientes','eliminar'],['#cpall','clientes','editar'],['#eg','escuela','crear'],['#og','pedidos','crear'],['#ol button','pedidos','editar'],['#bn','respaldo','crear'],['#bc','respaldo','editar'],['#br','respaldo','eliminar'],['#bx','respaldo','ver'],['#rmt','acceso_remoto','editar'],['#rmc','acceso_remoto','editar']];
+const GATE=[['#cobrar','ventas','crear'],['[data-v]','ventas','eliminar'],['[data-c]','ventas','editar'],['#fg',()=>editId?['productos','editar']:['productos','crear']],['#inv [data-d]','productos','eliminar'],['#lg','inventario','editar'],['#lb button','inventario','eliminar'],['#cg',()=>cEd?['clientes','editar']:['clientes','crear']],['#cli [data-d]','clientes','eliminar'],['#cpay','clientes','editar'],['#cdet [data-p]','clientes','eliminar'],['#cdet [data-g]','clientes','eliminar'],['#cpall','clientes','editar'],['#eg','escuela','crear'],['#og','pedidos','crear'],['#ol button','pedidos','editar'],['#bn','respaldo','crear'],['#bc','respaldo','editar'],['#br','respaldo','eliminar'],['#bx','respaldo','ver'],];
 let relevante=()=>true;
 const navVis=t=>t==='h'?relevante(t):can(MODT[t],'ver')&&relevante(t);
 function navRefresh(){$$('nav button').forEach(b=>{const t=b.dataset.t;if(t==='u'){b.classList.toggle('hide',!(AU.habilitado||EDA));b.textContent=can('usuarios','ver')&&AU.habilitado?'Usuarios':AU.habilitado?'Mi cuenta':'Usuarios'}else b.classList.toggle('hide',!navVis(t))});masRefresh()}
@@ -796,8 +789,7 @@ CF.drawCfg=()=>{if($('#g').classList.contains('hide'))return;const av=['i','m','
 };
 CF.drawSeg=async()=>{const hay=EDA&&sp.seg;$('#sg_ed').classList.toggle('hide',!hay);if(!hay)return;const s=await sp.seg.estado();
   $('#sg_c').innerHTML=s.disponible?(s.activo?'<span class="tag">Activado</span> Tus datos y respaldos se guardan cifrados (AES-256).':'<span class="tag out">Desactivado</span> Los datos se guardan sin cifrar en este equipo.'):'Windows no ofrece protección de claves en este equipo; el cifrado no está disponible.';
-  $('#sg_on').classList.toggle('hide',!s.disponible||s.activo);$('#sg_off').classList.toggle('hide',!s.activo);
-  const r=await sp.remote();window.__https=!!r.https;$('#sg_https').textContent=r.https?'Desactivar HTTPS':'Activar HTTPS';$('#sg_hs').textContent=r.https?'Activo: el acceso desde el celular va cifrado.':'Desactivado: el acceso desde el celular viaja sin cifrar dentro de tu red.'};
+  $('#sg_on').classList.toggle('hide',!s.disponible||s.activo);$('#sg_off').classList.toggle('hide',!s.activo);};
 CF.nombreVal=s=>String(s||'').trim();
 CF.mostrarClave=hex=>{const ov=document.createElement('div');ov.className='ov';ov.id='clv';ov.innerHTML=`<div class="card"><h3>Guardá tu clave de recuperación</h3><p>Si reinstalás Windows o cambiás de usuario, <b>solo con esta clave</b> vas a poder abrir tus datos y respaldos cifrados. Guardala en un lugar seguro y distinto de esta PC (un pendrive, tu gestor de contraseñas).</p><input readonly id="clv_k" value="${hex}" style="font:13px monospace;width:100%"><div style="display:flex;gap:8px;margin:10px 0"><button class="btn sec" id="clv_d">Descargar como archivo</button></div><label class="opt"><input type="checkbox" id="clv_ok"> Ya guardé la clave en un lugar seguro</label><button class="btn" id="clv_x" style="margin-top:8px" disabled>Continuar</button></div>`;document.body.appendChild(ov);
   $('#clv_ok').onchange=()=>$('#clv_x').disabled=!$('#clv_ok').checked;$('#clv_x').onclick=()=>ov.remove();$('#clv_d').onclick=()=>UT.bajar('StockProject-clave-de-recuperacion.txt','Clave de recuperación de StockProject (no la compartas):\n'+hex+'\n')};
@@ -812,7 +804,6 @@ $('#sg_on').onclick=async()=>{const r=await sp.seg.activar();if(r.ok){CF.mostrar
 $('#sg_off').onclick=async()=>{if(!armed('sgoff'))return;const r=await sp.seg.desactivar();CF.msg(r,'Cifrado desactivado');CF.drawSeg()};
 $('#sg_cp').onclick=async()=>{const r=await sp.seg.copiaProtegida($('#sg_pw').value);if(r.ok){$('#sg_pw').value='';toast('Copia protegida guardada')}else if(r.err)toast(r.err)};
 $('#sg_rp').onclick=async()=>{const r=await sp.seg.restaurarProtegida($('#sg_pw').value);if(r.err)toast(r.err)};
-$('#sg_https').onclick=async()=>{const r=await sp.setRemote({https:!window.__https});window.__https=!!r.https;toast(r.https?'HTTPS activado: el navegador del celular avisará una vez que el certificado es propio':'HTTPS desactivado');CF.drawSeg()};
 MODS.push(CF.drawCfg);
 
 // ---------- Privacidad (RGPD / LOPDGDD): derechos de acceso y supresión por cliente ----------
@@ -1270,7 +1261,7 @@ SY.mb=n=>(n/1048576).toFixed(2).replace('.',',')+' MB';
 SY.render=async()=>{const box=$('#g_x'),c=SY.cuentas(),m=SY.ult||null,M=EDA&&sp.sys?await sp.sys.metricas():null,U=typeof UPD!=='undefined'&&EDA&&sp.upd?await UPD.html():'';
   const l=[`${c.ventas.toLocaleString('es-AR')} ventas`,`${c.productos.toLocaleString('es-AR')} productos`,`${c.clientes.toLocaleString('es-AR')} clientes`];
   if(M){l.push('archivo de datos '+M.archivoMB.toString().replace('.',',')+' MB','memoria '+M.memMB+' MB');}
-  box.innerHTML=`${U}<div class="card"><h3>Estado</h3><p style="margin:0">${l.join(' · ')}</p>${M?`<p class="mu" style="margin:6px 0 0">Último respaldo automático: ${M.ultimoRespaldo?new Date(M.ultimoRespaldo).toLocaleString('es-AR'):'todavía ninguno'} · Abierto hace ${Math.max(1,Math.round(M.iniciada/60))} min${M.servidor?` · Acceso desde celulares: ${M.servidor.peticiones} pedidos atendidos (${M.servidor.api} por la API, ${M.servidor.errores} con error)`:''}</p>`:''}</div>
+  box.innerHTML=`${U}<div class="card"><h3>Estado</h3><p style="margin:0">${l.join(' · ')}</p>${M?`<p class="mu" style="margin:6px 0 0">Último respaldo automático: ${M.ultimoRespaldo?new Date(M.ultimoRespaldo).toLocaleString('es-AR'):'todavía ninguno'} · Abierto hace ${Math.max(1,Math.round(M.iniciada/60))} min</p>`:''}</div>
   <details class="card"><summary>Prueba de velocidad con tus datos</summary><p class="mu" style="margin-top:0">Mide cuánto tarda guardar, cargar y dibujar las pantallas con el volumen actual.</p><button class="btn" id="sy_m">Medir ahora</button>${m?`<div class="kpis" style="margin-top:10px">${CF.k('Tamaño',SY.mb(m.bytes))}${CF.k('Guardar',m.guardar+' ms')}${CF.k('Cargar',m.cargar+' ms')}${CF.k('Dibujar pantallas',m.dibujar+' ms')}</div><div class="tip" style="border-color:var(--${SY.nivel(m)[0]})">${SY.nivel(m)[1]}</div>`:''}</details>`};
 $('#g_x').onclick=async e=>{if(e.target.id==='sy_m'){e.target.disabled=true;await new Promise(r=>setTimeout(r,30));SY.ult=SY.medir();await SY.render();$('#g_x details').open=true}};
 CF.extras.sistema=sub=>{if(sub==='x'){if(!SY.t){SY.render();SY.t=setInterval(()=>{if($('#g').classList.contains('hide')||CF.sub!=='x'){clearInterval(SY.t);SY.t=null;return}SY.render()},5000)}}else if(SY.t){clearInterval(SY.t);SY.t=null}};
@@ -1904,38 +1895,6 @@ TM.sello=()=>{if(TM.anim())TM.efimero('sello','<div id="sello" aria-hidden="true
 TM.splash();
 // Primer dibujo con el tema ya aplicado (título de la pantalla y barra de caja).
 draw();
-</script>
-<script>
-// ===== Movilidad: trabajo sin conexión con sincronización =====
-// Si la conexión con la PC principal se corta (o dos dispositivos guardan a la vez) no se pierde nada: las ventas, cobros,
-// clientes y contactos nuevos quedan en una cola local; al volver la conexión se recarga lo del servidor y se vuelven a aplicar.
-const OFF={ctr:null,activo:false,key:'sp_cola_'+location.host};
-OFF.contadores=()=>({sid:db.sid,payid:db.payid,cid:db.cid,iid:db.iid});
-// Nuevos desde la última vez que el servidor confirmó nuestros datos.
-OFF.extraer=()=>{if(KIND==='local'||!OFF.ctr)return null;const c=OFF.ctr,o={sales:db.sales.filter(s=>s.id>=c.sid&&!s.void),pays:db.pays.filter(p=>p.id>=c.payid),clients:db.clients.filter(x=>x.id>=c.cid),inter:db.inter.filter(x=>x.id>=c.iid)};o.n=o.sales.length+o.pays.length+o.clients.length+o.inter.length;return o};
-OFF.guardarCola=o=>{try{if(o&&o.n)localStorage.setItem(OFF.key,JSON.stringify(o));else localStorage.removeItem(OFF.key)}catch(e){}};
-OFF.leerCola=()=>{try{return JSON.parse(localStorage.getItem(OFF.key)||'null')}catch(e){return null}};
-// Vuelve a aplicar las operaciones sobre los datos recién cargados, sin duplicar lo que el servidor ya tenía.
-OFF.aplicar=ops=>{if(!ops||!ops.n)return{sales:0,pays:0,clients:0,inter:0,sinProducto:0,sinStock:0};const r={sales:0,pays:0,clients:0,inter:0,sinProducto:0,sinStock:0},map=new Map();
-  ops.clients.forEach(c=>{const ya=db.clients.find(x=>(x.id===c.id&&x.name===c.name)||norm(x.name)===norm(c.name));if(ya){map.set(c.id,ya.id);return}const nid=db.cid++;map.set(c.id,nid);db.clients.push({...c,id:nid});r.clients++});
-  const cid=id=>id==null?id:map.has(id)?map.get(id):id;
-  ops.sales.forEach(s=>{if(db.sales.some(x=>x.id===s.id&&x.date===s.date&&x.total===s.total))return;const items=[];let ok=true;
-    s.items.forEach(i=>{const p=db.prods.find(x=>x.id===i.id);if(!p){r.sinProducto++;ok=false;return}if(avail(p)<i.qty)r.sinStock++;items.push({...i,lots:sell(p,i.qty)})});
-    if(!ok||!items.length)return;const n={...s,id:db.sid++,items};if(s.cid!=null)n.cid=cid(s.cid);db.sales.push(n);r.sales++});
-  ops.pays.forEach(p=>{if(db.pays.some(x=>x.id===p.id&&x.date===p.date&&x.amount===p.amount&&x.cid===cid(p.cid)))return;if(cid(p.cid)==null||!cl$(cid(p.cid)))return;db.pays.push({...p,id:db.payid++,cid:cid(p.cid)});r.pays++});
-  ops.inter.forEach(x=>{if(db.inter.some(y=>y.id===x.id&&y.fecha===x.fecha))return;if(!cl$(cid(x.cid)))return;db.inter.push({...x,id:db.iid++,cid:cid(x.cid)});r.inter++});return r};
-OFF.banner=()=>{let b=$('#off');if(!OFF.activo){if(b)b.remove();return}if(!b){b=document.createElement('div');b.id='off';b.style.cssText='position:sticky;top:0;z-index:55;background:var(--bad);color:#fff;text-align:center;padding:6px 10px;font-weight:600;font-size:14px';document.body.prepend(b)}
-  const c=OFF.extraer();b.textContent='Sin conexión con la PC principal. '+(c&&c.n?`Hay ${c.n} cambio(s) pendientes: se enviarán solos al volver.`:'Podés seguir trabajando: se enviará todo al volver.')};
-OFFH.ok=()=>{OFF.ctr=OFF.contadores();OFF.guardarCola(null)};
-OFFH.fallo=()=>{OFF.activo=true;OFF.guardarCola(OFF.extraer());OFF.banner()};
-OFFH.red=()=>{if(KIND==='local'||ED)return;OFF.activo=true;OFF.banner()};
-OFFH.extraer=()=>OFF.extraer();
-OFFH.reaplicar=ops=>{if(!ops||!ops.n)return;const r=OFF.aplicar(ops);if(r.sales+r.pays+r.clients+r.inter>0){save()}OFF.guardarCola(null);const av=[];if(r.sinProducto)av.push(r.sinProducto+' renglón(es) de productos que ya no existen');if(r.sinStock)av.push('hay productos con stock insuficiente: revisá el inventario');if(av.length)toast('Atención: '+av.join('; '))};
-// Al volver la conexión: se baja lo del servidor y se reaplican los cambios pendientes.
-OFFH.online=async()=>{if(!OFF.activo)return;OFF.activo=false;const ops=OFF.extraer()||OFF.leerCola();OFF.banner();if(ops&&ops.n){await reloadAll();OFFH.reaplicar(ops);toast('Volvió la conexión: se enviaron '+ops.n+' cambio(s) pendientes')}};
-// Si se cerró la página con cambios sin enviar, se retoman al abrir de nuevo.
-OFF.arranque=()=>{if(KIND==='local')return;OFF.ctr=OFF.contadores();const q=OFF.leerCola();if(q&&q.n){OFF.guardarCola(null);setTimeout(()=>{OFFH.reaplicar(q);toast('Se enviaron '+q.n+' cambio(s) que habían quedado sin enviar')},800)}};
-OFF.arranque();
 </script>
 <!--/MODULOS-->
 <script>initAuth();if(window.arrancar)arrancar()</script>

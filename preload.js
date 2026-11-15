@@ -10,8 +10,6 @@ contextBridge.exposeInMainWorld('sp', {
   restore: () => ipcRenderer.invoke('b:restore'),
   print: (html, opts) => ipcRenderer.invoke('print', html, opts),
   pdf: (html, name) => ipcRenderer.invoke('pdf', html, name),
-  remote: () => ipcRenderer.invoke('remote:info'),
-  setRemote: cfg => ipcRenderer.invoke('remote:set', cfg),
   exportBackup: () => ipcRenderer.invoke('b:export'),
   emp: { listar: () => ipcRenderer.invoke('emp:listar'), crear: n => ipcRenderer.invoke('emp:crear', n), renombrar: (i, n) => ipcRenderer.invoke('emp:renombrar', i, n), cambiar: i => ipcRenderer.invoke('emp:cambiar', i), consolidado: o => ipcRenderer.invoke('emp:consolidado', o) },
   fx: { actualizar: b => ipcRenderer.invoke('fx:actualizar', b) },

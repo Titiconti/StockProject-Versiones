@@ -114,8 +114,7 @@ CF.drawCfg=()=>{if($('#g').classList.contains('hide'))return;const av=['i','m','
 };
 CF.drawSeg=async()=>{const hay=EDA&&sp.seg;$('#sg_ed').classList.toggle('hide',!hay);if(!hay)return;const s=await sp.seg.estado();
   $('#sg_c').innerHTML=s.disponible?(s.activo?'<span class="tag">Activado</span> Tus datos y respaldos se guardan cifrados (AES-256).':'<span class="tag out">Desactivado</span> Los datos se guardan sin cifrar en este equipo.'):'Windows no ofrece protección de claves en este equipo; el cifrado no está disponible.';
-  $('#sg_on').classList.toggle('hide',!s.disponible||s.activo);$('#sg_off').classList.toggle('hide',!s.activo);
-  const r=await sp.remote();window.__https=!!r.https;$('#sg_https').textContent=r.https?'Desactivar HTTPS':'Activar HTTPS';$('#sg_hs').textContent=r.https?'Activo: el acceso desde el celular va cifrado.':'Desactivado: el acceso desde el celular viaja sin cifrar dentro de tu red.'};
+  $('#sg_on').classList.toggle('hide',!s.disponible||s.activo);$('#sg_off').classList.toggle('hide',!s.activo);};
 CF.nombreVal=s=>String(s||'').trim();
 CF.mostrarClave=hex=>{const ov=document.createElement('div');ov.className='ov';ov.id='clv';ov.innerHTML=`<div class="card"><h3>Guardá tu clave de recuperación</h3><p>Si reinstalás Windows o cambiás de usuario, <b>solo con esta clave</b> vas a poder abrir tus datos y respaldos cifrados. Guardala en un lugar seguro y distinto de esta PC (un pendrive, tu gestor de contraseñas).</p><input readonly id="clv_k" value="${hex}" style="font:13px monospace;width:100%"><div style="display:flex;gap:8px;margin:10px 0"><button class="btn sec" id="clv_d">Descargar como archivo</button></div><label class="opt"><input type="checkbox" id="clv_ok"> Ya guardé la clave en un lugar seguro</label><button class="btn" id="clv_x" style="margin-top:8px" disabled>Continuar</button></div>`;document.body.appendChild(ov);
   $('#clv_ok').onchange=()=>$('#clv_x').disabled=!$('#clv_ok').checked;$('#clv_x').onclick=()=>ov.remove();$('#clv_d').onclick=()=>UT.bajar('StockProject-clave-de-recuperacion.txt','Clave de recuperación de StockProject (no la compartas):\n'+hex+'\n')};
@@ -130,7 +129,6 @@ $('#sg_on').onclick=async()=>{const r=await sp.seg.activar();if(r.ok){CF.mostrar
 $('#sg_off').onclick=async()=>{if(!armed('sgoff'))return;const r=await sp.seg.desactivar();CF.msg(r,'Cifrado desactivado');CF.drawSeg()};
 $('#sg_cp').onclick=async()=>{const r=await sp.seg.copiaProtegida($('#sg_pw').value);if(r.ok){$('#sg_pw').value='';toast('Copia protegida guardada')}else if(r.err)toast(r.err)};
 $('#sg_rp').onclick=async()=>{const r=await sp.seg.restaurarProtegida($('#sg_pw').value);if(r.err)toast(r.err)};
-$('#sg_https').onclick=async()=>{const r=await sp.setRemote({https:!window.__https});window.__https=!!r.https;toast(r.https?'HTTPS activado: el navegador del celular avisará una vez que el certificado es propio':'HTTPS desactivado');CF.drawSeg()};
 MODS.push(CF.drawCfg);
 
 // ---------- Privacidad (RGPD / LOPDGDD): derechos de acceso y supresión por cliente ----------
