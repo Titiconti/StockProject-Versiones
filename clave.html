@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="es"><head><meta charset="utf-8"><title>StockProject</title>
 <style>
-:root{--bg:#f5f6f8;--card:#fff;--tx:#1b1f27;--mu:#6b7280;--bd:#e3e6ec;--ac:#2563eb;--bad:#dc2626}
-@media(prefers-color-scheme:dark){:root{--bg:#0f1218;--card:#181c25;--tx:#e8eaf0;--mu:#9aa3b2;--bd:#2a303c;--ac:#4f8cff}}
+:root{--bg:#F4F6FA;--card:#fff;--tx:#14213A;--mu:#5F6B7E;--bd:#E2E7F0;--ac:#2447F9;--bad:#D92D20;--ok:#0E9F6E}
+@media(prefers-color-scheme:dark){:root{--bg:#0C1626;--card:#14223A;--tx:#E8EDF7;--mu:#9AA8BF;--bd:#24344F;--ac:#6E8BFF}}
 *{box-sizing:border-box}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--tx);font:16px system-ui,Segoe UI,sans-serif}
 .c{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:26px;width:min(480px,92vw)}h1{margin:0 0 6px;font-size:22px;color:var(--ac)}p{color:var(--mu);font-size:14px}
 input{width:100%;padding:11px;font:14px monospace;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:10px}
 button{width:100%;margin-top:14px;padding:12px;border:0;border-radius:10px;background:var(--ac);color:#fff;font:inherit;font-weight:700;cursor:pointer}#m{color:var(--bad);min-height:20px;margin-top:10px;font-size:14px}
-</style></head><body><div class="c"><h1>🔒 Datos cifrados</h1>
+body{font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;background:radial-gradient(70% 60% at 50% 0,#1D3B6E 0,#12233D 60%) fixed #12233D}.c{border-radius:18px;box-shadow:0 30px 80px -20px rgba(0,0,0,.55);animation:in .35s cubic-bezier(.2,.8,.2,1)}h1{display:flex;align-items:center;gap:12px;color:var(--tx);font-weight:400;letter-spacing:-.02em}h1 b{font-weight:700}input:focus{outline:0;border-color:var(--ac);box-shadow:0 0 0 3px color-mix(in srgb,var(--ac) 22%,transparent)}@keyframes in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}</style></head><body><div class="c"><h1>🔒 Datos cifrados</h1>
 <p>Los datos de este equipo están cifrados y no se encontró su clave (por ejemplo, después de reinstalar Windows o de usar otro usuario). Pegá la <b>clave de recuperación</b> que guardaste al activar el cifrado.</p>
 <input id="k" placeholder="Clave de recuperación (64 caracteres)" autofocus><button id="b">Recuperar datos</button><div id="m"></div></div>
 <script>document.getElementById('b').onclick=async()=>{const r=await sp.seg.importarClave(document.getElementById('k').value);if(!r.ok)document.getElementById('m').textContent=r.err};</script></body></html>
