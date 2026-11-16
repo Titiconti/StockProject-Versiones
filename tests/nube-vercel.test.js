@@ -3,12 +3,9 @@
 const assert = require('assert'), http = require('http'), zlib = require('zlib');
 const { crear } = require('../nube/servidor'), { redis } = require('../nube/almacen');
 (async () => {
-  // Redis simulado (la API REST de Upstash: comando como lista JSON).
-  const R = new Map(); let comandos = 0;
-  const pedir = async (u, o) => { comandos++; assert.strictEqual(o.headers.Authorization, 'Bearer tok'); const [c, ...a] = JSON.parse(o.body);
-    const r = c === 'GET' ? (R.has(a[0]) ? R.get(a[0]) : null) : c === 'MGET' ? a.map(k => R.has(k) ? R.get(k) : null) : c === 'SET' ? (R.set(a[0], a[1]), 'OK') : c === 'DEL' ? +R.delete(a[0]) : null;
-    return { ok: true, json: async () => ({ result: r }) }; };
-  const ADMIN = 'a'.repeat(40); let reloj = Date.now();
+  // Redis simulado (la API REST de Upstash), con INCR, PEXPIRE y SET NX/PX.
+  let reloj = Date.now(); const SIM = require('./redis-simulado')({ reloj: () => reloj }), R = SIM.R, pedir = SIM.pedir;
+  const ADMIN = 'a'.repeat(40);
   const copia = () => crear({ almacen: redis({ url: 'https://redis.prueba', token: 'tok', pedir }), recargar: true, adminToken: ADMIN, ahora: () => reloj, frescuraMs: 420000 });
   // Dos copias del servidor que no comparten memoria (como dos funciones distintas): se alternan en cada pedido.
   const A = copia(), B = copia(); let turno = 0;
@@ -53,5 +50,5 @@ const { crear } = require('../nube/servidor'), { redis } = require('../nube/alma
   const s2 = http.createServer(h); await new Promise(x => s2.listen(0, '127.0.0.1', x));
   const sal = await (await fetch('http://127.0.0.1:' + s2.address().port + '/api/index?__ruta=/salud')).json(); assert.deepStrictEqual(sal, { ok: true }, 'la función reenvía a la ruta original');
   s2.close(); s2.closeAllConnections(); delete process.env.ADMIN_TOKEN; delete process.env.KV_REST_API_URL; delete process.env.KV_REST_API_TOKEN;
-  assert(comandos > 10); console.log('NUBE_VERCEL_OK'); process.exit(0);
+  assert(SIM.comandos > 10); for (const c of ['INCR', 'PEXPIRE', 'SET', 'MGET']) assert(SIM.usados.has(c), 'se usó ' + c); console.log('NUBE_VERCEL_OK'); process.exit(0);
 })().catch(e => { console.log('FALLO', e.stack || e.message); process.exit(1); });
