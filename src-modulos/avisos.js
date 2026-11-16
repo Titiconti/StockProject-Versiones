@@ -6,7 +6,7 @@
 const AV={K:'sp_prefs_equipo'};
 AV.prefs=()=>{let p={};try{p=JSON.parse(localStorage.getItem(AV.K)||'{}')||{}}catch(e){}return Object.assign({avisos:{vencidos:true,porvencer:true,stock:true,reponer:true,caja:true},atajos:true,anim:true,visto:{},tutorial:false},p)};
 AV.set=f=>{const p=AV.prefs();f(p);try{localStorage.setItem(AV.K,JSON.stringify(p))}catch(e){}AV.aplicar();return p};
-AV.TIPOS={vencidos:'Productos vencidos',porvencer:'Próximos vencimientos (7 días)',stock:'Stock bajo',reponer:'Reposición urgente',caja:'Diferencias de caja'};
+AV.TIPOS={vencidos:'Productos vencidos',porvencer:'Próximos vencimientos (7 días)',stock:'Stock bajo',reponer:'Reposición urgente',caja:'Cajas: diferencias y cajas sin cerrar'};
 AV.lista=()=>{const P=AV.prefs(),o=[],hoy=T(),en7=plus(7);
   let nv=0,pv=[];db.prods.forEach(p=>p.lots.forEach(l=>{if(!l.exp||!l.qty)return;if(l.exp<hoy)nv+=1;else if(l.exp<=en7)pv.push(p.name)}));
   if(nv)o.push({t:'vencidos',k:'v'+nv,cls:'out',txt:`${nv} ${nv===1?'lote vencido':'lotes vencidos'} en el inventario. No se venden: dalos de baja con motivo Vencimiento.`,ir:'e'});
@@ -14,6 +14,7 @@ AV.lista=()=>{const P=AV.prefs(),o=[],hoy=T(),en7=plus(7);
   const sb=db.prods.filter(p=>p.min&&avail(p)<=p.min);if(sb.length)o.push({t:'stock',k:'s'+sb.length,cls:'low',txt:`${sb.length} ${sb.length===1?'producto':'productos'} con stock bajo: ${sb.slice(0,3).map(p=>p.name).join(', ')}${sb.length>3?'…':''}.`,ir:'i'});
   if(typeof RP!=='undefined'){const n=RP.altas();if(n)o.push({t:'reponer',k:'r'+n,cls:'out',txt:`${n} ${n===1?'producto necesita':'productos necesitan'} reposición con prioridad alta.`,ir:'o'})}
   const cj=(db.cajas||[]).filter(c=>c.cierre&&Math.abs(c.dif)>=0.005&&UT.dk(c.cierre)>=UT.add(UT.hoy(),-7));cj.forEach(c=>o.push({t:'caja',k:'c'+c.id,cls:c.dif<0?'out':'low',txt:`Caja de ${c.user} (${new Date(c.cierre).toLocaleDateString('es-AR')}) cerró con ${c.dif<0?'faltante':'sobrante'} de ${fmt(Math.abs(c.dif))}.`,ir:'k'}));
+  (db.cajas||[]).filter(c=>typeof CJ!=='undefined'&&CJ.vieja(c)).forEach(c=>o.push({t:'caja',k:'a'+c.id,cls:'out',txt:`La caja de ${c.user} quedó abierta desde el ${new Date(c.abre).toLocaleDateString('es-AR')}. Cerrala contando el efectivo.`,ir:'k'}));
   const K=db.cfg.caps||{};   // alertas que el negocio desactivó en la entrevista por rubro
   return o.filter(x=>P.avisos[x.t]!==false&&!(x.t==='stock'&&K.alertaStock===false)&&!(x.t==='porvencer'&&K.alertaVto===false)).map(x=>({...x,visto:P.visto[x.t]===x.k}))};
 // ---------- campana ----------
