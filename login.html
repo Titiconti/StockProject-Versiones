@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="es"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https:; object-src 'none'; base-uri 'none'; frame-src 'none'; form-action 'none'"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>StockProject</title>
 <style>
 :root{--bg:#F4F6FA;--card:#fff;--tx:#14213A;--mu:#5F6B7E;--bd:#E2E7F0;--ac:#2447F9;--bad:#D92D20;--ok:#0E9F6E}
@@ -28,6 +28,8 @@ body{font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;backgr
 <div id="m"></div></div>
 <script>
 const $=s=>document.querySelector(s),msg=(t,ok)=>{$('#m').textContent=t||'';$('#m').className=ok?'ok':''};
+// Si el programa usaba usuarios y falta su archivo, no se abre libre: se explica cómo seguir.
+try{const est=sp.auth.estado();if(est&&est.faltanUsuarios)msg('No se encontró el archivo de usuarios de este equipo. Por seguridad no se puede entrar: restaurá usuarios.json desde una copia o pedí ayuda a soporte.')}catch(e){}
 $('#f').onsubmit=async e=>{e.preventDefault();msg();const r=await sp.auth.login($('#u').value,$('#p').value);if(!r.ok){msg(r.err);$('#p').select()}};
 $('#olv').onclick=()=>{msg();$('#f').classList.add('hide');$('#r').classList.remove('hide');$('#ru').value=$('#u').value;$('#ru').focus()};
 $('#vol').onclick=()=>{msg();$('#r').classList.add('hide');$('#f').classList.remove('hide');$('#rq').classList.add('hide');$('#rb').textContent='Continuar'};

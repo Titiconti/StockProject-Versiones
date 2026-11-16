@@ -8,6 +8,12 @@ const defaults = () => { try { return JSON.parse(fs.readFileSync(path.join(__dir
 let usr, emp, upd, tok = null;                                   // usuarios y sesión de esta ventana (el token nunca llega a la interfaz)
 const quien = () => (usr && usr.habilitado() ? usr.sesion(tok) : null);
 const permite = (m, a) => !usr.habilitado() || usr.tiene(quien(), m, a);
+const esAdminSesion = () => !usr.habilitado() || !!(quien() && quien().rol === 'admin');   // el cifrado lo maneja solo un administrador
+const conSesion = () => !usr.habilitado() || !!quien();          // datos del equipo (rutas, empresas, panel): no se muestran antes de ingresar
+const autorizar = require('./permisos-datos');
+// Enlaces que el programa abre afuera (WhatsApp, correo, el panel y las novedades del proyecto). Nada más.
+const ENLACES = [/^mailto:/i, /^https:\/\/wa\.me\//i, /^https:\/\/api\.whatsapp\.com\//i, /^https:\/\/stockprojectapp\.vercel\.app(\/|$)/i, /^https:\/\/github\.com\/Titiconti\/(?!.*(\.\.|%2e))/i];
+const enlacePermitido = url => ENLACES.some(r => r.test(String(url || '')));
 let faltaClave = false;                               // datos cifrados y sin la clave de este equipo: se pide la clave de recuperación
 const pagina = () => path.join(__dirname, faltaClave ? 'clave.html' : usr.habilitado() && !quien() ? 'login.html' : 'index.html');
 
@@ -27,7 +33,7 @@ function crear() {
     if (r === 1) e.preventDefault();
   });
   // enlaces de WhatsApp, correo o pago: se abren en el programa predeterminado de Windows, nunca dentro de la app
-  win.webContents.setWindowOpenHandler(({ url }) => { if (/^(https?:|mailto:)/i.test(url)) shell.openExternal(url); return { action: 'deny' }; });
+  win.webContents.setWindowOpenHandler(({ url }) => { if (enlacePermitido(url)) shell.openExternal(url); return { action: 'deny' }; });
   // La ventana solo muestra las páginas del programa: no navega a sitios ni archivos externos, no incrusta webviews
   // y no concede permisos del navegador (cámara, micrófono, ubicación, notificaciones web, etc.).
   const propia = url => { try { const u = new URL(url); return u.protocol === 'file:' && path.normalize(decodeURIComponent(u.pathname.replace(/^\/([A-Za-z]:)/, '$1'))).toLowerCase().startsWith(path.normalize(__dirname).toLowerCase()); } catch (e) { return false; } };
@@ -49,24 +55,30 @@ app.whenReady().then(() => {
   const guardarClave = k => fs.writeFileSync(keyFile, safeStorage.encryptString(k.toString('hex')));
   const leerClave = () => { try { return Buffer.from(safeStorage.decryptString(fs.readFileSync(keyFile)), 'hex'); } catch (x) { return null; } };
   if (cfgS().cifrado) { const k = safeStorage.isEncryptionAvailable() ? leerClave() : null; if (k && k.length === 32) emp.setKey(k); else faltaClave = true; }
-  usr = require('./usuarios')({ usersFile: path.join(ud, 'usuarios.json'), auditFile: path.join(ud, 'auditoria.jsonl') });
+  // Marca de "usuarios activados" en config.json y dentro de los datos (cifrados si corresponde): si después falta
+  // usuarios.json, el programa no queda abierto para todos (E4).
+  let marca = !!cfgS().usuariosActivos || (!faltaClave && principal.marcaUsuarios());
+  usr = require('./usuarios')({ usersFile: path.join(ud, 'usuarios.json'), auditFile: path.join(ud, 'auditoria.jsonl'), marcado: () => marca });
+  const marcar = () => { if (!usr.habilitado() || usr.faltanUsuarios()) return; if (!cfgS().usuariosActivos) principal.setConfig({ usuariosActivos: true }); if (!faltaClave) principal.marcarUsuarios(); marca = true; };
+  if (usr.habilitado() && !usr.faltanUsuarios()) marcar();
   ipcMain.on('load', e => { try { e.returnValue = usr.habilitado() && !quien() ? '' : store.load() } catch (x) { e.returnValue = '' } });
   ipcMain.on('auth:estado', e => { e.returnValue = usr.llamar(tok, 'estado'); });
   ipcMain.handle('auth:call', (e, nombre, args) => {
     if (!usr.NOMBRES.includes(nombre)) return { ok: false };
     const primero = nombre === 'crear' && !usr.habilitado();
     const r = usr.llamar(tok, nombre, Array.isArray(args) ? args : []);
-    if (primero && r.ok) { const l = usr.login(args[0].user, args[0].clave, 'Escritorio'); if (l.ok) tok = l.token; }
+    if (primero && r.ok) { marcar(); const l = usr.login(args[0].user, args[0].clave, 'Escritorio'); if (l.ok) tok = l.token; }
     return r;
   });
   ipcMain.handle('auth:login', (e, u, c) => { const r = usr.login(u, c, 'Escritorio'); if (!r.ok) return r; tok = r.token; win.loadFile(pagina()); return { ok: true }; });
   ipcMain.handle('auth:logout', () => { usr.logout(tok); tok = null; win.loadFile(pagina()); return { ok: true }; });
   ipcMain.handle('auth:ir', () => { win.loadFile(pagina()); return true; });
   if (!faltaClave) try { store.load(); } catch (x) {}   // inicializa la versión de los datos
-  ipcMain.handle('save', (e, s, base) => { try { if (usr.habilitado()) { const q = quien(); if (!q) return { ok: false, auth: true, err: 'La sesión venció: volvé a ingresar' }; if (!usr.puedeEscribir(q)) return { ok: false, err: 'Tu usuario es de solo consulta' }; } return store.put(s, base) } catch (x) { return { ok: false, err: String((x && x.message) || x) } } });
+  ipcMain.handle('save', (e, s, base) => { try { if (usr.habilitado()) { const q = quien(); if (!q) return { ok: false, auth: true, err: 'La sesión venció: volvé a ingresar' }; if (!usr.puedeEscribir(q)) return { ok: false, err: 'Tu usuario es de solo consulta' }; return store.put(s, base, (prev, o) => autorizar(prev, o, (m, a) => usr.tiene(q, m, a))); } return store.put(s, base) } catch (x) { return { ok: false, err: String((x && x.message) || x) } } });
   ipcMain.on('version', e => { e.returnValue = store.rev(); });
   ipcMain.on('defaults', e => { e.returnValue = defaults() });
-  ipcMain.handle('b:info', () => store.info());
+  const sinInfo = { dir: '', last: null, warn: '' };
+  ipcMain.handle('b:info', () => conSesion() ? store.info() : sinInfo);
   ipcMain.handle('b:now', () => { if (!permite('respaldo', 'crear')) return store.info(); usr.audit(quien(), 'respaldo.crear'); return store.backup(); });
   ipcMain.handle('b:choose', async () => {
     if (!permite('respaldo', 'editar')) return store.info();
@@ -122,7 +134,7 @@ app.whenReady().then(() => {
   });
   // Empresas y tipos de cambio
   const sinPermiso = { ok: false, err: 'Solo un administrador puede cambiar esto' };
-  ipcMain.handle('emp:listar', () => emp.listar());
+  ipcMain.handle('emp:listar', () => conSesion() ? emp.listar() : { activa: '', lista: [] });
   ipcMain.handle('emp:crear', (e, n) => { if (!permite('configuracion', 'editar')) return sinPermiso; const r = emp.crear(n); if (r.ok) usr.audit(quien(), 'empresa.crear', n); return r; });
   ipcMain.handle('emp:renombrar', (e, id, n) => permite('configuracion', 'editar') ? emp.renombrar(id, n) : sinPermiso);
   ipcMain.handle('emp:cambiar', (e, id) => {
@@ -133,6 +145,7 @@ app.whenReady().then(() => {
   ipcMain.handle('emp:consolidado', (e, o) => permite('reporte', 'ver') && permite('configuracion', 'ver') ? emp.consolidado({ desde: String(o.desde), hasta: String(o.hasta), base: String(o.base), estado: o.estado || {} }) : null);
   ipcMain.handle('fx:actualizar', async (e, base) => permite('configuracion', 'editar') ? require('./monedas').actualizar((...a) => fetch(...a), base) : sinPermiso);
   ipcMain.handle('sys:metricas', () => {
+    if (!conSesion()) return null;
     const m = app.getAppMetrics(), os = require('os'), inf = store.info();
     return { cpu: Math.round(m.reduce((a, x) => a + ((x.cpu && x.cpu.percentCPU) || 0), 0) * 10) / 10, memMB: Math.round(m.reduce((a, x) => a + ((x.memory && x.memory.workingSetSize) || 0), 0) / 1024), libreMB: Math.round(os.freemem() / 1048576), archivoMB: Math.round(store.tam() / 1048576 * 100) / 100, iniciada: Math.round(process.uptime()), ultimoRespaldo: inf.last, rev: store.rev() };
   });
@@ -142,30 +155,33 @@ app.whenReady().then(() => {
     alEstado: e => { if (win && !win.isDestroyed()) win.webContents.send('upd:estado', e); },
     antesDeInstalar: () => { try { store.backup(); } catch (x) {} usr.audit(quien(), 'actualizacion.instalar', ''); },
     activo: () => principal.getConfig().actualizar !== false });
+  const sinUpd = { fase: 'inicial', version: '', nueva: null, pct: 0, msg: '', ultima: null, auto: false };
   const autoOn = () => principal.getConfig().actualizar !== false;
-  ipcMain.handle('upd:estado', () => ({ ...upd.estado(), auto: autoOn() }));
-  ipcMain.handle('upd:buscar', async () => ({ ...(await upd.buscar()), auto: autoOn() }));
+  ipcMain.handle('upd:estado', () => conSesion() ? { ...upd.estado(), auto: autoOn() } : sinUpd);
+  ipcMain.handle('upd:buscar', async () => conSesion() ? { ...(await upd.buscar()), auto: autoOn() } : sinUpd);
   ipcMain.handle('upd:instalar', () => permite('configuracion', 'editar') ? upd.instalar() : sinPermiso);
   ipcMain.handle('upd:auto', (e, v) => { if (!permite('configuracion', 'editar')) return sinPermiso; principal.setConfig({ actualizar: !!v }); return { ok: true }; });
   upd.iniciar();
   ipcMain.handle('seg:estado', () => ({ disponible: safeStorage.isEncryptionAvailable(), activo: !!cfgS().cifrado, falta: faltaClave, cifrado: store.cifrado() }));
   ipcMain.handle('seg:activar', () => {
-    if (!permite('usuarios', 'editar')) return { ok: false, err: 'Solo un administrador puede cambiar el cifrado' };
+    if (!esAdminSesion()) return { ok: false, err: 'Solo un administrador puede cambiar el cifrado' };
     if (!safeStorage.isEncryptionAvailable()) return { ok: false, err: 'Este equipo no permite proteger la clave (Windows no la ofrece).' };
     const k = crypto.randomBytes(32); guardarClave(k); principal.setConfig({ cifrado: true }); emp.setKey(k); store.backup();
     usr.audit(quien(), 'seguridad.cifrado_on'); return { ok: true, clave: k.toString('hex') };
   });
   ipcMain.handle('seg:desactivar', () => {
-    if (!permite('usuarios', 'editar')) return { ok: false, err: 'Solo un administrador puede cambiar el cifrado' };
+    if (!esAdminSesion()) return { ok: false, err: 'Solo un administrador puede cambiar el cifrado' };
     emp.setKey(null); principal.setConfig({ cifrado: false }); try { fs.unlinkSync(keyFile); } catch (x) {} store.backup();
     usr.audit(quien(), 'seguridad.cifrado_off'); return { ok: true };
   });
+  // Solo sirve en la pantalla de recuperación (falta la clave de este equipo). La clave se prueba sin reescribir los datos (E1).
   ipcMain.handle('seg:importarClave', (e, hex) => {
+    if (!faltaClave) return { ok: false, err: 'Este equipo ya tiene la clave de los datos.' };
     const h = String(hex || '').replace(/[^0-9a-f]/gi, '');
     if (h.length !== 64) return { ok: false, err: 'La clave de recuperación tiene 64 caracteres (letras de la A a la F y números).' };
+    if (!store.probarClave(Buffer.from(h, 'hex'))) return { ok: false, err: 'Esa clave no abre los datos.' };
     emp.setKey(Buffer.from(h, 'hex'));
-    if (!store.snapshot()) { emp.setKey(null); return { ok: false, err: 'Esa clave no abre los datos.' }; }
-    guardarClave(Buffer.from(h, 'hex')); faltaClave = false; store.load(); usr.audit(null, 'seguridad.clave_recuperada'); win.loadFile(pagina()); return { ok: true };
+    guardarClave(Buffer.from(h, 'hex')); faltaClave = false; store.load(); if (principal.marcaUsuarios()) marca = true; usr.audit(null, 'seguridad.clave_recuperada'); win.loadFile(pagina()); return { ok: true };
   });
   ipcMain.handle('seg:copiaProtegida', async (e, pw) => {
     if (!permite('respaldo', 'ver')) return { ok: false, err: 'Sin permiso' };
@@ -186,7 +202,7 @@ app.whenReady().then(() => {
   const nube = require('./nube')({ leer: () => store.snapshot(), getCfg: () => principal.getConfig(), setCfg: p => principal.setConfig(p), servidor: defaults().nube || '',
     proteger: t => safeStorage.isEncryptionAvailable() ? 'ss:' + safeStorage.encryptString(t).toString('base64') : t,
     desproteger: t => String(t).startsWith('ss:') ? safeStorage.decryptString(Buffer.from(String(t).slice(3), 'base64')) : t });
-  ipcMain.handle('nube:estado', () => nube.estado());
+  ipcMain.handle('nube:estado', () => conSesion() ? nube.estado() : { activo: false });
   ipcMain.handle('nube:call', async (e, n, a) => {
     if (!permite('acceso_remoto', 'editar')) return { ok: false, err: 'Tu usuario no tiene permiso para cambiar el acceso remoto' };
     const f = { configurar: nube.configurar, activar: nube.activar, quitar: nube.quitar, registrar: a => a && typeof a === 'object' ? nube.registrar(a.nombre, a.clave) : nube.registrar(a), cambiarClave: nube.cambiarClave, clave: async () => ({ ok: true, clave: nube.clave() }), ahora: () => nube.sincronizar(true) }[n]; if (!f) return { ok: false };

@@ -26,7 +26,9 @@ const nuevoSalt = () => crypto.randomBytes(16).toString('hex');
 const igual = (a, b) => { const x = Buffer.from(String(a), 'hex'), y = Buffer.from(String(b), 'hex'); return x.length === y.length && crypto.timingSafeEqual(x, y); };
 const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
 
-module.exports = function ({ usersFile, auditFile, maxSesiones = 3, inactividad = 12 * 36e5, bloqueoMs = 5 * 6e4, maxIntentos = 5, ahora = () => Date.now() }) {
+module.exports = function ({ usersFile, auditFile, maxSesiones = 3, inactividad = 12 * 36e5, bloqueoMs = 5 * 6e4, maxIntentos = 5, maxRecuperarDia = 10, ahora = () => Date.now(), marcado = () => false }) {
+  // marcado(): el programa ya usaba inicio de sesión (marca guardada en la configuración y en los datos). Si es así y
+  // usuarios.json falta o no se puede leer, no se abre libre: se sigue pidiendo ingresar y no se puede crear un "primer" administrador.
   const rd = () => { try { return JSON.parse(fs.readFileSync(usersFile, 'utf8')) } catch (e) { return { users: [], uid: 1 } } };
   const wr = d => { fs.mkdirSync(path.dirname(usersFile), { recursive: true }); const t = usersFile + '.tmp'; fs.writeFileSync(t, JSON.stringify(d)); fs.renameSync(t, usersFile); };
   const sesiones = new Map();           // token -> { uid, device, desde, visto }
@@ -34,7 +36,13 @@ module.exports = function ({ usersFile, auditFile, maxSesiones = 3, inactividad 
 
   const publico = u => u && ({ id: u.id, user: u.user, nombre: u.nombre, rol: u.rol, activo: u.activo, prefs: u.prefs || {}, pregunta: u.pregunta || '', extra: u.extra || [], deny: u.deny || [], creado: u.creado, ultimoAcceso: u.ultimoAcceso || null });
   const find = (d, user) => d.users.find(u => norm(u.user) === norm(user));
-  const habilitado = () => rd().users.length > 0;
+  const habilitado = () => rd().users.length > 0 || !!marcado();
+  const faltanUsuarios = () => !rd().users.length && !!marcado();
+  // Jerarquía de roles: un no administrador solo maneja usuarios de rango menor al suyo y asigna como máximo "empleado".
+  const RANGO = { consulta: 0, empleado: 1, gerente: 2, admin: 3 }, MAX_SIN_ADMIN = 1;
+  const esAdmin = u => !!(u && u.activo && u.rol === 'admin');
+  const PERMISO_OK = k => typeof k === 'string' && MODULOS.includes(k.split('.')[0]) && ACCIONES.includes(k.split('.')[1]) && k.split('.').length === 2;
+  const mismos = (a, b) => JSON.stringify([...(a || [])].sort()) === JSON.stringify([...(b || [])].sort());
 
   // ---- auditoría (archivo de texto, un registro por línea) ----
   function audit(quien, accion, detalle) {
@@ -78,10 +86,16 @@ module.exports = function ({ usersFile, auditFile, maxSesiones = 3, inactividad 
   // ---- alta y edición ----
   function crear(quien, { user, nombre, rol, clave, extra, deny }) {
     const d = rd();
+    if (faltanUsuarios()) return { ok: false, err: 'Falta el archivo de usuarios: restauralo antes de seguir' };
     if (d.users.length && !tiene(quien, 'usuarios', 'crear')) return { ok: false, err: 'Sin permiso para crear usuarios' };
     if (!ROLES[rol]) return { ok: false, err: 'Rol inválido' };
     let e = validarUser(d, user) || validarClave(clave); if (e) return { ok: false, err: e };
     if (!d.users.length && rol !== 'admin') return { ok: false, err: 'El primer usuario debe ser administrador' };
+    // Solo un administrador crea administradores o da permisos extra (E3).
+    if (d.users.length && rol === 'admin' && !esAdmin(quien)) return { ok: false, err: 'Solo un administrador puede crear administradores' };
+    if (d.users.length && !esAdmin(quien) && RANGO[rol] > MAX_SIN_ADMIN) return { ok: false, err: 'Solo un administrador puede crear usuarios con ese rol' };
+    if ((extra || []).length && d.users.length && !esAdmin(quien)) return { ok: false, err: 'Solo un administrador puede dar permisos extra' };
+    if (![...(extra || []), ...(deny || [])].every(PERMISO_OK)) return { ok: false, err: 'Permiso inválido' };
     const salt = nuevoSalt(), u = { id: d.uid++, user: String(user).trim(), nombre: String(nombre || user).trim(), rol, salt, hash: hash(clave, salt), activo: true, extra: extra || [], deny: deny || [], prefs: {}, creado: new Date(ahora()).toISOString() };
     d.users.push(u); wr(d);
     audit(quien || u, 'usuario.crear', u.user + ' (' + rol + ')');
@@ -96,6 +110,14 @@ module.exports = function ({ usersFile, auditFile, maxSesiones = 3, inactividad 
     const sera = { rol: patch.rol !== undefined ? patch.rol : u.rol, activo: patch.activo !== undefined ? !!patch.activo : u.activo };
     if (eraAdmin && !(sera.rol === 'admin' && sera.activo) && admins(d).length <= 1) return { ok: false, err: 'Tiene que quedar al menos un administrador activo' };
     if (u.rol !== 'admin' && patch.rol === 'admin' && quien.rol !== 'admin') return { ok: false, err: 'Solo un administrador puede crear administradores' };
+    if (!esAdmin(quien) && quien.id !== u.id && RANGO[u.rol] >= RANGO[quien.rol]) return { ok: false, err: 'No podés modificar a un usuario con un rol igual o mayor al tuyo' };
+    if (!esAdmin(quien) && patch.rol !== undefined && patch.rol !== u.rol && RANGO[patch.rol] > MAX_SIN_ADMIN) return { ok: false, err: 'Solo un administrador puede asignar ese rol' };
+    // Permisos extra: solo los da un administrador. Nadie amplía sus propios permisos (E3).
+    if (patch.extra !== undefined && !mismos(patch.extra, u.extra) && !esAdmin(quien)) return { ok: false, err: 'Solo un administrador puede dar permisos extra' };
+    if ([...(patch.extra || []), ...(patch.deny || [])].some(k => !PERMISO_OK(k))) return { ok: false, err: 'Permiso inválido' };
+    if (!esAdmin(quien) && quien.id === u.id) {
+      if ((patch.rol !== undefined && patch.rol !== u.rol) || (patch.deny !== undefined && (u.deny || []).some(k => !patch.deny.includes(k)))) return { ok: false, err: 'No podés ampliar tus propios permisos' };
+    }
     ['nombre', 'extra', 'deny'].forEach(k => { if (patch[k] !== undefined) u[k] = patch[k]; });
     u.rol = sera.rol; u.activo = sera.activo;
     if (patch.clave) { const e = validarClave(patch.clave); if (e) return { ok: false, err: e }; u.salt = nuevoSalt(); u.hash = hash(patch.clave, u.salt); }
@@ -164,16 +186,21 @@ module.exports = function ({ usersFile, auditFile, maxSesiones = 3, inactividad 
   }
   // Recuperación sin correo: pregunta de seguridad (con el mismo bloqueo por intentos que el inicio de sesión).
   function preguntaDe(user) { const u = find(rd(), user); return u && u.activo && u.pregunta ? u.pregunta : ''; }
+  // Los intentos de un usuario que existe se guardan en usuarios.json (sobreviven a cerrar el programa) y tienen tope diario (E6).
   function recuperar(user, respuesta, nueva) {
-    const d = rd(), u = find(d, user), k = 'rec:' + norm(user), it = intentos.get(k) || { n: 0, hasta: 0 };
+    const d = rd(), u = find(d, user), k = 'rec:' + norm(user), hoy = new Date(ahora()).toISOString().slice(0, 10);
+    const it = u ? { n: 0, hasta: 0, dia: hoy, hoy: 0, ...((d.rec || {})[u.id] || {}) } : (intentos.get(k) || { n: 0, hasta: 0, dia: hoy, hoy: 0 });
+    if (it.dia !== hoy) { it.dia = hoy; it.hoy = 0; }
     if (it.hasta > ahora()) return { ok: false, bloqueado: true, err: 'Demasiados intentos. Probá de nuevo en unos minutos.' };
+    if (it.hoy >= maxRecuperarDia) return { ok: false, bloqueado: true, err: 'Llegaste al máximo de intentos de hoy. Probá mañana o pedile a un administrador que te cambie la contraseña.' };
     if (!u || !u.activo || !u.rhash || !igual(hash(norm(respuesta), u.rsalt), u.rhash)) {
-      it.n++; if (it.n >= maxIntentos) { it.hasta = ahora() + bloqueoMs; it.n = 0; } intentos.set(k, it);
+      it.n++; it.hoy++; if (it.n >= maxIntentos) { it.hasta = ahora() + bloqueoMs; it.n = 0; }
+      if (u) { d.rec = { ...(d.rec || {}), [u.id]: it }; wr(d); } else intentos.set(k, it);
       audit(u || null, 'recuperar.fallido', u ? '' : String(user).slice(0, 40));
       return { ok: false, err: 'No se pudo verificar la respuesta' };
     }
     const e = validarClave(nueva); if (e) return { ok: false, err: e };
-    u.salt = nuevoSalt(); u.hash = hash(nueva, u.salt); wr(d); cerrarSesiones(u.id); intentos.delete(k); audit(u, 'recuperar.ok');
+    u.salt = nuevoSalt(); u.hash = hash(nueva, u.salt); if (d.rec) delete d.rec[u.id]; wr(d); cerrarSesiones(u.id); intentos.delete(k); audit(u, 'recuperar.ok');
     return { ok: true };
   }
   // Despachador común (escritorio y acceso remoto): cada pantalla llama por nombre; el permiso se resuelve acá, con la sesión.
@@ -181,7 +208,7 @@ module.exports = function ({ usersFile, auditFile, maxSesiones = 3, inactividad 
   function llamar(token, nombre, a = []) {
     const q = habilitado() ? sesion(token) : null;
     switch (nombre) {
-      case 'estado': return { habilitado: habilitado(), usuario: q ? publico(q) : null, permisos: q ? matriz(q) : null, roles: ROLES, modulos: MODULOS, acciones: ACCIONES, permisosRol: PERMISOS };
+      case 'estado': return { habilitado: habilitado(), faltanUsuarios: faltanUsuarios(), usuario: q ? publico(q) : null, permisos: q ? matriz(q) : null, roles: ROLES, modulos: MODULOS, acciones: ACCIONES, permisosRol: PERMISOS };
       case 'listar': return listar(q);
       case 'crear': return crear(q, a[0] || {});
       case 'editar': return editar(q, a[0], a[1] || {});
@@ -197,6 +224,6 @@ module.exports = function ({ usersFile, auditFile, maxSesiones = 3, inactividad 
     }
     return { ok: false, err: 'operación desconocida' };
   }
-  return { llamar, NOMBRES, habilitado, crear, editar, listar, login, logout, sesion, misSesiones, cerrarOtras, cambiarClave, setPregunta, setPrefs, preguntaDe, recuperar, tiene, matriz, puedeEscribir, audit, auditoria, publico, ROLES, MODULOS, ACCIONES, PERMISOS };
+  return { llamar, NOMBRES, habilitado, faltanUsuarios, crear, editar, listar, login, logout, sesion, misSesiones, cerrarOtras, cambiarClave, setPregunta, setPrefs, preguntaDe, recuperar, tiene, matriz, puedeEscribir, audit, auditoria, publico, ROLES, MODULOS, ACCIONES, PERMISOS };
 };
 module.exports.ACCIONES = ACCIONES; module.exports.MODULOS = MODULOS; module.exports.ROLES = ROLES; module.exports.PERMISOS = PERMISOS;

@@ -1,6 +1,7 @@
 // ===== Clientes avanzado: segmentos, valor de vida, riesgo de crédito, fidelización, historial y planes de pago =====
 const CL={};
-CL.fid=()=>{db.cfg.fidel=db.cfg.fidel||{on:false,pesosPorPunto:100,valorPunto:1,minCanje:100,niveles:[{n:'Bronce',pts:0,desc:0},{n:'Plata',pts:500,desc:3},{n:'Oro',pts:2000,desc:5}]};return db.cfg.fidel};
+// Devuelve la configuración del programa de puntos; si no existe, un valor por defecto que NO se guarda en db.cfg (si no, un empleado no podría guardar).
+CL.fid=()=>{return db.cfg.fidel||{on:false,pesosPorPunto:100,valorPunto:1,minCanje:100,niveles:[{n:'Bronce',pts:0,desc:0},{n:'Plata',pts:500,desc:3},{n:'Oro',pts:2000,desc:5}]}};
 CL.dias=(a,b)=>Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/864e5);
 // Una sola pasada por las ventas: compras, última compra, ganancia y actividad del último año por cliente.
 CL.mapa=()=>{const m=new Map(),hoy=UT.hoy(),l365=UT.add(hoy,-365);
@@ -80,6 +81,6 @@ $('#c_x').onclick=e=>{const b=e.target.closest('button');if(!b)return;const c=CL
 $('#cs_f').onchange=()=>{CL.seg=$('#cs_f').value;draw()};
 $('#cs_v').onclick=()=>UT.bajar('clientes.vcf',CL.vcf(db.clients),'text/vcard');
 $('#cs_x').onclick=()=>{const m=CL.mapa();UT.bajar('clientes-segmentos.csv',UT.csv([['Cliente','Teléfono','Segmento','Última compra','Compras','Ganancia','Valor de vida estimado','Puntaje de crédito','Riesgo','Deuda'],...db.clients.map(c=>{const p=CL.perfil(c,m);return[c.name,c.phone||'',p.seg,p.last||'',p.rv,UT.r2(p.gain),p.ltv,p.score,p.riesgo,debtOf(c.id)]})]),'text/csv');call('audit','cliente.exportar_segmentos')};
-$('#pf_g').onclick=()=>{if(!UT.chk('configuracion','editar')&&!UT.chk('clientes','editar'))return;const f=CL.fid();f.on=$('#pf_on').value==='1';f.pesosPorPunto=Math.max(1,UT.num($('#pf_p').value)||100);f.valorPunto=Math.max(0,UT.num($('#pf_v').value)||0);f.minCanje=Math.max(1,UT.num($('#pf_m').value)||100);save();toast('Programa guardado');draw()};
+$('#pf_g').onclick=()=>{if(!UT.chk('configuracion','editar')&&!UT.chk('clientes','editar'))return;const f=db.cfg.fidel=CL.fid();f.on=$('#pf_on').value==='1';f.pesosPorPunto=Math.max(1,UT.num($('#pf_p').value)||100);f.valorPunto=Math.max(0,UT.num($('#pf_v').value)||0);f.minCanje=Math.max(1,UT.num($('#pf_m').value)||100);save();toast('Programa guardado');draw()};
 GATE.push(['#c_x [data-pc]','clientes','editar']);
 GATE.push(['#c_x #cx_c','clientes','editar']);
