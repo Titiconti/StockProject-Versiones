@@ -1,15 +1,17 @@
-// Los botones "Pedir una demo" abren WhatsApp con un mensaje armado; sin número cargado, van al mail.
+// "Pedir una demo" abre WhatsApp con un mensaje armado (o el mail si no hay número); [data-mail] abre siempre el mail.
 const meta = n => (document.querySelector(`meta[name="${n}"]`)?.content || '').trim();
 const numero = meta('sp-whatsapp').replace(/\D/g, '');
 const mail = meta('sp-mail');
 const texto = 'Hola, quiero ver una demo de StockProject para mi comercio.';
-const destino = numero
-  ? `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`
-  : mail ? `mailto:${mail}?subject=${encodeURIComponent('Demo de StockProject')}&body=${encodeURIComponent(texto)}` : '';
+const aMail = mail ? `mailto:${mail}?subject=${encodeURIComponent('Demo de StockProject')}&body=${encodeURIComponent(texto)}` : '';
+const aWhatsapp = numero ? `https://wa.me/${numero}?text=${encodeURIComponent(texto)}` : aMail;
 
-if (destino) {
-  for (const a of document.querySelectorAll('[data-contacto]')) {
+const poner = (sel, destino, nueva) => {
+  if (!destino) return;
+  for (const a of document.querySelectorAll(sel)) {
     a.href = destino;
-    if (numero) { a.target = '_blank'; a.rel = 'noopener'; }
+    if (nueva) { a.target = '_blank'; a.rel = 'noopener'; }
   }
-}
+};
+poner('[data-contacto]', aWhatsapp, Boolean(numero));
+poner('[data-mail]', aMail, false);
