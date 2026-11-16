@@ -1,5 +1,9 @@
 # Novedades de StockProject
 
+## 5.6.2
+- **«Plata del negocio» ahora se llama «Resumen financiero».** Muestra lo mismo: lo que entró, la ganancia estimada, lo que te deben y lo que debés.
+- **El panel del celular pasa solo a su dirección definitiva** (https://stockprojectapp.vercel.app). No tenés que hacer nada: tu panel y tu clave siguen iguales.
+
 ## 5.6.1
 - **Nueva dirección del panel del celular:** https://stockprojectapp.vercel.app. Tu panel y tu clave siguen siendo los mismos.
 
