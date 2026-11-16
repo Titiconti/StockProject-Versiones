@@ -5,15 +5,15 @@ estadísticas de su negocio. Es de **solo lectura**: no existe ninguna ruta que 
 
 - Cada PC de comercio (StockProject de escritorio) **envía** por HTTPS saliente una "foto" con sus datos
   (`POST /ingesta`). El servidor nunca se conecta a las PCs: no hace falta abrir puertos en el comercio.
-- Cada comercio entra por su propia dirección: `https://<sub>.stockproject.qd.je`, con su clave.
+- Cada comercio entra por su propia dirección: `https://stockprojectapp.vercel.app/c/<comercio>`, con su clave.
 - Node 20 o superior, sin dependencias npm. Los datos se guardan en archivos (`DATA_DIR`) o en una base Redis por HTTPS (`almacen.js`).
 - Esta carpeta **no** forma parte del instalador de escritorio (no está en `build.files`).
 
 ## Opción recomendada: Vercel (gratis, sin tarjeta, sin dominio propio)
 
-Elegida por el dueño el 15/11/2026. Cada comercio entra por `https://<proyecto>.vercel.app/c/<comercio>`.
-**Estado: el código está probado en la PC con una base simulada (`tests/nube-vercel.test.js`); el despliegue real en
-Vercel todavía no se hizo ni se pudo probar.**
+Elegida por el dueño el 15/11/2026. **Dirección final: `https://stockprojectapp.vercel.app`** (cada comercio entra por
+`https://stockprojectapp.vercel.app/c/<comercio>`). Está desplegado y responde en `/salud`; el programa de escritorio la
+toma de `defaults.json` (`nube`).
 
 1. Entrá a https://vercel.com y creá la cuenta con tu usuario de GitHub (plan Hobby, no pide tarjeta).
 2. **Add New > Project** > importá `Titiconti/StockProject-Versiones`.
@@ -65,7 +65,7 @@ Límites a tener en cuenta:
 |---|---|---|
 | `PORT` | `8080` | Puerto donde escucha. |
 | `DATA_DIR` | `./datos-nube` | Carpeta de datos. |
-| `DOMAIN_BASE` | — | Dominio base, por ejemplo `stockproject.qd.je`. |
+| `DOMAIN_BASE` | — | Dominio base, por ejemplo `tudominio.com`. |
 | `ADMIN_TOKEN` | — | **Obligatorio.** Secreto de administración (24 caracteres o más). Sin él, el servidor no arranca. |
 | `CONFIAR_PROXY` | — | `1` cuando hay un proxy propio adelante (Caddy): usa su `X-Forwarded-For` para los límites por IP. El `docker-compose.yml` ya lo define. |
 
@@ -73,7 +73,7 @@ Límites a tener en cuenta:
 
 ```sh
 cd nube
-ADMIN_TOKEN=$(openssl rand -hex 32) DOMAIN_BASE=stockproject.qd.je node servidor.js
+ADMIN_TOKEN=$(openssl rand -hex 32) DOMAIN_BASE=tudominio.com node servidor.js
 ```
 
 Como en local el `Host` no es del dominio, el comercio se indica con el header `X-Comercio: <sub>`
@@ -85,7 +85,7 @@ Como en local el `Host` no es del dominio, el comercio se indica con el header `
 
 - Una VM `VM.Standard.A1.Flex` (ARM) con Ubuntu 22.04 o 24.04 y una IP pública **reservada** (para que no cambie).
 - Acceso por SSH con el usuario `ubuntu`.
-- Poder crear registros DNS del dominio `stockproject.qd.je`.
+- Poder crear registros DNS del dominio `tudominio.com`.
 
 ### 1. DNS
 
@@ -93,11 +93,11 @@ Apuntá a la IP pública de la VM:
 
 | Tipo | Nombre | Valor |
 |---|---|---|
-| A | `stockproject.qd.je` | IP de la VM |
-| A | `*.stockproject.qd.je` | IP de la VM |
+| A | `tudominio.com` | IP de la VM |
+| A | `*.tudominio.com` | IP de la VM |
 
 Si el proveedor de DNS no permite el comodín `*`, creá un registro A por cada comercio
-(`almacen-lola.stockproject.qd.je` → IP de la VM) antes de darlo de alta.
+(`almacen-lola.tudominio.com` → IP de la VM) antes de darlo de alta.
 
 ### 2. Abrir los puertos 80 y 443 (en los DOS lugares)
 
@@ -151,7 +151,7 @@ docker compose ps
 docker compose logs -f        # Ctrl+C para salir
 ```
 
-Probá: `curl https://stockproject.qd.je/salud` debe responder `{"ok":true}`. El primer pedido a cada dominio tarda
+Probá: `curl https://tudominio.com/salud` debe responder `{"ok":true}`. El primer pedido a cada dominio tarda
 unos segundos, porque en ese momento Caddy tramita el certificado.
 
 Para actualizar más adelante: `git pull && docker compose up -d --build`.
@@ -162,7 +162,7 @@ En todos los ejemplos, primero cargá el token en una variable (así no queda es
 
 ```sh
 read -rs ADMIN_TOKEN     # pegá el token y Enter
-BASE=https://stockproject.qd.je
+BASE=https://stockprojectapp.vercel.app
 ```
 
 ### Dar de alta un comercio
@@ -176,7 +176,7 @@ curl -sS -X POST "$BASE/admin/comercios" \
 Respuesta (se muestra **una sola vez**; anotala):
 
 ```json
-{"id":"store_001","sub":"almacen-lola","url":"https://almacen-lola.stockproject.qd.je","token":"spn_…","clave":"…"}
+{"id":"store_001","sub":"almacen-lola","url":"https://stockprojectapp.vercel.app/c/almacen-lola","token":"spn_…","clave":"…"}
 ```
 
 - `token`: token de instalación. Se carga en el StockProject de escritorio de ese comercio para que envíe sus datos.
