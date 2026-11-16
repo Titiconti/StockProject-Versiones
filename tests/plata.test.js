@@ -1,4 +1,4 @@
-// Plata del negocio (automática, sin cargar nada), retiros de caja con tipo de gasto, pago a proveedores y Reportes › Tendencias.
+// Resumen financiero (automática, sin cargar nada), retiros de caja con tipo de gasto, pago a proveedores y Reportes › Tendencias.
 const assert = require('assert'), { web } = require('./helpers');
 (async () => {
   const { w, $, click, tab, txt, f, db, errs } = web();
@@ -24,7 +24,7 @@ const assert = require('assert'), { web } = require('./helpers');
   assert(/No le debés nada/.test(txt('#pn_dl'))); assert.strictEqual(ev('CJ.calc(CJ.abierta()).esperado'), caja0 - 3000);
   // períodos
   click('#pn_p [data-pp="h"]'); assert(/Entró hoy/.test(txt('#pn_et'))); click('#pn_p [data-pp="m"]'); assert(/Entró este mes/.test(txt('#pn_et')));
-  // Finanzas completa es avanzada; Plata del negocio, no
+  // Finanzas completa es avanzada; Resumen financiero, no
   assert(/body\.simple nav button\[data-t="f"\]/.test($('#sicss').textContent)); assert(!/data-t="w"/.test($('#sicss').textContent));
   // ---- Reportes › Tendencias ----
   tab('r'); assert($('#r #a'), 'la analítica vive dentro de Reportes'); assert($('#a').classList.contains('hide'));

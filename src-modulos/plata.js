@@ -1,5 +1,5 @@
-// ===== Plata del negocio y Reportes › Tendencias =====
-// Plata del negocio: todo sale de ventas, cobros, caja y deudas; no hay que cargar nada. Los gastos son los retiros de caja
+// ===== Resumen financiero y Reportes › Tendencias =====
+// Resumen financiero: todo sale de ventas, cobros, caja y deudas; no hay que cargar nada. Los gastos son los retiros de caja
 // (con su tipo). Finanzas completa (libro mayor, gastos fijos, banco, sueldos) queda en Funciones avanzadas.
 // Tendencias: la analítica pasa a ser una pestaña de Reportes en lugar de una pantalla aparte.
 const PL={per:'s'};
@@ -18,9 +18,9 @@ $('main').insertAdjacentHTML('beforeend',`<section id="w" class="hide"><div clas
 <div class="card" style="margin:0;display:flex;flex-direction:column;gap:8px"><div class="row" style="padding:0;border:0"><span class="mu">Te deben clientes</span><b id="pn_td"></b></div><div class="row" style="padding:0;border:0"><span class="mu">Debés a proveedores</span><b id="pn_dp" style="color:var(--bad)"></b></div><div class="row" style="padding:0;border:0"><span class="mu">Efectivo en caja ahora</span><b id="pn_ca"></b></div></div></div>
 <div class="grid" style="grid-template-columns:minmax(0,1fr) 380px"><div class="card" style="margin:0"><div class="lh"><h3>Gastos pagados con la caja</h3><span class="mu" id="pn_gt"></span></div><div class="wrap"><table><tbody id="pn_gl"></tbody></table></div><p class="mu" style="margin:10px 0 0;font-size:13px">Se cargan desde la caja con «Ingreso / retiro», eligiendo el tipo de gasto.</p></div>
 <div class="card" style="margin:0"><h3>Le debés a</h3><div id="pn_dl"></div><p class="mu" style="margin:10px 0 0;font-size:13px">«Pagar» descuenta la deuda y, si es en efectivo, la registra como retiro de caja.</p></div></div></section>`);
-$('#masmenu').insertAdjacentHTML('afterbegin','<button data-t="w">Plata del negocio</button>');
+$('#masmenu').insertAdjacentHTML('afterbegin','<button data-t="w">Resumen financiero</button>');
 {const b=$('#masmenu button[data-t="w"]');b.onclick=()=>{$$('nav button').forEach(x=>x.classList.toggle('on',x===b));$$('nav button').map(x=>x.dataset.t).forEach(s=>$('#'+s)&&$('#'+s).classList.toggle('hide',s!=='w'));$('#masmenu').classList.add('hide');masRefresh();draw()}}
-MODT.w='finanzas';CF.NAVN.w='Plata del negocio';CF.HELP.w='Lo que entró por cada medio de pago, la ganancia estimada, lo que te deben, lo que debés a proveedores y los gastos pagados con la caja. Todo sale solo de tus ventas, cobros y caja.';
+MODT.w='finanzas';CF.NAVN.w='Resumen financiero';CF.HELP.w='Lo que entró por cada medio de pago, la ganancia estimada, lo que te deben, lo que debés a proveedores y los gastos pagados con la caja. Todo sale solo de tus ventas, cobros y caja.';
 {const r0=relevante;relevante=t=>t==='w'?true:r0(t)}
 PL.draw=()=>{if($('#w').classList.contains('hide'))return;const k=PL.calc(),N={h:'hoy',s:'esta semana',m:'este mes'}[PL.per];
   $('#pn_et').textContent='Entró '+N;$('#pn_e').textContent=fmt(k.entro);$('#pn_m').innerHTML=Object.entries(k.ent).filter(([m,v])=>v||m!=='Otros').map(([m,v])=>`<span>${m} ${fmt(v)}</span>`).join('');
