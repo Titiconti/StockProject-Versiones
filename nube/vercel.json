@@ -1,4 +1,8 @@
 {
+  "redirects": [
+    { "source": "/", "has": [{ "type": "host", "value": "stock-project-versiones.vercel.app" }], "destination": "https://stockprojectapp.vercel.app/", "permanent": true },
+    { "source": "/:ruta((?!ingesta$|registro$|clave-instalacion$).*)", "has": [{ "type": "host", "value": "stock-project-versiones.vercel.app" }], "destination": "https://stockprojectapp.vercel.app/:ruta", "permanent": true }
+  ],
   "rewrites": [{ "source": "/(.*)", "destination": "/api/index?__ruta=/$1" }],
   "functions": { "api/index.js": { "includeFiles": "{panel.html,servidor.js,almacen.js}", "maxDuration": 15 } }
 }
