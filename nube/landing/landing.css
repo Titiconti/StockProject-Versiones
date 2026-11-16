@@ -5,6 +5,9 @@
 .sp-logo .wm { font-family: "Space Grotesk", var(--font-display); letter-spacing: -.03em; font-weight: 400; }
 .sp-logo .wm b { font-weight: 700; }
 
+/* WhatsApp mark on the contact buttons: the button says where it goes */
+.ic-wa { width: 1.15em; height: 1.15em; flex: none; margin-right: .5em; vertical-align: -0.2em; }
+
 /* hero collage pieces: sized in % of the collage, text in container units */
 .ly-collage { container-type: inline-size; }
 .ly-collage .ly-piece { box-shadow: 0 1px 2px rgb(18 35 61 / .1), 0 22px 48px -22px rgb(18 35 61 / .45); border-radius: 2cqw; overflow: hidden; }
@@ -30,10 +33,8 @@
 .pc-tags { display: flex; flex-wrap: wrap; gap: 1cqw; }
 .pc-tags i { font-style: normal; border: 1px solid #d5dae3; border-radius: 99px; padding: .5cqw 1.6cqw; }
 .pc-tags i.on { background: #2447f9; border-color: #2447f9; color: #fff; }
-@media (max-width: 639px) { .pc-ticket, .pc-rubro, .pc-cash { display: none; } .pc-scan { top: 58% !important; width: 60% !important; } }
-
-/* the scene's screen: the real screenshot */
-.pb__screen img { width: 100%; height: 100%; object-fit: cover; object-position: 0 0; display: block; }
+/* a phone shows the screenshot and one small piece per set: the others would crowd the 342px collage */
+@media (max-width: 639px) { .ly-collage .pc-ticket, .ly-collage .pc-rubro, .ly-collage .pc-cash { display: none !important; } .ly-collage .pc-scan { top: 58% !important; width: 60% !important; } }
 
 /* the demo: the real Ventas screen drawn in HTML (app-frame recipe, one window across the wrap) */
 .d-app { margin-top: var(--s-7); display: grid; grid-template-rows: auto minmax(0, 1fr); background: #f4f6fa; border: 1px solid #d5dae3; border-radius: var(--r-lg); overflow: hidden; box-shadow: 0 30px 60px -40px rgb(18 35 61 / .45); color: #12233d; font-size: 15px; }
@@ -117,3 +118,6 @@ main > #caja:not(.is-live) { min-height: 200svh; }
   #caja { --h: 1; }
   main > #caja:not(.is-live) { min-height: 100svh; }
 }
+
+/* the WhatsApp number inside the closing line: underlined, no arrow */
+.tel { color: inherit; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }

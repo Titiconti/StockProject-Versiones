@@ -49,32 +49,27 @@
 <link rel="modulepreload" href="landing/assets/moments/moments.js">
 <link rel="modulepreload" href="landing/assets/moments/lib.js">
 <link rel="modulepreload" href="landing/assets/moments/pinned-chapters/moment.js">
-<link rel="modulepreload" href="landing/assets/moments/counter-rolls/moment.js">
-<script>document.documentElement.classList.add('sc-js');setTimeout(()=>document.documentElement.classList.add('sc-safe'),2500)</script>
-<link rel="stylesheet" href="landing/assets/scenes/scenes.css">
-<link rel="stylesheet" href="landing/assets/scenes/powers-of-ten-pullback/scene.css">
 </head>
 <body>
 <!-- type: software (site-kind software)
      deal: hero triptych, nav centre (nav-cards dealt; no photographs for its cards), close type, footer statement,
      rhythm surface-pairs, buttons tonal, mark: the client's own logo (stack dealt), ground sky
      palette: the client's own colours (start.mjs brand), type chivo; the wordmark keeps the brand face
-     scene: powers-of-ten-pullback (#pantalla)
-     moments: pinned-chapters (#caja), counter-rolls (#celular) -->
+     moments: pinned-chapters (#caja); the scene and the count were removed after the impeccable critique (calmer page) -->
 
 <header class="nav nav--centre">
   <div class="wrap nav__bar">
     <a class="skip-link" href="#top">Ir al contenido</a>
     <a class="nav__logo sp-logo" href="#top" aria-label="StockProject, inicio"><svg viewBox="0 0 64 64" width="28" height="28" aria-hidden="true"><path d="M12 21.5 32 33V56L12 44.5Z" fill="#2447F9"/><path d="M52 21.5 32 33V56L52 44.5Z" fill="#6E8BFF"/><path d="M32 10 52 21.5 32 33 12 21.5Z" fill="#0E9F6E"/><path d="M22 15.75 42 27.25V38" fill="none" stroke="#fff" stroke-width="4" stroke-linejoin="round"/></svg><span class="wm"><b>Stock</b>Project</span></a>
     <nav class="nav__links" aria-label="Principal">
-      <div class="nav__item"><a class="nav__link" href="#demo">Demo</a></div>
+      <div class="nav__item"><a class="nav__link" href="#demo">Probala</a></div>
       <div class="nav__item"><a class="nav__link" href="#funciones">Funciones</a></div>
       <div class="nav__item"><a class="nav__link" href="#caja">Caja</a></div>
       <div class="nav__item"><a class="nav__link" href="#celular">Celular</a></div>
       <div class="nav__item"><a class="nav__link" href="#preguntas">Preguntas</a></div>
     </nav>
     <div class="nav__actions">
-      <a class="btn btn--primary" href="#contact" data-contacto>Pedir una demo</a>
+      <a class="btn btn--primary" href="#contact" data-contacto aria-label="Pedir demo por WhatsApp"><svg class="ic-wa" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3a.4.4 0 0 0 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.1 5.1 0 0 0 1.1 2.7 11.7 11.7 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3Z"/></svg>Pedir demo</a>
     </div>
     <button class="nav__toggle" type="button" aria-expanded="false" aria-label="Menú">
       <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M2 5h14M2 13h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
@@ -87,7 +82,7 @@
     <div class="wrap"><div class="hero-text grid hero__grid">
       <div class="span-3">
         <h1 id="hero-h">Ventas y stock para tu comercio</h1>
-        <p class="hero__lead">Cobrás con el escáner, cerrás la caja por turno y mirás el negocio desde el celular. Programa para Windows, versión 5.6.1.</p>
+        <p class="hero__lead">Cobrás con el escáner, cerrás la caja por turno y mirás el negocio desde el celular. Programa para Windows, instalado en tu local de Rosario y alrededores.</p>
       </div>
       <div class="ly-collage span-6 start-4" role="img" aria-label="Pantallas de StockProject: una venta con su vuelto, avisos de vencimiento, el pedido al proveedor y el panel del celular">
         <div class="ly-collage__set is-on">
@@ -147,22 +142,10 @@
           </div>
         </div>
       </div>
-      <div class="span-3 start-10 hero__cta"><a class="btn btn--primary" href="#contact" data-contacto>Pedir una demo</a></div>
+      <div class="span-3 start-10 hero__cta"><a class="btn btn--primary" href="#contact" data-contacto aria-label="Pedir demo por WhatsApp"><svg class="ic-wa" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3a.4.4 0 0 0 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.1 5.1 0 0 0 1.1 2.7 11.7 11.7 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3Z"/></svg>Pedir demo</a></div>
     </div></div>
   </section>
 
-  <section class="sc" id="pantalla" data-big-scene="powers-of-ten-pullback" data-big-scene-opts='{"hold":1}' style="--h: 1" aria-labelledby="pb-h">
-    <div class="sc__stage">
-      <div class="pb__ground" aria-hidden="true"></div>
-      <div class="pb__copy">
-        <p class="t-label">Pantalla de ventas</p>
-        <h2 id="pb-h">Cobrás en segundos con el escáner</h2>
-        <p>Leés el código y el producto entra a la venta. Ponés cuánto te dieron y el vuelto aparece solo. Con F8 cobrás sin tocar el mouse.</p>
-        <div class="btn-row"><a class="btn btn--secondary" href="#demo">Probar la demo</a></div>
-      </div>
-      <div class="pb__device"><div class="pb__screen"><img src="landing/media/venta.webp" alt="La pantalla Ventas de StockProject con tres productos en la venta, el total y el vuelto" width="1600" height="1000" loading="lazy"></div></div>
-    </div>
-  </section>
 
   <section class="section" id="demo" aria-labelledby="demo-h">
     <div class="wrap">
@@ -263,7 +246,7 @@
         <div class="span-5 stack-6">
           <h2 id="cel-h">El negocio en tu celular</h2>
           <p class="t-lead">La PC manda una foto del día cada 30 segundos. Desde el celular ves ventas, caja y avisos, sin poder tocar nada.</p>
-          <div class="cel-figs" data-moment="counter-rolls">
+          <div class="cel-figs">
             <div><p class="t-stat">30 s</p><p class="t-small muted">entre cada foto del día</p></div>
             <div><p class="t-stat">16</p><p class="t-small muted">rubros con su encuesta inicial</p></div>
           </div>
@@ -296,10 +279,10 @@
       </div>
       <div class="faq span-7 start-6">
         <div class="faq__item"><h3>¿Necesito internet para vender?</h3><p>No. Ventas, caja, stock, clientes y reportes funcionan sin conexión, porque los datos están en la PC. Internet solo hace falta para el panel del celular y las actualizaciones.</p></div>
-        <div class="faq__item"><h3>¿En qué computadora anda?</h3><p>En una PC con Windows 10 u 11 de 64 bits. Se instala con un solo archivo y se actualiza sola cuando sale una versión nueva.</p></div>
-        <div class="faq__item"><h3>¿Sirve mi lector de código de barras?</h3><p>Sí, cualquier lector USB que funcione como teclado. Escaneás en Ventas o al recibir mercadería y el producto se agrega solo.</p></div>
+        <div class="faq__item"><h3>¿Qué necesito en la PC?</h3><p>Windows 10 u 11 de 64 bits. Un lector de códigos USB que funcione como teclado anda en Ventas y en Mercadería.</p></div>
+        <div class="faq__item"><h3>¿Me lo instalan?</h3><p>Sí. Tiziano va a tu local en Rosario y alrededores, lo instala y te muestra cómo usarlo.</p></div>
+        <div class="faq__item"><h3>¿Y si algo falla?</h3><p>Escribile por WhatsApp. Tus datos tienen respaldos automáticos y el programa se actualiza solo.</p></div>
         <div class="faq__item"><h3>¿Cuánto sale?</h3><p>Te lo contamos en la demo, según tu comercio y cuántas cajas usás.</p></div>
-        <div class="faq__item"><h3>¿Dónde quedan mis datos?</h3><p>En tu PC, con respaldos automáticos y cifrado opcional. El panel del celular solo recibe un resumen y no puede cambiar nada.</p></div>
       </div>
     </div>
   </section>
@@ -309,10 +292,10 @@
   <div class="wrap">
     <div class="closing__cta close--type">
       <div class="section-head">
-        <h2 id="close-h">Pedí una demo para tu comercio</h2>
-        <p>Te mostramos StockProject con productos de tu rubro. Instalamos en Rosario y alrededores.</p>
+        <h2 id="close-h">Te lo instala Tiziano, en Rosario y alrededores</h2>
+        <p>Escribile por WhatsApp al <a class="tel" href="#contact" data-contacto>341 203-1359</a>. Va a tu local, instala StockProject en tu PC y te muestra cómo usarlo con tus productos.</p>
       </div>
-      <a class="btn btn--primary btn--xl btn--wide" href="#contact" data-contacto>Pedir una demo<svg class="m-arrow" viewBox="0 0 12 12" aria-hidden="true"><path class="m-arrow__stem" d="M1 6h8"/><path class="m-arrow__head" d="M4.5 2.5 8 6l-3.5 3.5"/></svg></a>
+      <a class="btn btn--primary btn--xl btn--wide" href="#contact" data-contacto aria-label="Pedir demo por WhatsApp"><svg class="ic-wa" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3a.4.4 0 0 0 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.1 5.1 0 0 0 1.1 2.7 11.7 11.7 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3Z"/></svg>Pedir demo<svg class="m-arrow" viewBox="0 0 12 12" aria-hidden="true"><path class="m-arrow__stem" d="M1 6h8"/><path class="m-arrow__head" d="M4.5 2.5 8 6l-3.5 3.5"/></svg></a>
     </div>
     <div class="closing__links">
       <div class="grid">
@@ -320,7 +303,7 @@
           <a class="nav__logo sp-logo" href="#top" aria-label="StockProject, volver arriba"><svg viewBox="0 0 64 64" width="28" height="28" aria-hidden="true"><path d="M12 21.5 32 33V56L12 44.5Z" fill="#2447F9"/><path d="M52 21.5 32 33V56L52 44.5Z" fill="#6E8BFF"/><path d="M32 10 52 21.5 32 33 12 21.5Z" fill="#0E9F6E"/><path d="M22 15.75 42 27.25V38" fill="none" stroke="#fff" stroke-width="4" stroke-linejoin="round"/></svg><span class="wm"><b>Stock</b>Project</span></a>
           <p class="footer__lede">Sistema de ventas, caja y stock para comercios de Argentina.</p>
         </div>
-        <div class="span-2 start-7 footer__col"><h3>Programa</h3><ul><li><a href="#demo">Demo</a></li><li><a href="#funciones">Funciones</a></li><li><a href="#caja">Caja</a></li></ul></div>
+        <div class="span-2 start-7 footer__col"><h3>Programa</h3><ul><li><a href="#demo">Probala acá</a></li><li><a href="#funciones">Funciones</a></li><li><a href="#caja">Caja</a></li></ul></div>
         <div class="span-2 footer__col"><h3>Celular</h3><ul><li><a href="#celular">Panel</a></li><li><a href="#videos">Videos</a></li></ul></div>
         <div class="span-2 start-11 footer__col"><h3>Ayuda</h3><ul><li><a href="#preguntas">Preguntas</a></li><li><a href="#contact" data-contacto>WhatsApp</a></li><li><a href="#contact" data-mail>Mail</a></li></ul></div>
       </div>
@@ -332,13 +315,12 @@
 </footer>
 
 <nav class="actionbar" aria-label="Acciones rápidas">
-  <a class="btn btn--primary" href="#contact" data-contacto>Pedir una demo</a>
+  <a class="btn btn--primary" href="#contact" data-contacto aria-label="Pedir demo por WhatsApp"><svg class="ic-wa" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3a.4.4 0 0 0 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.1 5.1 0 0 0 1.1 2.7 11.7 11.7 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3Z"/></svg>Pedir demo</a>
 </nav>
 
 <script type="module" src="landing/assets/system.js"></script>
 <script type="module" src="landing/assets/motion/motion.js"></script>
 <script type="module" src="landing/assets/layout/layout.js"></script>
-<script type="module" src="landing/assets/scenes/scenes.js"></script>
 <script type="module" src="landing/demo.js"></script>
 <script type="module" src="landing/contacto.js"></script>
 </body>
