@@ -7,3 +7,9 @@ graphify-out/
 nube/datos-nube/
 nube/.env
 nube/respaldos/
+# Landing: herramientas locales de diseño (no se publican)
+nube/.taste-skill/
+nube/landing/kit-tmp/
+nube/landing/media/_tmp/
+nube/landing/media/datos.md
+nube/landing/media/*.png
