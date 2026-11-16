@@ -1,5 +1,12 @@
 # Novedades de StockProject
 
+## 5.6.0
+- **Cerrar con la caja abierta:** si cerrás el programa con la X, te pregunta si querés cerrar la caja o salir igual.
+- **Cajas olvidadas:** las cajas abiertas desde otro día se marcan en la barra de caja y aparecen en Avisos.
+- **El dueño o administrador puede cerrar la caja de otro empleado** desde Más › Caja, contando el efectivo.
+- **Al volver a entrar** (después de cerrar con la X, un corte de luz o una falla) te avisa que la caja sigue abierta y desde cuándo.
+- **Menú lateral más prolijo:** sin puntos en movimiento; la sección elegida se marca con un indicador que se desliza.
+
 ## 5.5.0
 - **Efectos visuales nuevos:** luz que sigue al mouse sobre productos e indicadores, chispas al agregar un producto a la venta, números que cuentan al entrar a una pantalla, brillo en la pantalla de inicio y fondo de puntos que reacciona al mouse en el menú y en el ingreso. Se apagan con «Animaciones suaves».
 - **Mercadería en un solo paso:** cuando llega el proveedor escaneás lo que vino, ponés cantidad y costo, y elegís cómo pagás (con la caja, le quedás debiendo u otro medio). Suma el stock al instante.
