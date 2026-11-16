@@ -8,33 +8,34 @@
 /* WhatsApp mark on the contact buttons: the button says where it goes */
 .ic-wa { width: 1.15em; height: 1.15em; flex: none; margin-right: .5em; vertical-align: -0.2em; }
 
-/* hero collage pieces: sized in % of the collage, text in container units */
-.ly-collage { container-type: inline-size; }
-.ly-collage .ly-piece { box-shadow: 0 1px 2px rgb(18 35 61 / .1), 0 22px 48px -22px rgb(18 35 61 / .45); border-radius: 2cqw; overflow: hidden; }
-.ly-collage .ly-piece:not(.pc-shot):not(.pc-phone) { background: #fff; color: #12233d; padding: 3cqw 3.4cqw; display: grid; gap: 1.4cqw; align-content: start; font: 400 max(13px, 2cqw)/1.3 var(--font-text); }
-.pc-shot img { width: 100%; height: 100%; object-fit: cover; object-position: 0 0; display: block; }
-.pc-lbl { color: #59667b; font-size: max(13px, 1.7cqw); }
-.pc-ln { display: flex; align-items: center; justify-content: space-between; gap: 2cqw; padding-top: 1.2cqw; border-top: 1px solid #e7eaf0; }
-.pc-tot { display: flex; justify-content: space-between; align-items: baseline; padding-top: 1.4cqw; border-top: 1px solid #12233d; }
-.pc-tot b { font: 500 4.4cqw/1 var(--font-display); letter-spacing: -.03em; }
-.pc-ok span:last-child, .pc-in { color: #0b7f58; font-weight: 500; }
-.pc-neg { color: #b4231a; }
-.pc-code { font: 500 max(13px, 3cqw)/1 var(--font-mono); letter-spacing: .02em; }
-.pc-chip { font-style: normal; font-size: max(13px, 1.6cqw); padding: .3cqw 1.2cqw; border-radius: 99px; white-space: nowrap; }
-.pc-chip--warn { background: #fdecd2; color: #8a4b00; }
-.pc-chip--off { background: #fde4e2; color: #9b1c14; }
-.pc-chip--ok { background: #d8f3e7; color: #0b6b4b; }
-.ly-collage .pc-wa { background: #e6f7ee; }
-.pc-wa p { margin: 0; line-height: 1.45; }
-.pc-send { justify-self: start; background: #0e9f6e; color: #fff; padding: .8cqw 2cqw; border-radius: 99px; font-weight: 500; }
-.ly-collage .pc-phone { background: #12233d; border-radius: 4.6cqw; padding: 1.4cqw; }
-.pc-phone > div { width: 100%; height: 100%; border-radius: 3.4cqw; background: #f4f6fa; color: #12233d; padding: 4cqw 3cqw; display: grid; gap: 1.6cqw; align-content: start; font: 400 max(13px, 2cqw)/1.3 var(--font-text); }
-.pc-big { font: 500 6cqw/1 var(--font-display); letter-spacing: -.03em; margin-top: 2cqw; }
-.pc-tags { display: flex; flex-wrap: wrap; gap: 1cqw; }
-.pc-tags i { font-style: normal; border: 1px solid #d5dae3; border-radius: 99px; padding: .5cqw 1.6cqw; }
-.pc-tags i.on { background: #2447f9; border-color: #2447f9; color: #fff; }
-/* a phone shows the screenshot and one small piece per set: the others would crowd the 342px collage */
-@media (max-width: 639px) { .ly-collage .pc-ticket, .ly-collage .pc-rubro, .ly-collage .pc-cash { display: none !important; } .ly-collage .pc-scan { top: 58% !important; width: 60% !important; } }
+/* hero: the real program's video, drawn frame by frame as the page scrolls (scroll-video.js) */
+main > section.sv { position: relative; height: 420svh !important; min-height: 0; padding: 0 !important; background: #12233d; }
+.sv__stage { position: sticky; top: 0; height: 100svh; overflow: hidden; }
+.sv__canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; background: #12233d; }
+.sv__panel { position: absolute; left: var(--gut); bottom: 64px; width: min(520px, calc(100% - 2 * var(--gut))); margin: 0; padding: 32px; border-radius: var(--r-lg); background: #12233d; color: #f4f6fa; box-shadow: 0 24px 48px -24px rgb(18 35 61 / .55); }
+.sv__panel--portada { bottom: auto; top: calc(var(--nav) + 48px); width: min(600px, calc(100% - 2 * var(--gut))); padding: 40px; }
+.sv__panel h1 { font-family: "Space Grotesk", var(--font-display); font-weight: 500; font-size: clamp(40px, 5.2vw, 76px); line-height: 1.02; letter-spacing: -0.035em; margin: 0 0 20px; color: inherit; text-wrap: balance; }
+.sv__panel p { margin: 0; font-size: 18px; line-height: 1.55; color: #d9e0ec; max-width: 52ch; }
+.sv__panel .btn-row { margin-top: 28px; }
+.sv__panel .btn.btn--secondary { background: transparent !important; color: #f4f6fa !important; box-shadow: inset 0 0 0 1px rgb(244 246 250 / .5) !important; }
+.sv__steps { list-style: none; margin: 0; padding: 0; }
+.sv__step { visibility: hidden; opacity: 0; }
+.sv__t { font-family: "Space Grotesk", var(--font-display); font-size: clamp(26px, 2.6vw, 36px) !important; line-height: 1.1 !important; letter-spacing: -0.02em; color: #f4f6fa !important; margin-bottom: 10px !important; }
+/* still (reduced motion, no script): the first frame with the portada, then the four steps in a row on ink */
+main > section.sv.is-still { height: auto !important; }
+.sv.is-still .sv__stage { position: relative; height: auto; min-height: 100svh; overflow: visible; display: flex; flex-direction: column; }
+.sv.is-still .sv__canvas { position: absolute; height: 100svh; }
+.sv.is-still .sv__steps { position: relative; margin-top: calc(100svh - 40px); display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; padding: 0 var(--gut) 64px; }
+.sv.is-still .sv__step { position: static; width: auto; visibility: visible; opacity: 1; box-shadow: none; background: #1f3049; }
+@media (max-width: 767px) {
+  .sv__panel { left: 16px; right: 16px; width: auto; bottom: calc(24px + var(--bar)); padding: 24px; }
+  .sv__panel--portada { top: calc(var(--nav) + 16px); bottom: auto; padding: 24px; }
+  .sv__panel p { font-size: 16px; }
+  .sv__panel .btn-row { flex-direction: column; }
+}
+/* lenis: native scroll stays the source of truth */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
 
 /* the demo: the real Ventas screen drawn in HTML (app-frame recipe, one window across the wrap) */
 .d-app { margin-top: var(--s-7); display: grid; grid-template-rows: auto minmax(0, 1fr); background: #f4f6fa; border: 1px solid #d5dae3; border-radius: var(--r-lg); overflow: hidden; box-shadow: 0 30px 60px -40px rgb(18 35 61 / .45); color: #12233d; font-size: 15px; }
