@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>StockProject</title>
 <style>
+#pre{position:fixed;inset:0;z-index:199;background:#12233D;transition:opacity .35s}#pre.fin{opacity:0;pointer-events:none}@media print{#pre{display:none}}
 :root{--bg:#f5f6f8;--card:#fff;--tx:#1b1f27;--mu:#6b7280;--bd:#e3e6ec;--ac:#2563eb;--act:#fff;--ok:#16a34a;--bad:#dc2626;--warn:#d97706;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1218;--card:#181c25;--tx:#e8eaf0;--mu:#9aa3b2;--bd:#2a303c;--ac:#4f8cff;--act:#0b1020}}
 :root[data-theme="dark"]{--bg:#0f1218;--card:#181c25;--tx:#e8eaf0;--mu:#9aa3b2;--bd:#2a303c;--ac:#4f8cff;--act:#0b1020}
@@ -79,6 +80,7 @@ details.card>summary{font-weight:700;cursor:pointer;padding:2px 0;list-style:non
 </style>
 </head>
 <body>
+<div id="pre" aria-hidden="true"></div>
 <header><div class="bar"><span class="logo">📦 StockProject</span>
 <nav><button data-t="h" class="hide">Inicio</button><button data-t="v" class="on">Ventas</button><button data-t="p">Productos</button><button data-t="i">Inventario</button><button data-t="c">Clientes</button><button data-t="r">Reportes</button><span class="mas hide" id="masw"><a id="masb" role="button" tabindex="0" aria-haspopup="true">Más ▾</a><span id="masmenu" class="hide"><button data-t="o">Pedidos</button><button data-t="f" class="hide">Finanzas</button><button data-t="a" class="hide">Analítica</button><button data-t="e">Baja de Stock</button><button data-t="g" class="hide">Configuración</button><button data-t="u" class="hide">Usuarios</button></span></span></nav><button class="btn sec" id="ayuda" title="Ayuda de esta pantalla" style="padding:6px 11px">?</button><span id="ses"></span></div></header>
 <main>
@@ -2055,8 +2057,14 @@ MODS.push(TM.titulo);
 // El total "late" cuando cambia.
 {const t=$('#total');let v=t.textContent;new MutationObserver(()=>{if(t.textContent===v)return;v=t.textContent;t.classList.remove('bump');void t.offsetWidth;t.classList.add('bump')}).observe(t,{childList:true,characterData:true,subtree:true})}
 // Animación de inicio (una vez por apertura). Sin animaciones: no se muestra.
-TM.splash=()=>{let on=true;try{on=AV.prefs().anim}catch(e){}if(!on)return;
-  document.body.insertAdjacentHTML('beforeend',`<div id="splash" aria-hidden="true">${TM.MARCA(150)}<span class="cinta"></span></div>`);const s=$('#splash');setTimeout(()=>s.classList.add('fin'),1400);setTimeout(()=>s.parentNode&&s.parentNode.removeChild(s),1850)};
+// Arranque: index.html pinta primero una cortina (#pre) del color de la marca, así nunca se ve la interfaz sin estilos.
+// La cortina se va recién cuando el programa está listo (fuentes cargadas) y pasó un tiempo mínimo, aunque cargue antes.
+TM.listo=()=>Promise.race([(document.fonts&&document.fonts.ready)||Promise.resolve(),new Promise(r=>setTimeout(r,2500))]);
+TM.quitarPre=()=>{const p=$('#pre');if(!p)return;p.classList.add('fin');setTimeout(()=>p.remove(),400)};
+TM.splash=()=>{let on=true;try{on=AV.prefs().anim}catch(e){}
+  if(!on){TM.listo().then(()=>setTimeout(TM.quitarPre,Math.max(0,700-performance.now())));return}
+  document.body.insertAdjacentHTML('beforeend',`<div id="splash" aria-hidden="true">${TM.MARCA(150)}<span class="cinta"></span></div>`);const s=$('#splash');const pr=$('#pre');if(pr)pr.remove();
+  const t0=performance.now();TM.listo().then(()=>{const resta=Math.max(0,1600-(performance.now()-t0));setTimeout(()=>{s.classList.add('fin');setTimeout(()=>s.parentNode&&s.parentNode.removeChild(s),450)},resta)})};
 // Animaciones propias (solo con "Animaciones suaves" activadas).
 TM.anim=()=>document.documentElement.classList.contains('anim');
 TM.efimero=(id,html,ms)=>{const v=$('#'+id);if(v)v.parentNode.removeChild(v);document.body.insertAdjacentHTML('beforeend',html);const e=$('#'+id);setTimeout(()=>{if(e.parentNode)e.parentNode.removeChild(e)},ms)};

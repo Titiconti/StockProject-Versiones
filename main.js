@@ -13,7 +13,7 @@ const pagina = () => path.join(__dirname, faltaClave ? 'clave.html' : usr.habili
 
 function crear() {
   Menu.setApplicationMenu(null);
-  win = new BrowserWindow({ width: 1280, height: 800, title: 'StockProject', autoHideMenuBar: true,
+  win = new BrowserWindow({ width: 1280, height: 800, title: 'StockProject', autoHideMenuBar: true, backgroundColor: '#12233D',
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, webviewTag: false } });
   win.maximize();
   // Caja abierta al cerrar la ventana: la página frena el cierre y acá se pregunta. Al cambiar de página (ingresar, salir) no se pregunta.
