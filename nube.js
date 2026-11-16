@@ -4,6 +4,7 @@
 // Nunca se envían contraseñas, claves, usuarios del sistema ni la configuración; de los clientes, solo nombre y saldo.
 'use strict';
 const LATIDO = 5 * 60 * 1000;
+const DIR_VIEJA = 'https://stock-project-versiones.vercel.app';   // dirección del panel hasta la 5.6.0
 const r2 = n => Math.round((+n || 0) * 100) / 100;
 const dia = iso => { const d = new Date(iso); return Number.isNaN(+d) ? '' : new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
 
@@ -90,7 +91,14 @@ function crear({ leer, getCfg, setCfg, servidor = '', enviar = (u, o) => fetch(u
   }
   function activar(on) { if (on && !estado().configurado) return { ok: false, err: 'Primero cargá la dirección y la clave' }; setCfg({ nube: { ...conf(), activo: !!on } }); if (on) iniciar(); else detener(); return { ok: true }; }
   function quitar() { detener(); setCfg({ nube: {} }); est = { ultima: null, error: '', intento: null }; return { ok: true }; }
+  // Las instalaciones que crearon su panel antes de la 5.6.1 guardaron la dirección vieja: se pasan solas a la del programa.
+  function mudar() {
+    const c = conf(), nueva = servidor.replace(/\/+$/, '');
+    if (c.url !== DIR_VIEJA || !urlOk(nueva) || nueva === DIR_VIEJA) return;
+    setCfg({ nube: { ...c, url: nueva, panel: String(c.panel || '').split(DIR_VIEJA).join(nueva) } });
+  }
   async function sincronizar(forzar) {
+    mudar();
     if (conf().pendiente && !estado().configurado && !ocupado) { ocupado = true; try { const p = conf().pendiente; let k = ''; try { k = p.clave ? desproteger(p.clave) : ''; } catch (e) {} await registrar(p.nombre, k); } finally { ocupado = false; } }
     const c = conf(), t = token(); if (!c.activo || !c.url || !t || ocupado) return estado();
     ocupado = true; est.intento = new Date(ahora()).toISOString();
