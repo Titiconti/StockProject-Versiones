@@ -16,5 +16,6 @@ Electron 33 + Node.js. Interfaz en `index.html` (HTML/JS sin framework). Los mó
 - **Una etiqueta `vX.Y.Z` publica una actualización automática para todos los clientes:** solo con aprobación explícita del dueño.
 - No guardar secretos en el repositorio ni en este archivo.
 
-## Documentación
-Vault de Obsidian `OneDrive\StockProject`: `Ingeniería, Git y servidores/StockProject - contexto técnico.md`.
+## Antes de leer código: Obsidian
+El vault `C:\Users\Usuario\OneDrive\StockProject` es el segundo cerebro del proyecto. **Empezá por `00 - Inicio para agentes.md`**: ahí dice qué nota mirar (mapa del código, modelo de datos, reglas, decisiones, panel, estado de versiones). Leé solo los archivos del repo que esas notas indiquen; no recorras el repo entero.
+Al terminar una tarea, actualizá la nota que corresponda ("Cómo mantenerlo" en esa nota). Sin secretos ni código copiado.
