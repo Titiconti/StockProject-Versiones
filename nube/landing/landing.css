@@ -1,0 +1,119 @@
+/* StockProject landing: page CSS only for what sits inside a visual (the kit draws the rest). */
+
+/* the client's own wordmark, in its brand face */
+.sp-logo { gap: 10px; }
+.sp-logo .wm { font-family: "Space Grotesk", var(--font-display); letter-spacing: -.03em; font-weight: 400; }
+.sp-logo .wm b { font-weight: 700; }
+
+/* hero collage pieces: sized in % of the collage, text in container units */
+.ly-collage { container-type: inline-size; }
+.ly-collage .ly-piece { box-shadow: 0 1px 2px rgb(18 35 61 / .1), 0 22px 48px -22px rgb(18 35 61 / .45); border-radius: 2cqw; overflow: hidden; }
+.ly-collage .ly-piece:not(.pc-shot):not(.pc-phone) { background: #fff; color: #12233d; padding: 3cqw 3.4cqw; display: grid; gap: 1.4cqw; align-content: start; font: 400 max(13px, 2cqw)/1.3 var(--font-text); }
+.pc-shot img { width: 100%; height: 100%; object-fit: cover; object-position: 0 0; display: block; }
+.pc-lbl { color: #59667b; font-size: max(13px, 1.7cqw); }
+.pc-ln { display: flex; align-items: center; justify-content: space-between; gap: 2cqw; padding-top: 1.2cqw; border-top: 1px solid #e7eaf0; }
+.pc-tot { display: flex; justify-content: space-between; align-items: baseline; padding-top: 1.4cqw; border-top: 1px solid #12233d; }
+.pc-tot b { font: 500 4.4cqw/1 var(--font-display); letter-spacing: -.03em; }
+.pc-ok span:last-child, .pc-in { color: #0b7f58; font-weight: 500; }
+.pc-neg { color: #b4231a; }
+.pc-code { font: 500 max(13px, 3cqw)/1 var(--font-mono); letter-spacing: .02em; }
+.pc-chip { font-style: normal; font-size: max(13px, 1.6cqw); padding: .3cqw 1.2cqw; border-radius: 99px; white-space: nowrap; }
+.pc-chip--warn { background: #fdecd2; color: #8a4b00; }
+.pc-chip--off { background: #fde4e2; color: #9b1c14; }
+.pc-chip--ok { background: #d8f3e7; color: #0b6b4b; }
+.ly-collage .pc-wa { background: #e6f7ee; }
+.pc-wa p { margin: 0; line-height: 1.45; }
+.pc-send { justify-self: start; background: #0e9f6e; color: #fff; padding: .8cqw 2cqw; border-radius: 99px; font-weight: 500; }
+.ly-collage .pc-phone { background: #12233d; border-radius: 4.6cqw; padding: 1.4cqw; }
+.pc-phone > div { width: 100%; height: 100%; border-radius: 3.4cqw; background: #f4f6fa; color: #12233d; padding: 4cqw 3cqw; display: grid; gap: 1.6cqw; align-content: start; font: 400 max(13px, 2cqw)/1.3 var(--font-text); }
+.pc-big { font: 500 6cqw/1 var(--font-display); letter-spacing: -.03em; margin-top: 2cqw; }
+.pc-tags { display: flex; flex-wrap: wrap; gap: 1cqw; }
+.pc-tags i { font-style: normal; border: 1px solid #d5dae3; border-radius: 99px; padding: .5cqw 1.6cqw; }
+.pc-tags i.on { background: #2447f9; border-color: #2447f9; color: #fff; }
+@media (max-width: 639px) { .pc-ticket, .pc-rubro, .pc-cash { display: none; } .pc-scan { top: 58% !important; width: 60% !important; } }
+
+/* the scene's screen: the real screenshot */
+.pb__screen img { width: 100%; height: 100%; object-fit: cover; object-position: 0 0; display: block; }
+
+/* the demo: the real Ventas screen drawn in HTML (app-frame recipe, one window across the wrap) */
+.d-app { margin-top: var(--s-7); display: grid; grid-template-rows: auto minmax(0, 1fr); background: #f4f6fa; border: 1px solid #d5dae3; border-radius: var(--r-lg); overflow: hidden; box-shadow: 0 30px 60px -40px rgb(18 35 61 / .45); color: #12233d; font-size: 15px; }
+.d-bar { display: flex; justify-content: space-between; gap: var(--s-4); padding: 12px 20px; border-bottom: 1px solid #e7eaf0; }
+.d-keys { color: #59667b; font-family: var(--font-mono); font-size: 13px; }
+.d-body { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); grid-template-rows: minmax(0, 1fr); min-height: 0; }
+.d-venta { display: flex; flex-direction: column; gap: 12px; padding: 20px; background: #fff; border-right: 1px solid #e7eaf0; min-height: 0; overflow: auto; }
+.d-venta h3 { margin: 0; font-size: 18px; }
+.d-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.d-lista li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items: center; padding-bottom: 8px; border-bottom: 1px solid #e7eaf0; }
+.d-lista li > span:first-child { display: grid; }
+.d-lista small, .d-prod small { color: #59667b; font-size: 13px; }
+.d-vacia { color: #59667b; border: 0 !important; display: block !important; }
+.d-qty { display: inline-flex; align-items: center; gap: 6px; }
+.d-qty button { width: 32px; height: 32px; border: 1px solid #d5dae3; border-radius: 8px; background: #f4f6fa; color: inherit; font: inherit; cursor: pointer; }
+.d-qty output { min-width: 1.5ch; text-align: center; }
+.d-sub { font-variant-numeric: tabular-nums; }
+.d-total { display: grid; margin-top: auto; padding-top: 8px; border-top: 1px solid #e7eaf0; }
+.d-total span { color: #59667b; }
+.d-total output { font: 700 clamp(28px, 3vw, 44px)/1.1 "Space Grotesk", var(--font-display); letter-spacing: -.03em; }
+.d-pago { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.d-pago label { display: grid; gap: 4px; font-size: 14px; color: #59667b; }
+.d-pago select, .d-pago input, .d-buscar input { height: 44px; border: 1px solid #d5dae3; border-radius: 10px; padding: 0 12px; font: inherit; font-size: 16px; color: #12233d; background: #fff; width: 100%; }
+.d-pago input:disabled { background: #f4f6fa; }
+.d-vuelto { margin: 0; font-weight: 500; }
+.d-vuelto output { color: #0b7f58; }
+.d-acciones { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.d-cobrar, .d-vaciar { height: 48px; border-radius: 10px; font: inherit; font-size: 17px; cursor: pointer; padding: 0 20px; transition: transform var(--dur) var(--ease), background-color var(--dur) var(--ease); }
+.d-cobrar { background: #0b7f58; color: #fff; border: 0; font-weight: 500; }
+.d-cobrar:hover { background: #096b4a; }
+.d-vaciar { background: #fff; border: 1px solid #d5dae3; color: inherit; }
+.d-cobrar:active, .d-vaciar:active, .d-prod:active { transform: scale(.98); }
+.d-aviso { margin: 0; min-height: 1.4em; font-size: 14px; color: #12233d; }
+.d-catalogo { display: flex; flex-direction: column; gap: 16px; padding: 20px; min-height: 0; }
+.d-grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 12px; overflow: auto; min-height: 0; padding-bottom: 8px; }
+.d-prod { display: grid; gap: 4px; align-content: start; text-align: left; padding: 14px; background: #fff; border: 1px solid #e7eaf0; border-radius: 12px; font: inherit; color: inherit; cursor: pointer; transition: transform var(--dur) var(--ease), border-color var(--dur) var(--ease); }
+.d-prod:hover { transform: translateY(-2px); border-color: #2447f9; }
+.d-prod:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+.d-prod b { font-weight: 500; line-height: 1.25; }
+.d-prod strong { color: #2447f9; font-size: 18px; font-weight: 500; }
+.d-code { font-family: var(--font-mono); }
+.d-chip { justify-self: start; font-style: normal; font-size: 13px; padding: 1px 8px; border-radius: 99px; }
+.d-chip--ok { background: #d8f3e7; color: #0b6b4b; }
+.d-chip--warn { background: #fdecd2; color: #8a4b00; }
+.d-chip--off { background: #fde4e2; color: #9b1c14; }
+@media (max-width: 1023px) {
+  .d-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); }
+  .d-venta { border-right: 0; border-bottom: 1px solid #e7eaf0; order: 2; }
+  .d-catalogo { order: 1; }
+  .d-keys { display: none; }
+}
+@media (max-width: 639px) {
+  #demo { --hm: 2; }
+  .d-grilla { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .d-prod small .d-code { display: none; }
+}
+
+/* features: the client's screenshots fill each panel from the top left */
+#funciones .panel { --p-h: 300px; }
+#funciones .frame__img { object-fit: cover; object-position: 0 0; }
+@media (max-width: 639px) { #funciones .panel { --p-h: 180px; } }
+
+/* phone panel section */
+.cel-figs { display: grid; gap: var(--s-5); }
+.cel-figs .t-stat { margin: 0; font: var(--display-weight) var(--t-stat)/1 var(--font-display); letter-spacing: var(--display-tracking); }
+.cel-rubros { max-width: 52ch; }
+.cel-phone { display: flex; justify-content: center; }
+.cel-phone img { height: min(640px, calc(100svh - 240px)); width: auto; max-width: 100%; border-radius: 36px; border: 10px solid #12233d; box-shadow: 0 40px 80px -48px rgb(18 35 61 / .6); background: #12233d; object-fit: cover; }
+@media (max-width: 1023px) { .cel-phone { margin-top: var(--s-7); } .cel-phone img { height: 420px; } }
+
+/* videos */
+.vid h3 { font-size: var(--t-card); margin: 0; }
+.vid video { width: 100%; aspect-ratio: 16 / 10; border-radius: var(--r-lg); background: #12233d; display: block; object-fit: cover; }
+
+/* the caja steps at rest (reduced motion, before the moment mounts) keep their two screens, as live */
+main > #caja:not(.is-live) { min-height: 200svh; }
+@media (max-width: 639px) { main > #caja:not(.is-live) { min-height: 200lvh; } }
+/* tablet held upright: the three videos stack into two screens; the caja steps sit still in one */
+@media (min-width: 640px) and (max-width: 1023px) {
+  #videos { --h: 2; }
+  #caja { --h: 1; }
+  main > #caja:not(.is-live) { min-height: 100svh; }
+}
