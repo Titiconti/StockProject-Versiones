@@ -94,8 +94,14 @@ MODS.push(TM.titulo);
 // El total "late" cuando cambia.
 {const t=$('#total');let v=t.textContent;new MutationObserver(()=>{if(t.textContent===v)return;v=t.textContent;t.classList.remove('bump');void t.offsetWidth;t.classList.add('bump')}).observe(t,{childList:true,characterData:true,subtree:true})}
 // Animación de inicio (una vez por apertura). Sin animaciones: no se muestra.
-TM.splash=()=>{let on=true;try{on=AV.prefs().anim}catch(e){}if(!on)return;
-  document.body.insertAdjacentHTML('beforeend',`<div id="splash" aria-hidden="true">${TM.MARCA(150)}<span class="cinta"></span></div>`);const s=$('#splash');setTimeout(()=>s.classList.add('fin'),1400);setTimeout(()=>s.parentNode&&s.parentNode.removeChild(s),1850)};
+// Arranque: index.html pinta primero una cortina (#pre) del color de la marca, así nunca se ve la interfaz sin estilos.
+// La cortina se va recién cuando el programa está listo (fuentes cargadas) y pasó un tiempo mínimo, aunque cargue antes.
+TM.listo=()=>Promise.race([(document.fonts&&document.fonts.ready)||Promise.resolve(),new Promise(r=>setTimeout(r,2500))]);
+TM.quitarPre=()=>{const p=$('#pre');if(!p)return;p.classList.add('fin');setTimeout(()=>p.remove(),400)};
+TM.splash=()=>{let on=true;try{on=AV.prefs().anim}catch(e){}
+  if(!on){TM.listo().then(()=>setTimeout(TM.quitarPre,Math.max(0,700-performance.now())));return}
+  document.body.insertAdjacentHTML('beforeend',`<div id="splash" aria-hidden="true">${TM.MARCA(150)}<span class="cinta"></span></div>`);const s=$('#splash');const pr=$('#pre');if(pr)pr.remove();
+  const t0=performance.now();TM.listo().then(()=>{const resta=Math.max(0,1600-(performance.now()-t0));setTimeout(()=>{s.classList.add('fin');setTimeout(()=>s.parentNode&&s.parentNode.removeChild(s),450)},resta)})};
 // Animaciones propias (solo con "Animaciones suaves" activadas).
 TM.anim=()=>document.documentElement.classList.contains('anim');
 TM.efimero=(id,html,ms)=>{const v=$('#'+id);if(v)v.parentNode.removeChild(v);document.body.insertAdjacentHTML('beforeend',html);const e=$('#'+id);setTimeout(()=>{if(e.parentNode)e.parentNode.removeChild(e)},ms)};
