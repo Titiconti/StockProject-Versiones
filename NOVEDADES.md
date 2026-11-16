@@ -1,5 +1,8 @@
 # Novedades de StockProject
 
+## 5.6.1
+- **Nueva dirección del panel del celular:** https://stockprojectapp.vercel.app. Tu panel y tu clave siguen siendo los mismos.
+
 ## 5.6.0
 - **Cerrar con la caja abierta:** si cerrás el programa con la X, te pregunta si querés cerrar la caja o salir igual.
 - **Cajas olvidadas:** las cajas abiertas desde otro día se marcan en la barra de caja y aparecen en Avisos.
