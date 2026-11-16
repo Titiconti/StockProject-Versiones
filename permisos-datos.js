@@ -60,9 +60,10 @@ function cuentas(a, o, tiene) {
   }
   return null;
 }
-// Cajas: quien vende las abre, carga movimientos y las cierra. Borrar una caja es otra cosa.
+// Cajas: quien vende las abre, carga movimientos y las cierra. Borrar una caja es otra cosa; una caja cerrada no cambia más.
 function cajas(a, o, tiene) {
   const d = diferencias(a.cajas, o.cajas);
+  if ([...d.cambios, ...d.bajas].some(c => (lista(a.cajas).find(x => x.id === c.id) || {}).cierre)) return 'Un cierre de caja confirmado no se puede modificar';
   if ((d.altas.length || d.cambios.length) && !tiene('ventas', 'crear')) return 'Tu usuario no puede usar la caja';
   if (d.bajas.length && !tiene('ventas', 'eliminar')) return 'Tu usuario no puede borrar cajas';
   return null;
@@ -90,10 +91,25 @@ function finanzas(a, o, tiene) {
   if (!igual(resto(fa), resto(fo)) && !tiene('finanzas', 'editar')) return 'Tu usuario no puede modificar las finanzas';
   return null;
 }
+const cambiadas = (x, y) => [...new Set([...Object.keys(x || {}), ...Object.keys(y || {})])].filter(k => !igual((x || {})[k], (y || {})[k]));
 function configuracion(a, o, tiene) {
-  const ca = a.cfg || {}, co = o.cfg || {};
-  const cambio = [...new Set([...Object.keys(ca), ...Object.keys(co)])].some(k => !CFG_LIBRE.has(k) && !igual(ca[k], co[k]));
-  if (cambio && !tiene('configuracion', 'editar')) return 'Tu usuario no puede cambiar la configuración';
+  const c = cambiadas(a.cfg, o.cfg).filter(k => !CFG_LIBRE.has(k));
+  // El programa de puntos (fidel) también lo maneja quien edita clientes (así lo permite la pantalla de Clientes).
+  if (c.includes('fidel') && !alguno(tiene, ['configuracion', 'editar'], ['clientes', 'editar'])) return 'Tu usuario no puede cambiar el programa de puntos';
+  if (c.some(k => k !== 'fidel') && !tiene('configuracion', 'editar')) return 'Tu usuario no puede cambiar la configuración';
+  // Datos del negocio (nombre, ticket): configuración. El ancho de impresión (`w`) se elige al imprimir.
+  if (cambiadas(a.shop, o.shop).some(k => k !== 'w') && !tiene('configuracion', 'editar')) return 'Tu usuario no puede cambiar los datos del negocio';
+  if (!igual(a.rules || {}, o.rules || {}) && !alguno(tiene, ['configuracion', 'editar'], ['clientes', 'editar'])) return 'Tu usuario no puede cambiar los recordatorios';
+  return null;
+}
+// Planes de pago en cuotas e interacciones con clientes: módulo clientes.
+function planesClientes(a, o, tiene) {
+  const p = diferencias(a.planes, o.planes);
+  if (p.altas.length && !alguno(tiene, ['clientes', 'crear'], ['clientes', 'editar'], ['ventas', 'crear'])) return 'Tu usuario no puede crear planes de pago';
+  if (p.cambios.length && !alguno(tiene, ['clientes', 'editar'], ['ventas', 'crear'])) return 'Tu usuario no puede modificar planes de pago';
+  if (p.bajas.length && !tiene('clientes', 'eliminar')) return 'Tu usuario no puede borrar planes de pago';
+  const i = diferencias(a.inter, o.inter);
+  if ((i.altas.length || i.cambios.length || i.bajas.length) && !alguno(tiene, ['clientes', 'crear'], ['clientes', 'editar'])) return 'Tu usuario no puede modificar el historial de clientes';
   return null;
 }
 function bajasMercaderia(a, o, tiene) {
@@ -108,7 +124,7 @@ function bajasMercaderia(a, o, tiene) {
 
 module.exports = function autorizar(anterior, nuevo, tiene) {
   if (!anterior || !nuevo) return null;   // sin datos previos (primer guardado) no hay nada que comparar
-  for (const f of [ventas, productos, clientes, cuentas, cajas, pedidos, finanzas, configuracion, bajasMercaderia]) {
+  for (const f of [ventas, productos, clientes, cuentas, cajas, pedidos, finanzas, configuracion, planesClientes, bajasMercaderia]) {
     const e = f(anterior, nuevo, tiene); if (e) return e;
   }
   return null;

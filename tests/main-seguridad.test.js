@@ -38,7 +38,7 @@ const datos = () => ({ prods: [{ id: 1, name: 'Yerba', price: 100, cost: 60, lot
 
   // ---- E9: solo se abren afuera los enlaces que usa el programa ----
   ['https://wa.me/5491155551234?text=hola', 'https://api.whatsapp.com/send?text=x', 'mailto:ana@correo.com', 'https://stockprojectapp.vercel.app/c/x/', 'https://github.com/Titiconti/StockProject'].forEach(u => m.abrir(u));
-  ['https://sitio-falso.com/pago', 'http://wa.me/x', 'https://wa.me.falso.com/', 'file:///C:/Windows/system32/calc.exe', 'https://github.com/otro/repo'].forEach(u => m.abrir(u));
+  ['https://sitio-falso.com/pago', 'http://wa.me/x', 'https://wa.me.falso.com/', 'file:///C:/Windows/system32/calc.exe', 'https://github.com/otro/repo', 'https://github.com/Titiconti/../evil/repo', 'https://github.com/Titiconti/%2e%2e/evil'].forEach(u => m.abrir(u));
   assert.deepStrictEqual(m.abiertos, ['https://wa.me/5491155551234?text=hola', 'https://api.whatsapp.com/send?text=x', 'mailto:ana@correo.com', 'https://stockprojectapp.vercel.app/c/x/', 'https://github.com/Titiconti/StockProject']);
 
   // ---- E1: sin falta de clave, importar una clave no hace nada ni toca los datos ----
@@ -59,6 +59,12 @@ const datos = () => ({ prods: [{ id: 1, name: 'Yerba', price: 100, cost: 60, lot
   assert((await m.h['auth:call']({}, 'crear', [{ user: 'luis', rol: 'empleado', clave: 'Clave1234' }])).ok);
   assert(JSON.parse(fs.readFileSync(path.join(ud, 'config.json'), 'utf8')).usuariosActivos, 'marca en la configuración');
   assert(JSON.parse(fs.readFileSync(path.join(ud, 'stockproject-data.json'), 'utf8')).usuariosActivos, 'marca dentro de los datos');
+  // V2: el cifrado lo maneja solo un administrador (aunque otro tenga usuarios.editar).
+  assert((await m.h['auth:call']({}, 'crear', [{ user: 'gero', rol: 'gerente', clave: 'Clave1234', extra: ['usuarios.editar'] }])).ok);
+  await m.h['auth:logout']();
+  assert((await m.h['auth:login']({}, 'gero', 'Clave1234')).ok);
+  assert(!(await m.h['seg:activar']()).ok && !(await m.h['seg:desactivar']()).ok, 'un gerente no toca el cifrado');
+  assert(!fs.existsSync(path.join(ud, 'clave-datos.bin')));
   await m.h['auth:logout']();
 
   // ---- E7: antes de ingresar no se ven rutas, empresas ni el panel ----

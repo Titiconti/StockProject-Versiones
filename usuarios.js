@@ -38,6 +38,8 @@ module.exports = function ({ usersFile, auditFile, maxSesiones = 3, inactividad 
   const find = (d, user) => d.users.find(u => norm(u.user) === norm(user));
   const habilitado = () => rd().users.length > 0 || !!marcado();
   const faltanUsuarios = () => !rd().users.length && !!marcado();
+  // Jerarquía de roles: un no administrador solo maneja usuarios de rango menor al suyo y asigna como máximo "empleado".
+  const RANGO = { consulta: 0, empleado: 1, gerente: 2, admin: 3 }, MAX_SIN_ADMIN = 1;
   const esAdmin = u => !!(u && u.activo && u.rol === 'admin');
   const PERMISO_OK = k => typeof k === 'string' && MODULOS.includes(k.split('.')[0]) && ACCIONES.includes(k.split('.')[1]) && k.split('.').length === 2;
   const mismos = (a, b) => JSON.stringify([...(a || [])].sort()) === JSON.stringify([...(b || [])].sort());
@@ -91,6 +93,7 @@ module.exports = function ({ usersFile, auditFile, maxSesiones = 3, inactividad 
     if (!d.users.length && rol !== 'admin') return { ok: false, err: 'El primer usuario debe ser administrador' };
     // Solo un administrador crea administradores o da permisos extra (E3).
     if (d.users.length && rol === 'admin' && !esAdmin(quien)) return { ok: false, err: 'Solo un administrador puede crear administradores' };
+    if (d.users.length && !esAdmin(quien) && RANGO[rol] > MAX_SIN_ADMIN) return { ok: false, err: 'Solo un administrador puede crear usuarios con ese rol' };
     if ((extra || []).length && d.users.length && !esAdmin(quien)) return { ok: false, err: 'Solo un administrador puede dar permisos extra' };
     if (![...(extra || []), ...(deny || [])].every(PERMISO_OK)) return { ok: false, err: 'Permiso inválido' };
     const salt = nuevoSalt(), u = { id: d.uid++, user: String(user).trim(), nombre: String(nombre || user).trim(), rol, salt, hash: hash(clave, salt), activo: true, extra: extra || [], deny: deny || [], prefs: {}, creado: new Date(ahora()).toISOString() };
@@ -107,6 +110,8 @@ module.exports = function ({ usersFile, auditFile, maxSesiones = 3, inactividad 
     const sera = { rol: patch.rol !== undefined ? patch.rol : u.rol, activo: patch.activo !== undefined ? !!patch.activo : u.activo };
     if (eraAdmin && !(sera.rol === 'admin' && sera.activo) && admins(d).length <= 1) return { ok: false, err: 'Tiene que quedar al menos un administrador activo' };
     if (u.rol !== 'admin' && patch.rol === 'admin' && quien.rol !== 'admin') return { ok: false, err: 'Solo un administrador puede crear administradores' };
+    if (!esAdmin(quien) && quien.id !== u.id && RANGO[u.rol] >= RANGO[quien.rol]) return { ok: false, err: 'No podés modificar a un usuario con un rol igual o mayor al tuyo' };
+    if (!esAdmin(quien) && patch.rol !== undefined && patch.rol !== u.rol && RANGO[patch.rol] > MAX_SIN_ADMIN) return { ok: false, err: 'Solo un administrador puede asignar ese rol' };
     // Permisos extra: solo los da un administrador. Nadie amplía sus propios permisos (E3).
     if (patch.extra !== undefined && !mismos(patch.extra, u.extra) && !esAdmin(quien)) return { ok: false, err: 'Solo un administrador puede dar permisos extra' };
     if ([...(patch.extra || []), ...(patch.deny || [])].some(k => !PERMISO_OK(k))) return { ok: false, err: 'Permiso inválido' };

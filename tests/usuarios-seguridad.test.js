@@ -67,3 +67,26 @@ marca = false; fs.unlinkSync(file);
 us = U(); assert(!us.habilitado() && !us.faltanUsuarios());
 assert(us.crear(null, { user: 'ana', rol: 'admin', clave: 'Clave1234' }).ok);
 console.log('usuarios-seguridad: ok');
+
+// ---- V2: jerarquía de roles para quien maneja usuarios sin ser administrador ----
+{
+  marca = false; try { fs.unlinkSync(file); } catch (e) {}
+  const u2 = U();
+  assert(u2.crear(null, { user: 'jefa', rol: 'admin', clave: 'Clave1234' }).ok);
+  const ad = u2.sesion(u2.login('jefa', 'Clave1234').token);
+  const mk2 = (user, rol, x) => { const r = u2.crear(ad, { user, rol, clave: 'Clave1234', ...x }); assert(r.ok, r.err); return r.usuario; };
+  const ge = mk2('gere', 'gerente', { extra: ['usuarios.crear', 'usuarios.editar'] }), ge2 = mk2('gere2', 'gerente');
+  const em = mk2('emple', 'empleado', { extra: ['usuarios.crear', 'usuarios.editar'] }), em2 = mk2('emple2', 'empleado');
+  const sg = u2.sesion(u2.login('gere', 'Clave1234').token), se = u2.sesion(u2.login('emple', 'Clave1234').token);
+  assert(!u2.editar(sg, ad.id, { clave: 'Robada123' }).ok, 'un gerente no le cambia la clave a un admin');
+  assert(!u2.editar(sg, ge2.id, { clave: 'Robada123' }).ok, 'ni a otro gerente');
+  assert(u2.editar(sg, em2.id, { clave: 'Nueva1234' }).ok, 'sí a un empleado');
+  assert(!u2.editar(sg, em2.id, { rol: 'gerente' }).ok, 'no asciende a gerente');
+  assert(u2.editar(sg, em2.id, { rol: 'consulta' }).ok, 'sí cambia a consulta');
+  assert(!u2.crear(se, { user: 'gnuevo', rol: 'gerente', clave: 'Clave1234' }).ok, 'un empleado no crea gerentes');
+  assert(!u2.crear(sg, { user: 'gnuevo', rol: 'gerente', clave: 'Clave1234' }).ok, 'un gerente tampoco');
+  assert(u2.crear(se, { user: 'cnuevo', rol: 'consulta', clave: 'Clave1234' }).ok);
+  assert(!u2.editar(se, ge.id, { nombre: 'x' }).ok, 'un empleado no edita a un gerente');
+  assert(u2.editar(ad, ge2.id, { clave: 'Nueva1234', rol: 'empleado' }).ok, 'el admin sí');
+  console.log('usuarios-seguridad V2: ok');
+}

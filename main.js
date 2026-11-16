@@ -8,10 +8,11 @@ const defaults = () => { try { return JSON.parse(fs.readFileSync(path.join(__dir
 let usr, emp, upd, tok = null;                                   // usuarios y sesión de esta ventana (el token nunca llega a la interfaz)
 const quien = () => (usr && usr.habilitado() ? usr.sesion(tok) : null);
 const permite = (m, a) => !usr.habilitado() || usr.tiene(quien(), m, a);
+const esAdminSesion = () => !usr.habilitado() || !!(quien() && quien().rol === 'admin');   // el cifrado lo maneja solo un administrador
 const conSesion = () => !usr.habilitado() || !!quien();          // datos del equipo (rutas, empresas, panel): no se muestran antes de ingresar
 const autorizar = require('./permisos-datos');
 // Enlaces que el programa abre afuera (WhatsApp, correo, el panel y las novedades del proyecto). Nada más.
-const ENLACES = [/^mailto:/i, /^https:\/\/wa\.me\//i, /^https:\/\/api\.whatsapp\.com\//i, /^https:\/\/stockprojectapp\.vercel\.app(\/|$)/i, /^https:\/\/github\.com\/Titiconti\//i];
+const ENLACES = [/^mailto:/i, /^https:\/\/wa\.me\//i, /^https:\/\/api\.whatsapp\.com\//i, /^https:\/\/stockprojectapp\.vercel\.app(\/|$)/i, /^https:\/\/github\.com\/Titiconti\/(?!.*(\.\.|%2e))/i];
 const enlacePermitido = url => ENLACES.some(r => r.test(String(url || '')));
 let faltaClave = false;                               // datos cifrados y sin la clave de este equipo: se pide la clave de recuperación
 const pagina = () => path.join(__dirname, faltaClave ? 'clave.html' : usr.habilitado() && !quien() ? 'login.html' : 'index.html');
@@ -163,13 +164,13 @@ app.whenReady().then(() => {
   upd.iniciar();
   ipcMain.handle('seg:estado', () => ({ disponible: safeStorage.isEncryptionAvailable(), activo: !!cfgS().cifrado, falta: faltaClave, cifrado: store.cifrado() }));
   ipcMain.handle('seg:activar', () => {
-    if (!permite('usuarios', 'editar')) return { ok: false, err: 'Solo un administrador puede cambiar el cifrado' };
+    if (!esAdminSesion()) return { ok: false, err: 'Solo un administrador puede cambiar el cifrado' };
     if (!safeStorage.isEncryptionAvailable()) return { ok: false, err: 'Este equipo no permite proteger la clave (Windows no la ofrece).' };
     const k = crypto.randomBytes(32); guardarClave(k); principal.setConfig({ cifrado: true }); emp.setKey(k); store.backup();
     usr.audit(quien(), 'seguridad.cifrado_on'); return { ok: true, clave: k.toString('hex') };
   });
   ipcMain.handle('seg:desactivar', () => {
-    if (!permite('usuarios', 'editar')) return { ok: false, err: 'Solo un administrador puede cambiar el cifrado' };
+    if (!esAdminSesion()) return { ok: false, err: 'Solo un administrador puede cambiar el cifrado' };
     emp.setKey(null); principal.setConfig({ cifrado: false }); try { fs.unlinkSync(keyFile); } catch (x) {} store.backup();
     usr.audit(quien(), 'seguridad.cifrado_off'); return { ok: true };
   });

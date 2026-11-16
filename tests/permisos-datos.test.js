@@ -61,3 +61,24 @@ assert.strictEqual(autorizar(null, base, emp), null);
 const vacio = { prods: [] }, normal = { prods: [], cfg: {}, fin: { mov: [], pagar: [], emp: [], banco: [], id: 1 }, pays: [], cargos: [], clients: [], desv: [] };
 assert.strictEqual(autorizar(vacio, normal, emp), null);
 console.log('permisos-datos: ok');
+
+// ---- V4: datos del negocio, recordatorios, planes, historial de clientes y cajas cerradas ----
+{
+  const b = con(o => { o.shop = { n: 'Mi negocio', w: 72 }; o.rules = {}; o.planes = [{ id: 1, cid: 1, cuotas: [] }]; o.inter = [{ id: 1, cid: 1 }]; o.cajas.push({ id: 9, uid: 2, cierre: '2026-11-15', movs: [] }); });
+  const c = f => { const o = copia(b); f(o); return o; };
+  assert(autorizar(b, c(o => { o.shop.n = 'Otro'; }), emp), 'el empleado no cambia los datos del negocio');
+  assert.strictEqual(autorizar(b, c(o => { o.shop.w = 58; }), emp), null, 'sí elige el ancho del ticket');
+  assert.strictEqual(autorizar(b, c(o => { o.shop.n = 'Otro'; }), ger), null);
+  assert(autorizar(b, c(o => { o.planes = []; }), emp), 'no borra planes de pago');
+  assert.strictEqual(autorizar(b, c(o => { o.planes.push({ id: 2, cid: 1, cuotas: [] }); o.inter.push({ id: 2, cid: 1 }); }), emp), null, 'sí crea planes e interacciones');
+  assert(autorizar(b, c(o => { o.planes.push({ id: 2 }); }), rol('consulta')), 'consulta no crea planes');
+  assert(autorizar(b, c(o => { o.rules.recordatorio = { on: true }; }), (m, a) => m === 'ventas' && a === 'crear'), 'recordatorios sin permiso');
+  assert(autorizar(b, c(o => { o.cajas.find(x => x.id === 9).movs.push({ monto: 1 }); }), adm), 'una caja cerrada no cambia (ni el admin)');
+  assert(autorizar(b, c(o => { o.cajas = o.cajas.filter(x => x.id !== 9); }), adm), 'ni se borra');
+  // El cajero sigue abriendo y cerrando su caja.
+  assert.strictEqual(autorizar(b, c(o => { o.cajas[0].cierre = '2026-11-16'; o.cajas[0].dif = 0; }), emp), null, 'cierra su caja');
+  // Programa de puntos: lo cambia quien edita clientes; consulta o un rol sin clientes.editar no.
+  assert.strictEqual(autorizar(b, c(o => { o.cfg.fidel = { on: true }; }), emp), null);
+  assert(autorizar(b, c(o => { o.cfg.fidel = { on: true }; }), (m, a) => m === 'ventas' && a === 'crear'), 'fidel sin permiso');
+}
+console.log('permisos-datos V4: ok');
