@@ -3,3 +3,4 @@ Dockerfile text eol=lf
 Caddyfile text eol=lf
 *.yml text eol=lf
 .env.ejemplo text eol=lf
+landing/vendor/*.js -text
