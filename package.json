@@ -19,6 +19,7 @@
       "preload.js",
       "store.js",
       "validar.js",
+      "permisos-datos.js",
       "nube.js",
       "usuarios.js",
       "empresas.js",

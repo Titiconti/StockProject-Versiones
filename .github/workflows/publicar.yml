@@ -38,11 +38,14 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
+      # El nombre de la etiqueta entra por una variable de entorno, nunca pegado dentro del script (no se puede inyectar un comando).
       - name: Comprobar que la versión coincide con la etiqueta
         shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
         run: |
           V=$(node -p "require('./package.json').version")
-          if [ "v$V" != "${{ github.ref_name }}" ]; then echo "package.json dice $V pero la etiqueta es ${{ github.ref_name }}"; exit 1; fi
+          if [ "v$V" != "$TAG" ]; then echo "package.json dice $V pero la etiqueta es $TAG"; exit 1; fi
 
       - name: Construir el instalador (sin publicar)
         run: npx electron-builder --win nsis --x64 --publish never
@@ -54,8 +57,8 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
         run: |
-          TAG="${{ github.ref_name }}"
           gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "StockProject ${TAG#v}" --notes "Ver NOVEDADES.md"
           gh release upload "$TAG" dist/*.exe dist/*.exe.blockmap dist/latest.yml --clobber
           gh release view "$TAG" --json assets --jq '.assets[].name'

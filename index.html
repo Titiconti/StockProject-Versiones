@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https:; object-src 'none'; base-uri 'none'; frame-src 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>StockProject</title>
 <style>
@@ -200,7 +201,7 @@ const OFFH={ok(){},fallo(){},red(){},online(){},extraer(){return null},reaplicar
 const save=()=>{_agg=null;const s=JSON.stringify(db);
 if(KIND==='local'){try{localStorage.setItem(K,s)}catch(e){}return}
 const g=gen;pending++;
-chain=chain.then(async()=>{if(g!==gen)return;const r=ED?await sp.save(s,rev):await httpSave(s);if(r&&r.ok){rev=r.rev;db.rev=r.rev;OFFH.ok()}else if(r&&r.auth&&EDA)sp.auth.ir();else if(r&&r.conflict)conflict();else if(r&&r.err)toast('No se pudo guardar: '+r.err)}).catch(()=>{OFFH.fallo();toast('Sin conexión con la PC principal: tus cambios se enviarán cuando vuelva')}).finally(()=>{pending--})};
+chain=chain.then(async()=>{if(g!==gen)return;const r=ED?await sp.save(s,rev):await httpSave(s);if(r&&r.ok){rev=r.rev;db.rev=r.rev;OFFH.ok()}else if(r&&r.auth&&EDA)sp.auth.ir();else if(r&&r.permiso){gen++;reloadAll(r.err)}else if(r&&r.conflict)conflict();else if(r&&r.err)toast('No se pudo guardar: '+r.err)}).catch(()=>{OFFH.fallo();toast('Sin conexión con la PC principal: tus cambios se enviarán cuando vuelva')}).finally(()=>{pending--})};
 function cleanCart(){Object.keys(cart).forEach(id=>{const p=db.prods.find(x=>x.id==id);if(!p||avail(p)<=0)delete cart[id];else if(cart[id]>avail(p))cart[id]=avail(p)});if(clId&&!db.clients.some(c=>c.id===clId))clId=null}
 async function reloadAll(msg){try{let s;if(ED)s=sp.load();else{const r=await fetch('/api/db');if(r.status===401){location.reload();return}s=await r.text()}
 const n=JSON.parse(s);if(n&&n.prods){db=n;fixDb();rev=db.rev||0;cleanCart();draw();OFFH.ok()}if(msg)toast(msg)}catch(e){}}
@@ -360,6 +361,7 @@ $('#pvw').onchange=()=>{const v=$('#pvw').value;db.shop.w=v==='a4'?'a4':+v;save(
 document.addEventListener('keydown',e=>{if(e.key==='Escape')$('#pv').classList.add('hide')});
 $('#ss').onclick=()=>{db.shop={...db.shop,n:shn.value.trim(),a:sha.value.trim(),t:sht.value.trim()};save();toast('Datos guardados')};
 $('#hist').onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.p)return printTicket(db.sales.find(x=>x.id==b.dataset.p));const fix=!!b.dataset.c,id=b.dataset.c||b.dataset.v,s=db.sales.find(x=>x.id==id);
+if(!UT.chk('ventas','eliminar'))return;
 if(fix&&Object.keys(cart).length)return toast('Primero cobrá o vaciá la venta actual');
 if(!s||!armed((fix?'c':'s')+id))return;arm='';
 s.items.forEach(i=>{const p=db.prods.find(x=>x.id==i.id);if(p)restore(p,i.lots,i.qty)});
