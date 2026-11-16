@@ -11,7 +11,9 @@ function iniciar() {
   const e = process.env, adminToken = (e.ADMIN_TOKEN || '').trim(), url = e.KV_REST_API_URL || e.UPSTASH_REDIS_REST_URL, token = e.KV_REST_API_TOKEN || e.UPSTASH_REDIS_REST_TOKEN;
   if (!adminToken || adminToken.length < 24) { error = 'Falta la variable ADMIN_TOKEN (24 caracteres o más).'; return; }
   if (!url || !token) { error = 'Falta conectar la base de datos (Storage > Upstash for Redis en el panel de Vercel).'; return; }
-  servidor = crear({ almacen: redis({ url, token }), recargar: true, adminToken, dominioBase: (e.DOMAIN_BASE || '').trim(), confiarProxy: true, frescuraMs: (Number(e.FRESCURA_SEG) || 420) * 1000 });
+  // Las vistas previas usan la misma base que producción: van a otro espacio de claves para no tocar (ni mudar) los datos reales.
+  const prefijo = e.VERCEL_ENV === 'production' ? 'sp:' : 'sp-preview:';
+  servidor = crear({ almacen: redis({ url, token, prefijo }), recargar: true, adminToken, dominioBase: (e.DOMAIN_BASE || '').trim(), confiarProxy: true, frescuraMs: (Number(e.FRESCURA_SEG) || 420) * 1000 });
 }
 module.exports = (req, res) => {
   if (!servidor && !error) iniciar();
