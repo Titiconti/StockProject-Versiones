@@ -44,10 +44,10 @@ console.log = (log => (...a) => { if (!/^\[(admin|registro|clave)\]/.test(String
   assert.strictEqual(gen.estado, 201); assert.match(gen.j.clave, /^[a-z2-9]{10}$/);
   assert.strictEqual((await login(gen.j.clave.toUpperCase(), '10.8.0.2', gen.j.sub)).estado, 200, 'generada: no distingue mayúsculas');
   // comercio viejo (sin claveTipo): igual que generada
-  const lista = JSON.parse(fs.readFileSync(path.join(dir, 'comercios.json'), 'utf8'));
+  const leerC = id => JSON.parse(fs.readFileSync(path.join(dir, 'comercio', id + '.json'), 'utf8')), lista = fs.readdirSync(path.join(dir, 'comercio')).map(f => leerC(f.slice(0, -5)));
   assert.strictEqual(lista.find(c => c.sub === sub).claveTipo, 'propia'); assert.strictEqual(lista.find(c => c.sub === gen.j.sub).claveTipo, 'generada');
   await S.close();
-  delete lista.find(c => c.sub === gen.j.sub).claveTipo; fs.writeFileSync(path.join(dir, 'comercios.json'), JSON.stringify(lista));
+  const viejo = lista.find(c => c.sub === gen.j.sub); delete viejo.claveTipo; fs.writeFileSync(path.join(dir, 'comercio', viejo.id + '.json'), JSON.stringify(viejo));
   const S2 = crear({ dataDir: dir, adminToken: ADMIN, ahora: () => reloj, confiarProxy: true });
   const puerto2 = await S2.listen(0, '127.0.0.1'); const base2 = 'http://127.0.0.1:' + puerto2;
   const pedir2 = (m, r, o) => { return (async () => { const headers = { 'X-Forwarded-For': (o && o.ip) || '10.9.9.9' }; if (o && o.token) headers.Authorization = 'Bearer ' + o.token; if (o && o.cookie) headers.Cookie = o.cookie; let body; if (o && o.body !== undefined) { body = JSON.stringify(o.body); headers['Content-Type'] = 'application/json'; } const x = await fetch(base2 + r, { method: m, headers, body }); let j = null; try { j = await x.json(); } catch {} return { estado: x.status, j, h: x.headers }; })(); };
