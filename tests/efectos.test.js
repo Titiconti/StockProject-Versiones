@@ -4,7 +4,7 @@ const assert = require('assert'), { web } = require('./helpers');
 (async () => {
   const { w, $, click, tab, db, errs } = web();
   const ev = w.eval.bind(w);
-  assert.strictEqual(ev('FX.lienzo'), false, 'sin lienzo disponible no se dibuja nada'); assert(!$('#fxdots'));
+  assert.strictEqual(ev('FX.lienzo'), false, 'sin lienzo disponible no se dibuja nada'); assert(!$('#fxdots')); assert($('header nav #fxind'), 'indicador de sección');
   ev("document.documentElement.classList.add('anim');window.__ch=0;FX.chispas=()=>{window.__ch++}");
   tab('v'); const n = () => ev('window.__ch');
   click('#prods .p[data-id="4"]'); assert.strictEqual(ev('cart[4]'), 1); assert.strictEqual(n(), 1, 'se sumó: hay chispas');

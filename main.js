@@ -16,6 +16,16 @@ function crear() {
   win = new BrowserWindow({ width: 1280, height: 800, title: 'StockProject', autoHideMenuBar: true,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, webviewTag: false } });
   win.maximize();
+  // Caja abierta al cerrar la ventana: la página frena el cierre y acá se pregunta. Al cambiar de página (ingresar, salir) no se pregunta.
+  let cerrando = false;
+  win.on('close', () => { cerrando = true; });
+  win.webContents.on('will-prevent-unload', e => {
+    if (!cerrando) return e.preventDefault();
+    cerrando = false;
+    const r = dialog.showMessageBoxSync(win, { type: 'warning', buttons: ['Cerrar la caja', 'Salir igual'], defaultId: 0, cancelId: 0, title: 'StockProject',
+      message: 'Tenés la caja abierta', detail: 'Conviene cerrarla contando el efectivo. Si salís igual, la caja queda abierta y la retomás al volver a entrar.' });
+    if (r === 1) e.preventDefault();
+  });
   // enlaces de WhatsApp, correo o pago: se abren en el programa predeterminado de Windows, nunca dentro de la app
   win.webContents.setWindowOpenHandler(({ url }) => { if (/^(https?:|mailto:)/i.test(url)) shell.openExternal(url); return { action: 'deny' }; });
   // La ventana solo muestra las páginas del programa: no navega a sitios ni archivos externos, no incrusta webviews
