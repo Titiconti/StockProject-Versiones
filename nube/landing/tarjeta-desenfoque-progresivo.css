@@ -1,0 +1,8 @@
+[data-blur-progresivo] { position: relative; overflow: hidden; isolation: isolate; }
+/* Las capas cubren el 45% del borde elegido; el contenido que quiera quedar nítido encima usa z-index:1. */
+.blur-prog { position: absolute; inset: 55% 0 0 0; pointer-events: none; border-radius: inherit; }
+[data-blur-progresivo="top"] > .blur-prog { inset: 0 0 55% 0; }
+[data-blur-progresivo="left"] > .blur-prog { inset: 0 55% 0 0; }
+[data-blur-progresivo="right"] > .blur-prog { inset: 0 0 0 55%; }
+.blur-prog > div { position: absolute; inset: 0; }
+html.sin-animaciones .blur-prog, html.sin-blur .blur-prog { display: none; }

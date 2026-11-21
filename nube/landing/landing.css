@@ -183,3 +183,7 @@ html.fx [data-revela].is-visivel { opacity: 1; transform: none; }
 /* contraste del botón principal al pasar el mouse y aire interior en las secciones con fondo */
 .btn--primary:hover { background: #1c3de0 !important; color: #fff !important; }
 main > section:not(.sv):not(.hero) { padding-inline: 12px; }
+/* componentes de 21st.dev adaptados */
+#funciones [data-blur-progresivo] > .blur-prog { inset: 72% 0 0 0; }
+.hero__rubro { margin-top: var(--s-3) !important; }
+.hero__rubro .xfade { font-weight: 600; color: #12233d; }
