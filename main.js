@@ -66,6 +66,7 @@ app.whenReady().then(() => {
   ipcMain.handle('save', (e, s, base) => { try { if (usr.habilitado()) { const q = quien(); if (!q) return { ok: false, auth: true, err: 'La sesión venció: volvé a ingresar' }; if (!usr.puedeEscribir(q)) return { ok: false, err: 'Tu usuario es de solo consulta' }; } return store.put(s, base) } catch (x) { return { ok: false, err: String((x && x.message) || x) } } });
   ipcMain.on('version', e => { e.returnValue = store.rev(); });
   ipcMain.on('defaults', e => { e.returnValue = defaults() });
+  ipcMain.handle('xlsx:leer', async (e, buf) => { try { return await require('./xlsx-lector').leerXlsx(buf) } catch (x) { return { err: 'No se pudo leer el .xlsx' } } });
   ipcMain.handle('b:info', () => store.info());
   ipcMain.handle('b:now', () => { if (!permite('respaldo', 'crear')) return store.info(); usr.audit(quien(), 'respaldo.crear'); return store.backup(); });
   ipcMain.handle('b:choose', async () => {
