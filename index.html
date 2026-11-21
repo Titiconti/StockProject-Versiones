@@ -170,7 +170,7 @@ let MON='ARS',LOC='es-AR';const fmt=n=>new Intl.NumberFormat(LOC,{style:'currenc
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const plus=n=>{const d=new Date();d.setDate(d.getDate()+n);return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
 const T=()=>plus(0),fD=s=>s?s.split('-').reverse().join('/'):'Sin vto.';
-const sum=(p,f)=>p.lots.filter(f).reduce((a,l)=>a+l.qty,0),tot=p=>sum(p,()=>1),avail=p=>sum(p,l=>!l.exp||l.exp>=T());
+const sum=(p,f)=>p.lots.filter(f).reduce((a,l)=>a+l.qty,0),tot=p=>sum(p,()=>1),avail=p=>p.tipo==='armado'&&typeof HL!=='undefined'?HL.disp(p):sum(p,l=>!l.exp||l.exp>=T());
 const st=l=>l.exp&&l.exp<T()?['out','Vencido']:l.exp&&l.exp<=plus(30)?['low','Por vencer']:['','OK'];
 const K='stockproject_v2';
 const ED=!!window.sp,SRV=!!window.SP_BOOT,KIND=ED?'ipc':SRV?'http':'local';   // escritorio, acceso remoto o demo web
@@ -201,7 +201,7 @@ const save=()=>{_agg=null;const s=JSON.stringify(db);
 if(KIND==='local'){try{localStorage.setItem(K,s)}catch(e){}return}
 const g=gen;pending++;
 chain=chain.then(async()=>{if(g!==gen)return;const r=ED?await sp.save(s,rev):await httpSave(s);if(r&&r.ok){rev=r.rev;db.rev=r.rev;OFFH.ok()}else if(r&&r.auth&&EDA)sp.auth.ir();else if(r&&r.conflict)conflict();else if(r&&r.err)toast('No se pudo guardar: '+r.err)}).catch(()=>{OFFH.fallo();toast('Sin conexión con la PC principal: tus cambios se enviarán cuando vuelva')}).finally(()=>{pending--})};
-function cleanCart(){Object.keys(cart).forEach(id=>{const p=db.prods.find(x=>x.id==id);if(!p||avail(p)<=0)delete cart[id];else if(cart[id]>avail(p))cart[id]=avail(p)});if(clId&&!db.clients.some(c=>c.id===clId))clId=null}
+function cleanCart(){Object.keys(cart).forEach(id=>{const p=db.prods.find(x=>x.id==id);if(!p||avail(p)<=0){delete cart[id];delete cartImp[id];delete cartGus[id]}else if(cart[id]>avail(p))cart[id]=avail(p)});if(clId&&!db.clients.some(c=>c.id===clId))clId=null}
 async function reloadAll(msg){try{let s;if(ED)s=sp.load();else{const r=await fetch('/api/db');if(r.status===401){location.reload();return}s=await r.text()}
 const n=JSON.parse(s);if(n&&n.prods){db=n;fixDb();rev=db.rev||0;cleanCart();draw();OFFH.ok()}if(msg)toast(msg)}catch(e){}}
 function conflict(){const ops=OFFH.extraer();gen++;reloadAll(ops&&ops.n?'Otro dispositivo modificó los datos al mismo tiempo. Se recargó la información y se volvieron a aplicar tus últimos cambios.':'Otro dispositivo modificó los datos al mismo tiempo. Se recargó la información: repetí la última acción.').then(()=>OFFH.reaplicar(ops))}
@@ -209,7 +209,7 @@ function conflict(){const ops=OFFH.extraer();gen++;reloadAll(ops&&ops.n?'Otro di
 if(KIND!=='local'){const chk=async()=>{if(pending)return;try{const v=ED?sp.version():(await(await fetch('/api/rev')).json()).rev;OFFH.online();if(!pending&&v!==rev)reloadAll()}catch(e){OFFH.red()}};
 setInterval(chk,2500);document.addEventListener('visibilitychange',()=>{if(!document.hidden)chk()})}
 if(ED)['pointerdown','keydown'].forEach(ev=>document.addEventListener(ev,()=>{if(pending)return;try{if(sp.version()!==rev)reloadAll()}catch(e){}},true));
-let cart={},editId=null,lotP=null,arm='',back=false,clId=null;
+let cart={},cartImp={},cartGus={},editId=null,lotP=null,arm='',back=false,clId=null;
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
 function armed(k){if(arm===k)return true;arm=k;draw();setTimeout(()=>{if(arm===k){arm='';draw()}},3000);return false}
 function masRefresh(){const w=$('#masw'),b=$('#masb');if(!w)return;const vis=$$('#masmenu button').filter(x=>!x.classList.contains('hide')),act=vis.find(x=>x.classList.contains('on'));w.classList.toggle('hide',!vis.length);b.classList.toggle('on',!!act);b.textContent=(act?act.textContent:'Más')+' ▾'}
@@ -218,7 +218,8 @@ $('#masb').onclick=e=>{e.stopPropagation();$('#masmenu').classList.toggle('hide'
 document.addEventListener('click',e=>{if(!e.target.closest('#masw'))$('#masmenu').classList.add('hide')});document.addEventListener('keydown',e=>{if(e.key==='Escape')$('#masmenu').classList.add('hide')});
 function sell(p,n){const used=[];p.lots.filter(l=>!l.exp||l.exp>=T()).sort((a,b)=>(a.exp||'9')>(b.exp||'9')?1:-1).forEach(l=>{const u=Math.min(l.qty,n);l.qty-=u;n-=u;if(u>0)used.push({n:l.n,exp:l.exp,qty:u})});p.lots=p.lots.filter(l=>l.qty>0);return used}
 function restore(p,used,qty){(used||[{n:'Anulación',exp:'',qty}]).forEach(u=>{const l=p.lots.find(x=>x.n===u.n&&x.exp===u.exp);if(l)l.qty+=u.qty;else p.lots.push({id:db.lid++,n:u.n,qty:u.qty,exp:u.exp})})}
-let prodMas=0;const prodList=q=>{const a=db.prods.filter(p=>(p.name+(p.code||'')+(p.cat||'')).toLowerCase().includes(q));prodMas=a.length>60?a.length:0;return a.slice(0,60)};
+let prodMas=0;const prodList=q=>{const a=db.prods.filter(p=>(p.name+(p.code||'')+(p.cat||'')).toLowerCase().includes(q)&&!(p.balde>0&&!(p.price>0)));   // un gusto sin precio por kg no se vende suelto: sale por los tamaños
+prodMas=a.length>60?a.length:0;return a.slice(0,60)};
 function drawProds(){drawProds0();if(prodMas)$('#prods').insertAdjacentHTML('beforeend','<p class="mu" style="grid-column:1/-1">Se muestran 60 de '+prodMas+' productos. Escribí en el buscador para encontrar el que necesitás.</p>')}
 function drawProds0(){const q=$('#q').value.toLowerCase();
 $('#prods').innerHTML=prodList(q).map(p=>{const a=avail(p),ex=p.lots.filter(l=>!l.exp||l.exp>=T()).map(l=>l.exp).filter(Boolean).sort()[0];
@@ -228,7 +229,7 @@ return `<button class="p" data-id="${p.id}" ${(esPadre(p)?vp<=0:a<=0)?'disabled'
 // Vista de Ventas: cuadrícula o lista (preferencia de este equipo).
 const VISTA_K='sp_vista_ventas';function vistaVentas(v){if(v){try{localStorage.setItem(VISTA_K,v)}catch(e){}}let x='g';try{x=localStorage.getItem(VISTA_K)||'g'}catch(e){}$('#prods').classList.toggle('lista',x==='l');$$('#vvw button').forEach(b=>b.classList.toggle('on',b.dataset.vw===x));return x}
 let cartSer={};   // números de serie elegidos por producto (control por serie)
-function add(id){const p=db.prods.find(x=>x.id==id);if(!p)return;if(esPadre(p))return PX.variante(p);if(esPeso(p)||esSerie(p))return PX.elegir(p);if((cart[id]||0)>=avail(p))return toast('No hay más stock disponible');cart[id]=(cart[id]||0)+1;drawCart()}
+function add(id){const p=db.prods.find(x=>x.id==id);if(!p)return;if(esPadre(p))return PX.variante(p);if(p.tipo==='armado'&&typeof HL!=='undefined')return HL.elegir(p);if(esPeso(p)||esSerie(p))return PX.elegir(p);if((cart[id]||0)>=avail(p))return toast('No hay más stock disponible');cart[id]=(cart[id]||0)+1;drawCart()}
 $('#prods').onclick=e=>{const b=e.target.closest('.p');if(b)add(b.dataset.id)};
 $('#vvw').onclick=e=>{const b=e.target.closest('[data-vw]');if(b)vistaVentas(b.dataset.vw)};vistaVentas();
 {const dp=deb(drawProds,150);$('#q').oninput=()=>db.prods.length>300?dp():drawProds()}
@@ -247,7 +248,8 @@ function cdisc(){const c=cl$(clId);return c?(c.disc||0):0}
 const esPeso=p=>!!p&&p.unidad==='kg',esSerie=p=>!!p&&p.control==='serie',esPadre=p=>!!p&&p.control==='variantes';
 function precioBase(p,q){let b=p.price;if(!esPeso(p))(p.tramos||[]).forEach(t=>{if(q>=t.desde)b=t.precio});return b}
 function precioUnit(p,q=1){return Math.round(Math.round(precioBase(p,q)*100)*(100-cdisc())/100)/100}
-function lineaTotal(p,q){const c=Math.round(precioUnit(p,q)*100);return esPeso(p)?Math.round(c*q/1000)/100:Math.round(c*q)/100}
+function lineaTotal(p,q){const o=cartImp[p.id];if(o&&o.g===q&&esPeso(p))return o.imp;   // cobrado por importe: el total es exactamente lo que se escribió
+const c=Math.round(precioUnit(p,q)*100);return esPeso(p)?Math.round(c*q/1000)/100:Math.round(c*q)/100}
 // Cantidades para mostrar: por peso en kg (se guardan en gramos).
 const fq=(p,q)=>esPeso(p)?(q/1000).toLocaleString('es-AR',{maximumFractionDigits:3})+' kg':String(q);
 function up(p){return precioUnit(p,1)}   // precio unitario con el descuento del cliente
@@ -260,7 +262,7 @@ $('#cl').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();const f=$('#clg').
 $('#clg').onmousedown=e=>{const r=e.target.closest('[data-s]');if(r){e.preventDefault();setClient(+r.dataset.s)}};
 $('#clchip').onclick=e=>{if(e.target.closest('button'))setClient(null)};
 function drawCart(){const ids=Object.keys(cart),c=cl$(clId),dsc=cdisc();
-$('#cart').innerHTML=ids.length?ids.map(id=>{const p=db.prods.find(x=>x.id==id),n=cart[id],u=precioUnit(p,n),tr=precioBase(p,n)!==p.price;return `<div class="row"><div><b>${esc(p.name)}</b><br><span class="mu">${dsc||tr?`<s>${fmt(p.price)}</s> `:''}${fmt(u)} ${esPeso(p)?'por kg':'c/u'}${tr?' · precio por cantidad':''}${esSerie(p)&&cartSer[id]?' · N.º '+esc(cartSer[id].map(i=>(p.lots.find(l=>l.id===i)||{}).n).join(', ')):''}</span></div><div class="q">${esPeso(p)||esSerie(p)?`<button data-a="-" data-id="${id}" title="Quitar">×</button> ${fq(p,n)} <button data-a="e" data-id="${id}" title="Cambiar">✎</button>`:`<button data-a="-" data-id="${id}">−</button> ${n} <button data-a="+" data-id="${id}">+</button>`}</div><b>${fmt(lineaTotal(p,n))}</b></div>`}).join(''):'<p class="mu">Tocá un producto o escaneá un código de barras para agregarlo.</p>';
+$('#cart').innerHTML=ids.length?ids.map(id=>{const p=db.prods.find(x=>x.id==id),n=cart[id],u=precioUnit(p,n),tr=precioBase(p,n)!==p.price;return `<div class="row"><div><b>${esc(p.name)}</b><br><span class="mu">${dsc||tr?`<s>${fmt(p.price)}</s> `:''}${fmt(u)} ${esPeso(p)?'por kg':'c/u'}${tr?' · precio por cantidad':''}${esSerie(p)&&cartSer[id]?' · N.º '+esc(cartSer[id].map(i=>(p.lots.find(l=>l.id===i)||{}).n).join(', ')):''}${p.tipo==='armado'&&typeof HL!=='undefined'?HL.det(id):''}${cartImp[id]&&cartImp[id].g===n?' · por importe':''}</span></div><div class="q">${esPeso(p)||esSerie(p)?`<button data-a="-" data-id="${id}" title="Quitar">×</button> ${fq(p,n)} <button data-a="e" data-id="${id}" title="Cambiar">✎</button>`:`<button data-a="-" data-id="${id}">−</button> ${n} <button data-a="+" data-id="${id}">+</button>`}</div><b>${fmt(lineaTotal(p,n))}</b></div>`}).join(''):'<p class="mu">Tocá un producto o escaneá un código de barras para agregarlo.</p>';
 $('#clchip').innerHTML=c?`<span class="chip">${esc(c.name)} · ${dsc}% de descuento${debtOf(c.id)>0.005?' · Debe '+fmt(debtOf(c.id)):''} <button title="Venta particular">×</button></span>`:'';
 $('#occ').hidden=!c;$('#occ').disabled=!c;if(!c&&$('#pay').value==='Cuenta corriente')$('#pay').value='Efectivo';
 const t=cartTotal();$('#total').textContent=fmt(t);$('#cobrar').disabled=!ids.length;
@@ -268,16 +270,17 @@ const ef=$('#pay').value==='Efectivo';$('#recw').classList.toggle('hide',!ef);co
 $('#vuelto').innerHTML=ef&&r>0&&t>0?(r>=t?`Vuelto: <span style="color:var(--ok)">${fmt(r-t)}</span>`:`<span style="color:var(--bad)">Faltan ${fmt(t-r)}</span>`):''}
 $('#rec').oninput=$('#pay').onchange=drawCart;
 $('#cart').onclick=e=>{const b=e.target.closest('button');if(!b)return;const id=b.dataset.id;
-const p=db.prods.find(x=>x.id==id);if(b.dataset.a==='e')return PX.elegir(p,true);if(b.dataset.a==='+')add(id);else{if(esPeso(p)||esSerie(p)||--cart[id]<=0){delete cart[id];delete cartSer[id]}drawCart()}};
-$('#vaciar').onclick=()=>{cart={};cartSer={};$('#rec').value='';drawCart()};
+const p=db.prods.find(x=>x.id==id);if(b.dataset.a==='e')return PX.elegir(p,true);if(b.dataset.a==='+')add(id);else{if(p.tipo==='armado'&&cartGus[id])cartGus[id].pop();if(esPeso(p)||esSerie(p)||--cart[id]<=0){delete cart[id];delete cartSer[id];delete cartImp[id];delete cartGus[id]}drawCart()}};
+$('#vaciar').onclick=()=>{cart={};cartSer={};cartImp={};cartGus={};$('#rec').value='';drawCart()};
 $('#cobrar').onclick=()=>{const pay=$('#pay').value;if(typeof CJ!=='undefined'&&!CJ.puedeVender()){CJ.formAbrir('Para cobrar tiene que haber una caja abierta.');return toast('Abrí la caja antes de cobrar')}if(pay==='Cuenta corriente'&&!cl$(clId))return toast('Elegí un cliente para vender en cuenta corriente');
+{const e=typeof HL!=='undefined'?HL.antes():'';if(e)return toast(e)}   // heladería: vendedor elegido y gustos con stock
 for(const id of Object.keys(cart)){const p=db.prods.find(x=>x.id==id);if(p&&p.minimo&&!esPeso(p)&&cart[id]<p.minimo)return toast(p.name+': la compra mínima es de '+p.minimo+' unidades');if(p&&esSerie(p)&&!PX.serieOk(p,cartSer[id],cart[id]))return toast(p.name+': revisá los números de serie elegidos')}
 for(const id of Object.keys(cart)){const p=db.prods.find(x=>x.id==id);if(!p||!(cart[id]>0)||cart[id]>avail(p)){const n=p?p.name:'un producto';cleanCart();drawCart();drawProds();return toast('Cambió el stock vendible de '+n+' (sin stock o lote vencido): revisá la venta antes de cobrar')}}   // nunca se registra una venta con un descuento de stock incompleto
 
 const c=cl$(clId),dsc=cdisc(),total=cartTotal(),items=Object.keys(cart).map(id=>{const p=db.prods.find(x=>x.id==id),q=cart[id],lots=esSerie(p)?PX.sellSerie(p,cartSer[id]):sell(p,q),it={id:p.id,name:p.name,qty:esPeso(p)?q/1000:q,price:precioUnit(p,q),lp:p.price,cost:esPeso(p)?Math.round((p.cost||0)*100)/100:(p.cost||0),lots,tot:lineaTotal(p,q)};
-if(esPeso(p)){it.g=q;it.u='kg'}if(esSerie(p)){it.series=lots.map(l=>l.n);if(p.garantia){const d=new Date();d.setMonth(d.getMonth()+p.garantia);it.garantiaHasta=ld(d)}}if(p.cat)it.cat=p.cat;return it});
-const sale={id:db.sid++,date:new Date().toISOString(),items,total,pay};if(c){sale.cid=c.id;sale.cname=c.name;sale.disc=dsc}if(typeof CJ!=='undefined')CJ.tag(sale);sale.user=quien();
-db.sales.push(sale);save();cart={};cartSer={};$('#rec').value='';clId=null;$('#cl').value='';
+if(esPeso(p)){it.g=q;it.u='kg';if(cartImp[p.id]&&cartImp[p.id].g===q)it.porImporte=true}if(p.tipo==='armado'&&typeof HL!=='undefined'){it.gustos=HL.vender(p,cartGus[id]);it.sel=cartGus[id]}if(esSerie(p)){it.series=lots.map(l=>l.n);if(p.garantia){const d=new Date();d.setMonth(d.getMonth()+p.garantia);it.garantiaHasta=ld(d)}}if(p.cat)it.cat=p.cat;return it});
+const sale={id:db.sid++,date:new Date().toISOString(),items,total,pay};if(c){sale.cid=c.id;sale.cname=c.name;sale.disc=dsc}if(typeof CJ!=='undefined')CJ.tag(sale);sale.user=quien();if(typeof HL!=='undefined')HL.marcar(sale);
+db.sales.push(sale);save();cart={};cartSer={};cartImp={};cartGus={};$('#rec').value='';clId=null;$('#cl').value='';
 toast('Venta registrada: '+fmt(total)+(c?' · '+c.name+(pay==='Cuenta corriente'?' (a cuenta)':''):''));draw();if($('#prt').checked)printTicket(sale)};
 let lastH='';
 let lastS=null;
@@ -290,7 +293,7 @@ function buildA4(s,sh,d){return `<div class='a4'><div class='top'><div><h1>${esc
 function doPrint(h){const a4=db.shop.w==='a4';if(window.sp&&sp.print){const css=a4?a4css+'body{margin:0;padding:15mm}@page{margin:0}':'body{margin:0;width:'+(db.shop.w||72)+'mm;color:#000;font:12px/1.35 monospace}.r{display:flex;justify-content:space-between;gap:8px}hr{border:0;border-top:1px dashed #000;margin:6px 0}@page{margin:4mm}';
 sp.print('<!DOCTYPE html><html><head><meta charset=utf-8><style>'+css+'</style></head><body>'+h+'</body></html>',{a4}).then(r=>{if(r&&!r.ok&&r.err&&!/cancel/i.test(r.err))toast('No se pudo imprimir: '+r.err)}).catch(()=>toast('No se pudo imprimir'));return}
 $('#pgs').textContent=a4?'@page{size:A4;margin:15mm}':'';$('#tk').style.width=a4?'180mm':(db.shop.w||72)+'mm';$('#tk').innerHTML=h;setTimeout(()=>{try{window.print()}catch(e){toast('No se pudo abrir la impresión')}},60)}
-let invMas=0;const invList=()=>{const q=norm($('#iq').value||''),a=db.prods.filter(p=>!q||norm(p.name+' '+(p.code||'')+' '+(p.cat||'')).includes(q));invMas=a.length>100?a.length:0;return a.slice(0,100)};
+let invMas=0;const invList=()=>{const q=norm($('#iq').value||''),a=db.prods.filter(p=>p.tipo!=='armado'&&(!q||norm(p.name+' '+(p.code||'')+' '+(p.cat||'')).includes(q)));invMas=a.length>100?a.length:0;return a.slice(0,100)};
 function drawInv(){drawInv0();if(invMas)$('#inv').insertAdjacentHTML('beforeend','<tr><td colspan="9" class="mu">Se muestran 100 de '+invMas+' productos. Usá el buscador para ver el resto.</td></tr>')}
 function drawInv0(){$('#inv').innerHTML=invList().map(p=>{const t=tot(p),ex=p.lots.map(l=>l.exp).filter(Boolean).sort()[0];
 let c=['','OK'];if(t<=0)c=['out','Sin stock'];else if(p.lots.some(l=>st(l)[1]==='Vencido'))c=['out','Lote vencido'];else if(avail(p)<=p.min)c=['low','Stock bajo'];else if(ex&&ex<=plus(30))c=['low','Por vencer'];
@@ -362,8 +365,8 @@ $('#ss').onclick=()=>{db.shop={...db.shop,n:shn.value.trim(),a:sha.value.trim(),
 $('#hist').onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.p)return printTicket(db.sales.find(x=>x.id==b.dataset.p));const fix=!!b.dataset.c,id=b.dataset.c||b.dataset.v,s=db.sales.find(x=>x.id==id);
 if(fix&&Object.keys(cart).length)return toast('Primero cobrá o vaciá la venta actual');
 if(!s||!armed((fix?'c':'s')+id))return;arm='';
-s.items.forEach(i=>{const p=db.prods.find(x=>x.id==i.id);if(p)restore(p,i.lots,i.qty)});
-if(fix){ajuste({tipo:'venta.corregida',ref:s.id,txt:'Venta N.º '+String(s.id).padStart(6,'0')+' ('+fmt(s.total)+') cargada para corregir'});db.sales=db.sales.filter(x=>x!==s);s.items.forEach(i=>{if(db.prods.find(p=>p.id==i.id))cart[i.id]=i.qty});if(s.cid&&cl$(s.cid))setClient(s.cid);if([...$('#pay').options].some(o=>o.value===s.pay))$('#pay').value=s.pay}else{s.void=true;s.voidAt=new Date().toISOString();s.voidBy=quien()}
+s.items.forEach(i=>{const p=db.prods.find(x=>x.id==i.id);if(p)restore(p,i.lots,i.qty);if(i.gustos&&typeof HL!=='undefined')HL.devolver(i)});
+if(fix){ajuste({tipo:'venta.corregida',ref:s.id,txt:'Venta N.º '+String(s.id).padStart(6,'0')+' ('+fmt(s.total)+') cargada para corregir'});db.sales=db.sales.filter(x=>x!==s);s.items.forEach(i=>{if(db.prods.find(p=>p.id==i.id)){cart[i.id]=i.qty;if(i.sel)cartGus[i.id]=i.sel.map(a=>a.slice())}});if(s.cid&&cl$(s.cid))setClient(s.cid);if([...$('#pay').options].some(o=>o.value===s.pay))$('#pay').value=s.pay}else{s.void=true;s.voidAt=new Date().toISOString();s.voidBy=quien()}
 save();if(fix)$('nav button[data-t="v"]').click();draw();toast(fix?'Venta cargada para corregir':'Venta anulada y stock devuelto')};
 const ld=x=>{const d=new Date(x);return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
 const quien=()=>AU.habilitado&&AU.usuario?(AU.usuario.nombre||AU.usuario.user):'Sin usuario';
@@ -1313,11 +1316,19 @@ PX.series=(txt,q,pid)=>{const L=String(txt||'').split(/[,;\s]+/).map(x=>x.trim()
 PX.parseTramos=t=>{t=String(t||'').trim();if(!t)return{v:undefined};const out=[];for(const par of t.split(/[;\n]+/)){const m=par.trim().match(/^(\d+)\s*[=:]\s*([\d.,]+)$/);if(!m)return{err:'Precios por cantidad: usá el formato "desde=precio", por ejemplo 10=900; 50=800'};
   const desde=+m[1],precio=parseFloat(m[2].replace(/\.(?=\d{3}\b)/g,'').replace(',','.'));if(!(desde>=2))return{err:'Cada tramo empieza en 2 unidades o más'};if(!(precio>=0))return{err:'Precio por cantidad inválido'};out.push({desde,precio})}
   out.sort((a,b)=>a.desde-b.desde);for(let i=1;i<out.length;i++)if(out[i].desde===out[i-1].desde)return{err:'Hay dos tramos que empiezan en la misma cantidad'};return{v:out}};
-PX.limpiar=p=>{['unidad','control','reqVto','minimo','tramos','cat','garantia','marca','modelo'].forEach(k=>{const v=p[k];if(v==null||v===''||v===false||v===0||(Array.isArray(v)&&!v.length)||(k==='unidad'&&v==='u'))delete p[k]})};
+// Texto → número: la coma es siempre el decimal ("1,125" = 1,125 kg) y el punto solo separa miles ("4.500,50" = 4500,5). NaN si no se entiende.
+PX.num=v=>{v=String(v==null?'':v).replace(/[\s$]/g,'');if(!v)return NaN;v=v.includes(',')?v.replace(/\./g,'').replace(',','.'):/^\d{1,3}(\.\d{3})+$/.test(v)?v.replace(/\./g,''):v;return /^\d*\.?\d+$/.test(v)?parseFloat(v):NaN};
+// Importe ↔ gramos de un producto por peso, en centavos enteros (mismo criterio que lineaTotal).
+PX.gDesdeImporte=(p,imp)=>{const c=Math.round(precioUnit(p)*100);return c>0&&imp>0?Math.round(imp*100*1000/c):0};
+PX.impDeG=(p,g)=>Math.round(Math.round(precioUnit(p)*100)*g/1000)/100;
+PX.coma=(n,d)=>String(Math.round(n*10**d)/10**d).replace('.',',');
+PX.limpiar=p=>{['unidad','control','reqVto','minimo','tramos','cat','garantia','marca','modelo','plu','balde'].forEach(k=>{const v=p[k];if(v==null||v===''||v===false||v===0||(Array.isArray(v)&&!v.length)||(k==='unidad'&&v==='u'))delete p[k]})};
 // ---------- formulario de producto ----------
 $('#fg').closest('.form').insertAdjacentHTML('afterend',`<details class="dt" id="pxo" style="margin:-2px 0 10px"><summary>Opciones del producto <span class="mu" id="pxr" style="font-weight:400"></span></summary><div class="form" style="margin-top:8px">
 <div><label>Categoría</label><input id="px_cat" list="px_cats" placeholder="Ej.: Bebidas"><datalist id="px_cats"></datalist></div>
 <div data-cap="peso"><label>Se vende por</label><select id="px_u"><option value="u">Unidad</option><option value="kg">Peso (precio por kg)</option></select></div>
+<div data-cap="peso"><label>Código de balanza (PLU)</label><input id="px_plu" inputmode="numeric" placeholder="Ej.: 123"></div>
+<div data-cap="heladeria"><label>Kg por balde (gusto de helado)</label><input id="px_bal" inputmode="decimal" placeholder="Ej.: 5"></div>
 <div data-cap="control"><label>Control de stock</label><select id="px_ctl"><option value="">Normal (por cantidad y lote)</option><option value="serie" data-cap="series">Por número de serie</option><option value="variantes" data-cap="variantes">Con variantes (talle, color…)</option></select></div>
 <div data-cap="minimos"><label>Compra mínima (unidades)</label><input id="px_min" type="number" min="0"></div>
 <div data-cap="tramos" style="grid-column:span 2"><label>Precios por cantidad (desde=precio)</label><input id="px_tr" placeholder="10=900; 50=800"></div>
@@ -1330,27 +1341,41 @@ PX.vis=()=>{$$('#pxo [data-cap]').forEach(x=>{const c=x.dataset.cap;x.classList.
   $('#px_cats').innerHTML=[...new Set([...db.prods.map(p=>p.cat).filter(Boolean),...((PX.rubro()||{}).cats||[])])].sort().map(c=>`<option value="${esc(c)}">`).join('');
   const u=$('#px_u').value,c=$('#px_ctl').value,lq=fs.previousElementSibling,ll=fl.previousElementSibling;
   if(lq)lq.textContent=c==='variantes'?'Cantidad (se carga en cada variante)':u==='kg'?'Cantidad a ingresar (kg)':'Cantidad a ingresar';if(ll)ll.textContent=c==='serie'?'N.º de serie (uno por unidad, separados por coma)':'N.º de lote (opcional)';
-  fs.disabled=c==='variantes';fp.previousElementSibling.textContent=u==='kg'?'Precio por kg ('+MON+')':'Precio de venta ('+MON+')';
+  fs.disabled=c==='variantes';fp.disabled=!!editId&&typeof HL!=='undefined'&&!HL.puedePrecios();fp.previousElementSibling.textContent=u==='kg'?'Precio por kg ('+MON+')':'Precio de venta ('+MON+')';
   $('#pxr').textContent=[u==='kg'?'por peso':'',c==='serie'?'con N.º de serie':c==='variantes'?'con variantes':'',$('#px_vr').checked?'vence':'',$('#px_cat').value].filter(Boolean).join(' · ')};
 ['#px_u','#px_ctl','#px_vr','#px_cat'].forEach(x=>$(x).addEventListener('change',PX.vis));
 PX.llenarForm=p=>{const d=p||{};$('#px_cat').value=d.cat||'';$('#px_u').value=d.unidad==='kg'?'kg':'u';$('#px_ctl').value=d.control||'';$('#px_min').value=d.minimo||'';$('#px_tr').value=(d.tramos||[]).map(t=>t.desde+'='+t.precio).join('; ');
+  $('#px_plu').value=d.plu||'';$('#px_bal').value=d.balde?PX.coma(d.balde,3):'';
   $('#px_ga').value=d.garantia||'';$('#px_ma').value=d.marca||'';$('#px_mo').value=d.modelo||'';$('#px_vr').checked=p?!!d.reqVto:!!PX.caps().vtoPorDefecto;if(!p&&PX.caps().unidadPorDefecto&&PX.on('peso'))$('#px_u').value=PX.caps().unidadPorDefecto;PX.vis()};
 // Lee y valida las opciones. Nunca cambia la forma de venta o el control de un producto que ya tiene stock (cambiaría el significado de sus cantidades).
 PX.leerForm=prev=>{const u=$('#px_u').value==='kg'?'kg':'u',c=['serie','variantes'].includes($('#px_ctl').value)?$('#px_ctl').value:'',tr=PX.parseTramos($('#px_tr').value);if(tr.err)return{err:tr.err};
   const mi=$('#px_min').value===''?0:+$('#px_min').value,ga=$('#px_ga').value===''?0:+$('#px_ga').value;if(!(mi>=0)||!Number.isInteger(mi))return{err:'La compra mínima tiene que ser un número entero'};if(!(ga>=0&&ga<=240)||!Number.isInteger(ga))return{err:'La garantía va en meses enteros (0 a 240)'};
   if(u==='kg'&&c)return{err:'Un producto por peso no puede tener número de serie ni variantes'};
+  const plu=$('#px_plu').value.trim().replace(/^0+(?=\d)/,''),bal=$('#px_bal').value.trim()===''?0:PX.num($('#px_bal').value);
+  if(plu&&(!/^\d{1,13}$/.test(plu)||u!=='kg'))return{err:'El código de balanza son solo números y va en productos por peso'};
+  {const o=plu&&db.prods.find(x=>(!prev||x.id!==prev.id)&&String(x.plu||'')===plu);if(o)return{err:'El código de balanza '+plu+' ya lo usa '+o.name}}
+  if(!(bal>=0&&bal<=100)||(bal>0&&u!=='kg'))return{err:'Los kg por balde van de 0 a 100 y solo en productos por peso'};
+  // Solo gerente o administrador cambian precios (rubro heladería): el proceso principal lo vuelve a controlar.
+  if(prev&&typeof HL!=='undefined'&&!HL.puedePrecios()&&Math.abs((parseFloat(fp.value)||0)-(prev.price||0))>0.004)return{err:'Solo el gerente o el administrador pueden cambiar precios'};
   if(prev){const t=tot(prev);if(t>0&&(prev.unidad||'u')!==u)return{err:'No se puede cambiar la forma de venta de un producto con stock: dejalo en 0 o creá otro producto'};if(t>0&&(prev.control||'')!==c)return{err:'No se puede cambiar el control de stock de un producto con stock: dejalo en 0 primero'};if(c!=='variantes'&&PX.hijos(prev).length)return{err:'Este producto tiene variantes: no se puede quitar la opción de variantes'}}
-  return{d:{cat:$('#px_cat').value.trim().slice(0,60),unidad:u,control:c,reqVto:$('#px_vr').checked,minimo:mi,tramos:tr.v,garantia:ga,marca:$('#px_ma').value.trim().slice(0,60),modelo:$('#px_mo').value.trim().slice(0,60)}}};
+  return{d:{cat:$('#px_cat').value.trim().slice(0,60),unidad:u,control:c,reqVto:$('#px_vr').checked,minimo:mi,tramos:tr.v,garantia:ga,marca:$('#px_ma').value.trim().slice(0,60),modelo:$('#px_mo').value.trim().slice(0,60),plu,balde:bal}}};
 // ---------- venta por peso o por número de serie ----------
 PX.cerrar=()=>{const o=$('#pxm');if(o)o.remove()};
 PX.ov=h=>{PX.cerrar();document.body.insertAdjacentHTML('beforeend',`<div class="ov" id="pxm" role="dialog" aria-modal="true"><div class="card">${h}</div></div>`);const o=$('#pxm');o.addEventListener('click',e=>{if(e.target.closest('[data-pxx]'))PX.cerrar()});o.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();PX.cerrar()}});return o};
 PX.vigentes=p=>p.lots.filter(l=>l.qty>0&&(!l.exp||l.exp>=T()));
 PX.elegir=(p,editar)=>{if(!p)return;const a=avail(p);if(a<=0&&!cart[p.id])return toast(p.name+': sin stock vendible');
-  if(esPeso(p)){PX.ov(`<h3>${esc(p.name)}</h3><p class="mu" style="margin-top:0">${fmt(precioUnit(p))} por kg · disponible ${fq(p,a)}</p><div class="form"><div><label>Peso</label><input id="pxp" inputmode="decimal" placeholder="0,250" value="${editar&&cart[p.id]?String(cart[p.id]/1000).replace('.',','):''}"></div><div><label>En</label><select id="pxpu"><option value="kg">kg</option><option value="g">gramos</option></select></div></div><div class="tot" id="pxpt">${fmt(0)}</div><div style="display:flex;gap:8px"><button class="btn" id="pxok" style="flex:1">Agregar (Enter)</button><button class="btn sec" data-pxx="1">Cancelar</button></div>`);
+  if(esPeso(p)){PX.ov(`<h3>${esc(p.name)}</h3><p class="mu" style="margin-top:0">${fmt(precioUnit(p))} por kg · disponible ${fq(p,a)}</p><div class="form"><div><label>Peso</label><input id="pxp" inputmode="decimal" placeholder="0,250" value="${editar&&cart[p.id]?String(cart[p.id]/1000).replace('.',','):''}"></div><div><label>En</label><select id="pxpu"><option value="kg">kg</option><option value="g">gramos</option></select></div><div><label>o Importe (${esc(MON)})</label><input id="pxi" inputmode="decimal" placeholder="4500" value="${editar&&cartImp[p.id]&&cartImp[p.id].g===cart[p.id]?PX.coma(cartImp[p.id].imp,2):''}"></div></div><div class="tot" id="pxpt">${fmt(0)}</div><div style="display:flex;gap:8px"><button class="btn" id="pxok" style="flex:1">Agregar (Enter)</button><button class="btn sec" data-pxx="1">Cancelar</button></div>`);
     const g=()=>{const v=String($('#pxp').value).trim().replace(',','.'),n=parseFloat(v);return isFinite(n)&&n>0?Math.round($('#pxpu').value==='g'?n:n*1000):0};
-    const vivo=()=>{$('#pxpt').textContent=fmt(lineaTotal(p,g()))};$('#pxp').oninput=$('#pxpu').onchange=vivo;vivo();
-    const ok=()=>{const q=g();if(!(q>0))return toast('Ingresá el peso');if(q>a)return toast('No hay tanto stock: disponible '+fq(p,a));cart[p.id]=q;PX.cerrar();drawCart();const s=$('#q');if(s)s.focus()};
-    $('#pxok').onclick=ok;$('#pxp').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();ok()}};$('#pxp').focus();return}
+    // Dos formas de cargar: el peso (calcula el importe) o el importe (calcula los kg). Manda lo último que se escribió.
+    let porImp=!!$('#pxi').value;const imp=()=>PX.num($('#pxi').value);
+    const total=()=>porImp&&imp()>0?Math.round(imp()*100)/100:PX.impDeG(p,g()),vivo=()=>{$('#pxpt').textContent=fmt(total())};
+    $('#pxp').oninput=$('#pxpu').onchange=()=>{porImp=false;const q=g();$('#pxi').value=q?PX.coma(PX.impDeG(p,q),2):'';vivo()};
+    $('#pxi').oninput=()=>{porImp=true;const q=PX.gDesdeImporte(p,imp());$('#pxpu').value='kg';$('#pxp').value=q?PX.coma(q/1000,3):'';vivo()};
+    vivo();
+    const ok=()=>{let q=g();if(porImp){if(!(imp()>0))return toast('Escribí el importe con números (ej.: 4500)');q=PX.gDesdeImporte(p,imp());if(q<10)return toast('Ese importe da menos de 10 g: revisalo')}
+      if(!(q>0))return toast('Ingresá el peso');if(q>a)return toast('No hay tanto stock: disponible '+fq(p,a));
+      if(porImp)cartImp[p.id]={g:q,imp:Math.round(imp()*100)/100};else delete cartImp[p.id];cart[p.id]=q;PX.cerrar();drawCart();const s=$('#q');if(s)s.focus()};
+    $('#pxok').onclick=ok;$('#pxp').onkeydown=$('#pxi').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();ok()}};$('#pxp').focus();return}
   if(esSerie(p)){const L=PX.vigentes(p),sel=new Set(cartSer[p.id]||[]);
     PX.ov(`<h3>${esc(p.name)}</h3><p class="mu" style="margin-top:0">Elegí o escaneá los números de serie que se venden${p.garantia?' · garantía de '+p.garantia+' meses':''}.</p><input id="pxs" placeholder="Escribí o escaneá el N.º de serie y Enter"><div id="pxl" style="max-height:40vh;overflow:auto;margin:8px 0">${L.map(l=>`<label class="opt"><input type="checkbox" data-sl="${l.id}" ${sel.has(l.id)?'checked':''}> ${esc(l.n)}${l.exp?' <span class="mu">· vto. '+fD(l.exp)+'</span>':''}</label>`).join('')||'<p class="mu">No hay unidades disponibles.</p>'}</div><div style="display:flex;gap:8px"><button class="btn" id="pxsok" style="flex:1">Listo</button><button class="btn sec" data-pxx="1">Cancelar</button></div>`);
     $('#pxs').onkeydown=e=>{if(e.key!=='Enter')return;e.preventDefault();e.stopPropagation();const v=e.target.value.trim().toUpperCase(),l=L.find(x=>String(x.n).trim().toUpperCase()===v);if(!l)return toast('Ese número de serie no está disponible en '+p.name);$(`#pxl [data-sl="${l.id}"]`).checked=true;e.target.value=''};
@@ -1393,7 +1418,7 @@ MODS.push(()=>{PX.vis();PX.drawVar()});
 // habilitan opciones en cada producto (productos2.js). Agregar un rubro = agregar una entrada en RB.PERFILES.
 // Nunca modifica productos existentes. El progreso se guarda (db.cfg.entrevistaBorrador) y se puede retomar.
 const RB={};
-RB.CAPS={peso:'Venta por peso',vencimientos:'Lotes y vencimientos obligatorios por producto',series:'Números de serie',garantias:'Garantías, marca y modelo',variantes:'Variantes (talle, color…)',tramos:'Precios por cantidad',minimos:'Compra mínima'};
+RB.CAPS={heladeria:'Heladería (gustos en baldes, tamaños y vendedor en cada venta)',peso:'Venta por peso',vencimientos:'Lotes y vencimientos obligatorios por producto',series:'Números de serie',garantias:'Garantías, marca y modelo',variantes:'Variantes (talle, color…)',tramos:'Precios por cantidad',minimos:'Compra mínima'};
 // Cada rubro: tipo (perfil general de menú e Inicio), capacidades de arranque, preguntas propias, categorías sugeridas,
 // motivos de baja propios y textos de ejemplo. Lo que un rubro no usa no aparece en el programa.
 RB.PERFILES={
@@ -1413,6 +1438,7 @@ RB.PERFILES={
   petshop:{n:'Pet shop',d:'Alimento suelto o en bolsa, accesorios e higiene para mascotas.',tipo:'minorista',caps:{peso:true,vencimientos:true},pregs:['pe_peso','pe_vto','stock'],cats:['Alimento para perros','Alimento para gatos','Accesorios','Higiene','Farmacia veterinaria'],ej:'Alimento adulto 15 kg'},
   dietetica:{n:'Dietética',d:'Frutos secos, harinas, semillas y suplementos, muchos por peso.',tipo:'minorista',caps:{peso:true,unidadPorDefecto:'kg',vencimientos:true},pregs:['d_unidad','d_vto','d_merma','stock'],cats:['Frutos secos','Harinas','Semillas','Legumbres','Suplementos','Sin TACC'],motivos:['Merma por fraccionado'],ej:'Almendras'},
   perfumeria:{n:'Perfumería',d:'Fragancias, maquillaje y cuidado personal.',tipo:'minorista',caps:{vencimientos:true},pregs:['pf_vto','pf_var','stock'],cats:['Fragancias','Maquillaje','Cuidado de la piel','Cabello','Higiene'],ej:'Esmalte de uñas'},
+  heladeria:{n:'Heladería',d:'Gustos por balde, tamaños de precio fijo (cucurucho, ¼, ½, 1 kg) y vendedor en cada venta.',tipo:'minorista',caps:{peso:true,heladeria:true},pregs:['stock'],cats:['Helado','Tamaños','Insumos'],motivos:['Derretido'],ej:'Dulce de leche'},
   otro:{n:'Otro comercio',d:'Elegí vos qué funciones querés tener disponibles.',tipo:'otro',caps:{},pregs:['o_peso','o_vto','stock'],cats:[],ej:'Producto'}
 };
 // Rubro equivalente para negocios que contestaron la encuesta anterior (por tipo de comercio).
@@ -1763,6 +1789,187 @@ $('#me_cp').onclick=()=>{const t=ME.mensaje();if(navigator.clipboard)navigator.c
 $('#me_pr').onclick=()=>doPrint('<div style="font:14px/1.5 system-ui,sans-serif;white-space:pre-line">'+esc(ME.mensaje())+'</div>');
 // Reemplaza el dibujo de Pedidos: la pantalla nueva y, en "Pedidos con seguimiento", lo de antes.
 {const d0=drawOrd;drawOrd=function(){d0();const b=$('nav button[data-t="o"]');if(b)b.textContent='Mercadería';ME.draw()}}
+</script>
+<script>
+// ===== Heladería (v5.7.0): gustos por balde, tamaños de precio fijo y vendedor en cada venta =====
+// Modelo (todo opcional; un negocio que no es heladería no cambia):
+//   gusto  = producto por peso (stock en gramos) con `balde` (kg por balde lleno). Los baldes son solo la forma de verlo y cargarlo.
+//   tamaño = producto `tipo:'armado'` con `receta:{g,gustos}` (gramos totales y máximo de gustos) y precio fijo, sin stock propio.
+//   venta  = `items[].gustos:[{id,n,g,lots}]` (lo descontado de cada gusto, para devolverlo exacto al anular), `items[].sel` (gustos por unidad)
+//            y `vend:{id,nombre}` (quién vendió). `user` pasa a ser el vendedor y `cajero` queda con quien tenía la sesión.
+// Configuración: db.cfg.hel = { balde (kg por defecto), vend:[{id,nombre}], vid }.
+const HL={};
+HL.on=()=>PX.on('heladeria');
+HL.cfg=()=>db.cfg.hel||{};
+HL.baldeKg=p=>p.balde>0?p.balde:(HL.cfg().balde||5);
+HL.esGusto=p=>!!p&&p.unidad==='kg'&&p.balde>0;
+HL.gustos=()=>db.prods.filter(HL.esGusto);
+HL.armados=()=>db.prods.filter(p=>p.tipo==='armado');
+// Solo administrador y gerente cambian precios (lo vuelve a controlar el proceso principal en usuarios.js).
+HL.puedePrecios=()=>!AU.habilitado||!HL.on()||(['admin','gerente'].includes((AU.usuario||{}).rol)&&can('productos','editar'));
+HL.puedeStock=()=>can('productos','editar');
+HL.baldes=p=>avail(p)/1000/HL.baldeKg(p);
+// Se muestra redondeado al medio balde (0,5 · 1 · 1,5); los gramos reales siguen guardados.
+HL.fmtB=b=>{const r=Math.round(b*2)/2;return r===0&&b>0?'menos de 0,5':PX.coma(r,1)};
+// Cuántos tamaños se podrían armar todavía con los gustos que hay (el control exacto se hace al cobrar).
+HL.disp=p=>{const g=(p.receta||{}).g||0;return g?Math.min(9999,Math.floor(HL.gustos().reduce((a,x)=>a+avail(x),0)/g)):0};
+// Reparte g gramos entre n gustos en gramos enteros; lo que sobra va al primero.
+HL.reparto=(g,n)=>{const b=Math.floor(g/n);return Array.from({length:n},(_,i)=>i?b:g-b*(n-1))};
+// Gramos que necesita cada gusto para todo lo que hay en el carrito.
+HL.necesidad=()=>{const m={};Object.keys(cartGus).forEach(id=>{const p=db.prods.find(x=>x.id==id);if(!p||!p.receta)return;(cartGus[id]||[]).forEach(u=>HL.reparto(p.receta.g,u.length).forEach((g,i)=>{m[u[i]]=(m[u[i]]||0)+g}))});return m};
+HL.faltante=()=>{const m=HL.necesidad();for(const gid in m){const gp=db.prods.find(x=>x.id==gid),a=gp?avail(gp):0;if(m[gid]>a)return(gp?gp.name:'Un gusto')+': no alcanza ('+a+' g disponibles, hacen falta '+m[gid]+' g)'}return''};
+// Vendedor: el último que se tocó queda preseleccionado (en este equipo) pero siempre a la vista.
+HL.vend=()=>HL.cfg().vend||[];
+HL.K='sp_hl_vend';
+HL.actual=()=>{let id=HL._v;if(id==null){try{id=+localStorage.getItem(HL.K)||0}catch(e){id=0}}return HL.vend().find(v=>v.id===id)||null};
+HL.elegirV=id=>{HL._v=id;try{localStorage.setItem(HL.K,String(id))}catch(e){}};
+HL.marcar=sale=>{if(!HL.on())return;const v=HL.actual();if(!v)return;sale.vend={id:v.id,nombre:v.nombre};sale.cajero=sale.user;sale.user=v.nombre};
+// Antes de cobrar: vendedor elegido, gustos de cada tamaño y gramos suficientes. Devuelve el motivo o ''.
+HL.antes=()=>{if(!HL.on())return'';if(HL.vend().length&&!HL.actual())return'Tocá quién vende antes de cobrar';
+  for(const id of Object.keys(cart)){const p=db.prods.find(x=>x.id==id);if(!p||p.tipo!=='armado')continue;const s=cartGus[id]||[];if(s.length!==cart[id]||s.some(u=>!u.length))return p.name+': elegí los gustos de cada uno';if(!(p.price>0))return p.name+': falta el precio (lo carga el gerente)'}
+  return HL.faltante()};
+// Descuenta los gramos de cada gusto (FIFO por lote) y devuelve lo descontado, agrupado por gusto.
+HL.vender=(p,sel)=>{const por={};(sel||[]).forEach(u=>HL.reparto(p.receta.g,u.length).forEach((g,i)=>{const gp=db.prods.find(x=>x.id==u[i]);if(!gp)return;const o=por[gp.id]=por[gp.id]||{id:gp.id,n:gp.name,g:0,lots:[]};o.g+=g;
+  sell(gp,g).forEach(l=>{const k=o.lots.find(y=>y.n===l.n&&y.exp===l.exp);if(k)k.qty+=l.qty;else o.lots.push(l)})}));return Object.values(por)};
+HL.devolver=i=>(i.gustos||[]).forEach(x=>{const gp=db.prods.find(p=>p.id===x.id);if(gp)restore(gp,x.lots,x.g)});
+HL.det=id=>{const s=cartGus[id]||[];return s.length?' · '+s.map(u=>u.map(g=>esc((db.prods.find(x=>x.id==g)||{}).name||'?')).join(' + ')).join(' | '):''};
+// Ventas por vendedor desde un día (AAAA-MM-DD). Las anuladas no cuentan; las de antes de la heladería van a "Sin vendedor".
+HL.porVendedor=desde=>{const m={};db.sales.filter(s=>!s.void&&UT.dk(s.date)>=desde).forEach(s=>{const k=s.vend?s.vend.nombre:'Sin vendedor',o=m[k]=m[k]||{nombre:k,n:0,total:0};o.n++;o.total=UT.r2(o.total+s.total)});return Object.values(m).sort((a,b)=>b.total-a.total)};
+
+// ---------- Altas: gustos, baldes y tamaños ----------
+HL.nuevoGusto=(nombre,kgBalde,baldes)=>{nombre=String(nombre||'').trim().slice(0,60);if(!nombre)return{err:'Escribí el nombre del gusto'};if(db.prods.some(p=>norm(p.name)===norm(nombre)))return{err:'Ese nombre ya existe'};
+  const kg=kgBalde===''||kgBalde==null?HL.baldeKg({}):PX.num(kgBalde),n=baldes===''||baldes==null?0:PX.num(baldes);if(!(kg>0&&kg<=100))return{err:'Los kg por balde van de 0 a 100'};if(!(n>=0))return{err:'Cantidad de baldes inválida'};
+  const p={id:db.nid++,name:nombre,code:'',price:0,cost:0,min:0,unidad:'kg',balde:kg,cat:'Helado',lots:[]};db.prods.push(p);if(n>0)HL.cargar(p.id,n);else save();return{ok:true,p}};
+HL.cargar=(id,n)=>{const p=db.prods.find(x=>x.id===id),g=p&&Math.round(n*HL.baldeKg(p)*1000);if(!p||!(g>0))return{err:'Cargá una cantidad de baldes mayor a 0'};addLot(p,'Baldes',g,'');ajuste({tipo:'stock.ingreso',pid:p.id,txt:p.name+': +'+PX.coma(n,2)+' balde(s)'});save();return{ok:true}};
+// Ajuste manual ("queda medio balde"): deja el stock en `baldes` baldes y anota la diferencia.
+HL.ajustar=(id,baldes)=>{const p=db.prods.find(x=>x.id===id),b=PX.num(baldes);if(!p)return{err:'Gusto inexistente'};if(!(b>=0))return{err:'Escribí cuántos baldes quedan (ej.: 0,5)'};
+  const meta=Math.round(b*HL.baldeKg(p)*1000),dif=meta-tot(p);if(!dif)return{ok:true};
+  if(dif>0)addLot(p,'Ajuste',dif,'');else{let n=-dif;p.lots.slice().sort((x,y)=>(x.exp||'9')>(y.exp||'9')?1:-1).forEach(l=>{const u=Math.min(l.qty,n);l.qty-=u;n-=u});p.lots=p.lots.filter(l=>l.qty>0)}
+  ajuste({tipo:'stock.ajuste',pid:p.id,txt:p.name+': ajuste a '+PX.coma(b,2)+' balde(s) ('+(dif>0?'+':'')+dif+' g)'});save();return{ok:true,dif}};
+HL.nuevoTamano=(nombre,g,gustos,precio)=>{nombre=String(nombre||'').trim().slice(0,60);g=PX.num(g);gustos=PX.num(gustos);precio=precio===''||precio==null?0:PX.num(precio);
+  if(!nombre)return{err:'Escribí el nombre del tamaño'};if(db.prods.some(p=>norm(p.name)===norm(nombre)))return{err:'Ese nombre ya existe'};if(!(Number.isInteger(g)&&g>=1&&g<=20000))return{err:'Los gramos son un número entero (1 a 20000)'};
+  if(!(Number.isInteger(gustos)&&gustos>=1&&gustos<=12))return{err:'El máximo de gustos va de 1 a 12'};if(!(precio>=0))return{err:'Precio inválido'};
+  const p={id:db.nid++,name:nombre,code:'',price:precio,cost:0,min:0,tipo:'armado',receta:{g,gustos},cat:'Tamaños',lots:[]};db.prods.push(p);save();return{ok:true,p}};
+// Valores de ejemplo (sin precio: lo carga el gerente). No pisa los que ya existen.
+HL.EJ=[['Cucurucho',150,2],['1/4 kg',250,3],['1/2 kg',500,4],['1 kg',1000,4]];
+HL.ejemplos=()=>{let n=0;HL.EJ.forEach(([a,g,k])=>{if(!db.prods.some(p=>norm(p.name)===norm(a))&&HL.nuevoTamano(a,g,k,0).ok)n++});return n};
+HL.guardarVend=txt=>{const nombres=[...new Set(String(txt||'').split(/[,;\n]+/).map(x=>x.trim().slice(0,40)).filter(Boolean))].slice(0,12),h=db.cfg.hel=db.cfg.hel||{},ant=h.vend||[];h.vid=h.vid||1;
+  h.vend=nombres.map(nombre=>ant.find(v=>norm(v.nombre)===norm(nombre))||{id:h.vid++,nombre});save();return{ok:true,vend:h.vend}};
+
+// ---------- Elegir los gustos de un tamaño (Ventas) ----------
+document.head.insertAdjacentHTML('beforeend','<style>.hlg{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin:8px 0;max-height:50vh;overflow:auto}.hlg .btn{padding:14px 8px;text-align:center}.hlg .btn.on,.hlv.on{background:var(--ac);color:var(--act)}#hlbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 14px}.hlv{font-size:18px;padding:14px 22px;min-width:110px}.hlv.sec{background:var(--bg);color:var(--tx);border:1px solid var(--bd)}</style>');
+HL.elegir=p=>{if(!(p.price>0))return toast(p.name+': falta el precio (lo carga el gerente)');const max=p.receta.gustos,L=HL.gustos().filter(x=>avail(x)>0),sel=new Set(),nom=id=>(db.prods.find(x=>x.id===id)||{}).name;
+  PX.ov(`<h3>${esc(p.name)}</h3><p class="mu" style="margin-top:0">Elegí hasta ${max} gusto${max>1?'s':''} · ${p.receta.g} g repartidos en partes iguales</p><div id="hlg" class="hlg">${L.map(x=>`<button class="btn sec" data-hg="${x.id}">${esc(x.name)}<br><small>${HL.fmtB(HL.baldes(x))} baldes</small></button>`).join('')||'<p class="mu">No hay gustos con stock.</p>'}</div><p class="mu" id="hlgs" style="min-height:1.4em"></p><div style="display:flex;gap:8px"><button class="btn" id="hlok" style="flex:1">Agregar</button><button class="btn sec" data-pxx="1">Cancelar</button></div>`);
+  const pint=()=>{$$('#hlg [data-hg]').forEach(b=>b.classList.toggle('on',sel.has(+b.dataset.hg)));$('#hlgs').textContent=sel.size?sel.size+' de '+max+': '+[...sel].map((id,i)=>nom(id)+' '+HL.reparto(p.receta.g,sel.size)[i]+' g').join(' · '):''};
+  $('#hlg').onclick=e=>{const b=e.target.closest('[data-hg]');if(!b)return;const id=+b.dataset.hg;if(sel.has(id))sel.delete(id);else if(sel.size>=max)return toast('Máximo '+max+' gustos');else sel.add(id);pint()};
+  $('#hlok').onclick=()=>{if(!sel.size)return toast('Elegí al menos un gusto');const a=cartGus[p.id],c=cart[p.id];cartGus[p.id]=[...(a||[]),[...sel]];cart[p.id]=cartGus[p.id].length;
+    const f=HL.faltante();if(f){if(a)cartGus[p.id]=a;else delete cartGus[p.id];if(c)cart[p.id]=c;else delete cart[p.id];return toast(f)}PX.cerrar();drawCart()}};
+
+// ---------- Barra del vendedor (Ventas) ----------
+$('#v').insertAdjacentHTML('afterbegin','<div class="card hide" id="hlbar"></div>');
+HL.drawBar=()=>{const b=$('#hlbar');if(!b)return;const on=HL.on();b.classList.toggle('hide',!on);if(!on)return;const V=HL.vend(),a=HL.actual();
+  b.innerHTML=V.length?`<b>Vende:</b> ${V.map(v=>`<button class="btn hlv ${a&&a.id===v.id?'on':'sec'}" data-hv="${v.id}" aria-pressed="${!!(a&&a.id===v.id)}">${esc(v.nombre)}</button>`).join('')}`:'<span class="mu">Cargá los empleados del turno en Heladería para elegir quién vende en cada venta.</span>'};
+$('#hlbar').onclick=e=>{const b=e.target.closest('[data-hv]');if(!b)return;HL.elegirV(+b.dataset.hv);HL.drawBar()};
+
+// ---------- Pantalla Heladería (Más) ----------
+$('main').insertAdjacentHTML('beforeend',`<section id="hl" class="hide"><div class="card"><div class="lh"><h3>Gustos y baldes</h3></div><p class="mu" style="margin-top:0">El stock se ve en baldes (se redondea al medio balde) y se guarda en gramos. Un balde lleno pesa los kg que indiques en cada gusto.</p>
+<div class="form"><div><label>Nombre del gusto</label><input id="hl_gn" placeholder="Ej.: Dulce de leche"></div><div><label>Kg por balde</label><input id="hl_gk" inputmode="decimal" placeholder="5"></div><div><label>Baldes iniciales</label><input id="hl_gb" inputmode="decimal" placeholder="0"></div><div><button class="btn" id="hl_ga">Agregar gusto</button></div></div>
+<div class="wrap"><table><thead><tr><th>Gusto</th><th class="n">Baldes</th><th class="n">Kg</th><th class="n">Kg por balde</th><th>Cargar / ajustar</th></tr></thead><tbody id="hl_gl"></tbody></table></div></div>
+<div class="card"><div class="lh"><h3>Tamaños de precio fijo</h3><button class="btn sec" id="hl_ej">Cargar tamaños de ejemplo</button></div><p class="mu" style="margin-top:0">Cada tamaño descuenta sus gramos de los gustos que se elijan al vender. Solo el gerente o el administrador cambian gramos, gustos y precios.</p>
+<div class="form"><div><label>Nombre</label><input id="hl_tn" placeholder="Ej.: 1/2 kg"></div><div><label>Gramos</label><input id="hl_tg" inputmode="numeric" placeholder="500"></div><div><label>Máximo de gustos</label><input id="hl_tm" inputmode="numeric" placeholder="4"></div><div><label>Precio</label><input id="hl_tp" inputmode="decimal" placeholder="0"></div><div><button class="btn" id="hl_ta">Agregar tamaño</button></div></div>
+<div class="wrap"><table><thead><tr><th>Tamaño</th><th class="n">Gramos</th><th class="n">Máx. gustos</th><th class="n">Precio</th></tr></thead><tbody id="hl_tl"></tbody></table></div></div>
+<div class="card"><h3>Empleados del turno</h3><p class="mu" style="margin-top:0">Separados por coma. En Ventas aparecen como botones grandes: se toca quién vende y queda registrado en cada venta.</p><div class="form"><div style="grid-column:span 2"><input id="hl_vs" placeholder="Ana, Luis, Marta"></div><div><button class="btn" id="hl_vg">Guardar empleados</button></div></div></div>
+<div class="card"><div class="lh"><h3>Ventas por vendedor</h3><select id="hl_vp" style="width:auto"><option value="0">Hoy</option><option value="6">Últimos 7 días</option><option value="29">Últimos 30 días</option></select></div><div class="wrap"><table><thead><tr><th>Vendedor</th><th class="n">Ventas</th><th class="n">Total</th></tr></thead><tbody id="hl_vl"></tbody></table></div></div></section>`);
+$('#masmenu').insertAdjacentHTML('beforeend','<button data-t="hl">Heladería</button>');
+{const b=$('#masmenu button[data-t="hl"]');b.onclick=()=>{$$('nav button').forEach(x=>x.classList.toggle('on',x===b));$$('nav button').map(x=>x.dataset.t).forEach(s=>$('#'+s)&&$('#'+s).classList.toggle('hide',s!=='hl'));$('#masmenu').classList.add('hide');masRefresh();draw()}}
+MODT.hl='inventario';if(typeof CF!=='undefined'&&CF.NAVN)CF.NAVN.hl='Heladería';
+{const r0=relevante;relevante=t=>t==='hl'?HL.on():r0(t)}
+HL.drawPant=()=>{if($('#hl').classList.contains('hide'))return;const pp=HL.puedePrecios(),ps=HL.puedeStock();
+  $('#hl_gl').innerHTML=HL.gustos().map(p=>`<tr><td><b>${esc(p.name)}</b></td><td class="n">${HL.fmtB(HL.baldes(p))}</td><td class="n">${PX.coma(avail(p)/1000,3)}</td><td class="n">${PX.coma(HL.baldeKg(p),3)}</td><td><button class="btn sec" data-hm="${p.id}" ${ps?'':'disabled'}>+ 1 balde</button> <input data-hq="${p.id}" inputmode="decimal" placeholder="Queda (baldes)" style="width:130px" ${ps?'':'disabled'}> <button class="btn sec" data-ha="${p.id}" ${ps?'':'disabled'}>Ajustar</button></td></tr>`).join('')||'<tr><td colspan="5" class="mu">Todavía no cargaste gustos.</td></tr>';
+  $('#hl_tl').innerHTML=HL.armados().map(p=>`<tr><td><b>${esc(p.name)}</b></td><td class="n"><input data-tg="${p.id}" value="${p.receta.g}" inputmode="numeric" style="width:90px" ${pp?'':'disabled'}></td><td class="n"><input data-tm="${p.id}" value="${p.receta.gustos}" inputmode="numeric" style="width:70px" ${pp?'':'disabled'}></td><td class="n"><input data-tp="${p.id}" value="${p.price?PX.coma(p.price,2):''}" placeholder="Sin precio" inputmode="decimal" style="width:110px" ${pp?'':'disabled'}></td></tr>`).join('')||'<tr><td colspan="4" class="mu">Todavía no hay tamaños: cargá los de ejemplo o agregá el tuyo.</td></tr>';
+  $('#hl_ej').disabled=!pp;$('#hl_ta').disabled=!pp;if(document.activeElement!==$('#hl_vs'))$('#hl_vs').value=HL.vend().map(v=>v.nombre).join(', ');
+  $('#hl_vl').innerHTML=HL.porVendedor(UT.add(UT.hoy(),-(+$('#hl_vp').value))).map(o=>`<tr><td>${esc(o.nombre)}</td><td class="n">${o.n}</td><td class="n">${fmt(o.total)}</td></tr>`).join('')||'<tr><td colspan="3" class="mu">Sin ventas en el período.</td></tr>'};
+{const sin=()=>toast('Tu usuario no tiene permiso para esto'),fin=(r,m)=>{if(r.err)return toast(r.err);draw();if(m)toast(m)};
+  $('#hl_ga').onclick=()=>{if(!can('productos','crear'))return sin();const r=HL.nuevoGusto($('#hl_gn').value,$('#hl_gk').value,$('#hl_gb').value);if(!r.err)['#hl_gn','#hl_gk','#hl_gb'].forEach(s=>$(s).value='');fin(r,'Gusto agregado')};
+  $('#hl_ta').onclick=()=>{if(!HL.puedePrecios())return sin();const r=HL.nuevoTamano($('#hl_tn').value,$('#hl_tg').value,$('#hl_tm').value,$('#hl_tp').value);if(!r.err)['#hl_tn','#hl_tg','#hl_tm','#hl_tp'].forEach(s=>$(s).value='');fin(r,'Tamaño agregado')};
+  $('#hl_ej').onclick=()=>{if(!HL.puedePrecios())return sin();const n=HL.ejemplos();fin({},n?n+' tamaños cargados: completá el precio de cada uno':'Los tamaños de ejemplo ya estaban')};
+  $('#hl_vg').onclick=()=>{if(!HL.puedeStock())return sin();HL.guardarVend($('#hl_vs').value);fin({},'Empleados guardados')};
+  $('#hl_vp').onchange=HL.drawPant;
+  $('#hl_gl').onclick=e=>{const b=e.target.closest('button');if(!b)return;if(!HL.puedeStock())return sin();if(b.dataset.hm)fin(HL.cargar(+b.dataset.hm,1),'Balde cargado');else if(b.dataset.ha){const i=$(`#hl_gl [data-hq="${b.dataset.ha}"]`);fin(HL.ajustar(+b.dataset.ha,i.value),'Stock ajustado')}};
+  // Cambios en la tabla de tamaños (gramos, gustos, precio): se guardan al salir del campo.
+  $('#hl_tl').onchange=e=>{const i=e.target,id=+(i.dataset.tg||i.dataset.tm||i.dataset.tp),p=db.prods.find(x=>x.id===id);if(!p)return;if(!HL.puedePrecios()){draw();return sin()}
+    const v=PX.num(i.value);if(i.dataset.tp){if(i.value.trim()===''||!(v>=0)){draw();return toast('Precio inválido')}if(Math.abs(v-p.price)>0.004){ajuste({tipo:'producto.precio',pid:p.id,txt:p.name+': precio '+fmt(p.price)+' → '+fmt(v)});p.price=v}}
+    else{const k=i.dataset.tg?'g':'gustos',max=k==='g'?20000:12;if(!(Number.isInteger(v)&&v>=1&&v<=max)){draw();return toast(k==='g'?'Los gramos son un número entero (1 a 20000)':'El máximo de gustos va de 1 a 12')}p.receta={...p.receta,[k]:v}}
+    save();draw()}}
+MODS.push(()=>{HL.drawBar();HL.drawPant()});
+</script>
+<script>
+// ===== Balanza (v5.7.0): etiquetas EAN-13 de balanza (prefijo 2) con precio o peso adentro =====
+// Plantilla en db.cfg.balanza = { iPlu, nPlu, iVal, nVal, tipo:'importe'|'peso', dec }. Las posiciones cuentan desde 0 sobre los 13 dígitos
+// (el último, el 12, es el dígito de control; no se puede usar). `dec` = cuántos decimales trae el valor
+// (importe 450000 con dec 2 = $4.500,00 · peso 01125 con dec 3 = 1,125 kg). Cada producto por peso guarda su `plu` (el N.º que usa la balanza).
+// shortcut: una sola plantilla por local y se ignora un dígito de control interno del importe; si hay balanzas con formatos distintos, pasar a una lista de plantillas.
+const BZ={};
+BZ.digito=c12=>{let s=0;for(let i=0;i<12;i++)s+=(+c12[i])*(i%2?3:1);return(10-s%10)%10};
+BZ.valido=c=>/^\d{13}$/.test(c)&&BZ.digito(c)===+c[12];
+BZ.esEtiqueta=c=>/^2\d{12}$/.test(String(c));
+BZ.tplErr=t=>{if(!t||typeof t!=='object')return'Falta configurar la balanza';
+  if(['iPlu','nPlu','iVal','nVal','dec'].some(k=>!Number.isInteger(t[k])||t[k]<0))return'La plantilla tiene números inválidos';if(!['importe','peso'].includes(t.tipo))return'El valor de la etiqueta es importe o peso';
+  if(t.iPlu<1||t.iVal<1||t.nPlu<1||t.nVal<1||t.iPlu+t.nPlu>12||t.iVal+t.nVal>12)return'La plantilla se sale de la etiqueta (el primer dígito es el prefijo y el último el de control)';
+  if(t.iPlu<t.iVal+t.nVal&&t.iVal<t.iPlu+t.nPlu)return'El producto y el importe/peso no pueden pisarse';if(t.dec>3)return'Hasta 3 decimales';return''};
+// → {plu (sin ceros a la izquierda), valor, tipo} o {err}. Valida el dígito de control.
+BZ.decodificar=(code,t)=>{code=String(code||'').trim();if(!BZ.esEtiqueta(code))return{err:'No es una etiqueta de balanza (13 dígitos que empiezan con 2)'};const e=BZ.tplErr(t);if(e)return{err:e};
+  if(!BZ.valido(code))return{err:'El dígito de control de la etiqueta no coincide: leela de nuevo'};
+  return{plu:String(+code.substr(t.iPlu,t.nPlu)),valor:Math.round(+code.substr(t.iVal,t.nVal))/10**t.dec,tipo:t.tipo}};
+// Asistente: dada una etiqueta real y lo que dice (N.º de producto y importe o peso), devuelve las plantillas posibles, la más probable primero.
+BZ.deducir=(code,pluTxt,valTxt,tipo)=>{code=String(code||'').trim();if(!BZ.esEtiqueta(code))return{err:'Escaneá una etiqueta de balanza (13 dígitos que empiezan con 2)'};
+  const pl=String(pluTxt||'').replace(/\D/g,''),vt=String(valTxt||'').replace(/[\s$]/g,''),vn=PX.num(vt);if(!pl||!(+pl>0))return{err:'Escribí el N.º de producto que usa la balanza'};if(!(vn>0))return{err:'Escribí el importe o el peso que dice la etiqueta'};
+  const decT=(vt.split(',')[1]||'').length,out=[],visto=new Set();
+  for(let nPlu=1;nPlu<=8;nPlu++)for(let iPlu=1;iPlu+nPlu<=12;iPlu++){if(+code.substr(iPlu,nPlu)!==+pl)continue;
+    for(let nVal=2;nVal<=7;nVal++)for(let iVal=1;iVal+nVal<=12;iVal++){if(iPlu<iVal+nVal&&iVal<iPlu+nPlu)continue;const raw=+code.substr(iVal,nVal);
+      for(let dec=0;dec<=3;dec++){if(Math.abs(raw/10**dec-vn)>1e-9)continue;const k=[iPlu,nPlu,iVal,nVal,dec].join();if(visto.has(k))continue;visto.add(k);
+        out.push({t:{iPlu,nPlu,iVal,nVal,tipo:tipo==='peso'?'peso':'importe',dec},puntos:(dec===decT?4:0)+(iVal+nVal===12?3:0)+(iPlu<=2?2:0)+(iPlu===1?1:0)+(nVal===5?1:0)+(nPlu>=4?1:0)})}}}
+  out.sort((a,b)=>b.puntos-a.puntos);if(!out.length)return{err:'No encontré ese producto y ese valor dentro de la etiqueta: revisá lo que escribiste'};
+  return{plantillas:out.slice(0,5).map(o=>o.t),controlOk:BZ.valido(code)}};
+BZ.describir=t=>`producto: dígitos ${t.iPlu+1} a ${t.iPlu+t.nPlu} · ${t.tipo==='peso'?'peso':'importe'}: dígitos ${t.iVal+1} a ${t.iVal+t.nVal}, ${t.dec} decimal${t.dec===1?'':'es'}`;
+BZ.producto=plu=>db.prods.find(p=>esPeso(p)&&String(p.plu||'')===String(plu));
+// Agrega una pesada al carrito. imp = importe fijo (si la etiqueta trae importe) o null.
+BZ.agregar=(p,g,imp)=>{const a=avail(p),g0=cart[p.id]||0;if(!(g>0))return{err:'La etiqueta de '+p.name+' trae un peso o importe en cero'};if(g0+g>a)return{err:'No hay tanto stock de '+p.name+': disponible '+fq(p,a)};
+  if(imp!=null||cartImp[p.id])cartImp[p.id]={g:g0+g,imp:UT.r2((g0?lineaTotal(p,g0):0)+(imp!=null?imp:PX.impDeG(p,g)))};
+  cart[p.id]=g0+g;drawCart();return{ok:true}};
+// Una lectura en Ventas. true = era una etiqueta de balanza y ya se atendió (con éxito o con aviso).
+BZ.escaneo=code=>{code=String(code||'').trim();if(!BZ.esEtiqueta(code)||!db.cfg.balanza)return false;
+  if(db.prods.some(p=>String(p.code||'').trim()===code))return false;   // es el código de barras de un producto común
+  const r=BZ.decodificar(code,db.cfg.balanza);if(r.err){beep(0);toast(r.err);return true}
+  const p=BZ.producto(r.plu);if(!p){beep(0);toast('Etiqueta de balanza: ningún producto por peso tiene el código de balanza '+r.plu);return true}
+  const g=r.tipo==='peso'?Math.round(r.valor*1000):PX.gDesdeImporte(p,r.valor),x=BZ.agregar(p,g,r.tipo==='importe'?r.valor:null);
+  if(x.err){beep(0);toast(x.err);return true}beep(1);toast(p.name+' · '+fq(p,g)+' · '+fmt(lineaTotal(p,cart[p.id])));return true};
+{const s0=onScan;onScan=function(code){if(tabActiva()==='v'&&!$('#pxm')&&BZ.escaneo(code))return;return s0(code)}}
+{const k0=$('#q').onkeydown;$('#q').onkeydown=e=>{if(e.key==='Enter'&&BZ.escaneo(e.target.value)){e.target.value='';drawProds();return}return k0.call(e.target,e)}}
+
+// ---------- Configuración > Mi negocio ----------
+{const n=$('[data-sub="n"]');if(n){
+  n.insertAdjacentHTML('beforeend',`<details class="card" id="bz_d"><summary>Balanza: etiquetas con código de barras</summary>
+<p class="mu">Si tu balanza imprime etiquetas con código de barras (empiezan con 2), el lector arma la venta solo. Cada producto por peso lleva el "código de balanza" que usa la balanza (en Productos, Opciones del producto).</p>
+<h4 style="margin:10px 0 4px">Asistente: aprender de una etiqueta real</h4>
+<div class="form"><div><label>Escaneá una etiqueta</label><input id="bz_et" inputmode="numeric" placeholder="13 dígitos"></div><div><label>N.º de producto en la balanza</label><input id="bz_pl" inputmode="numeric" placeholder="Ej.: 123"></div><div><label>Lo que dice la etiqueta</label><input id="bz_vl" inputmode="decimal" placeholder="4500 o 1,125"></div>
+<div><label>Eso es un</label><select id="bz_vt"><option value="importe">Importe ($)</option><option value="peso">Peso (kg)</option></select></div><div><button class="btn sec" id="bz_de">Deducir plantilla</button></div></div><div id="bz_cand"></div>
+<h4 style="margin:10px 0 4px">Plantilla (posiciones del 2 al 12; el 1 es el prefijo)</h4>
+<div class="form"><div><label>El valor es</label><select id="bz_t"><option value="importe">Importe ($)</option><option value="peso">Peso (kg)</option></select></div><div><label>Producto desde el dígito</label><input id="bz_ip" inputmode="numeric" placeholder="2"></div><div><label>Cantidad de dígitos del producto</label><input id="bz_np" inputmode="numeric" placeholder="6"></div><div><label>Valor desde el dígito</label><input id="bz_iv" inputmode="numeric" placeholder="8"></div><div><label>Cantidad de dígitos del valor</label><input id="bz_nv" inputmode="numeric" placeholder="5"></div><div><label>Decimales del valor</label><input id="bz_dc" inputmode="numeric" placeholder="0"></div></div>
+<div style="display:flex;gap:8px;margin:8px 0"><button class="btn" id="bz_gu">Guardar plantilla</button><button class="btn sec" id="bz_qu">Quitar</button></div>
+<div class="form"><div><label>Probar con una etiqueta</label><input id="bz_pr" inputmode="numeric" placeholder="Escaneá o escribí el código"></div></div><p id="bz_rs" class="mu"></p></details>`);
+  const F=['bz_ip','bz_np','bz_iv','bz_nv','bz_dc'],sin=()=>toast('Tu usuario no tiene permiso para esto');
+  const pon=t=>{$('#bz_t').value=t.tipo;[t.iPlu+1,t.nPlu,t.iVal+1,t.nVal,t.dec].forEach((v,i)=>$('#'+F[i]).value=v)};
+  const leer=()=>{const v=F.map(id=>PX.num($('#'+id).value));return{iPlu:v[0]-1,nPlu:v[1],iVal:v[2]-1,nVal:v[3],tipo:$('#bz_t').value,dec:v[4]}};
+  let cand=[];
+  $('#bz_de').onclick=()=>{const r=BZ.deducir($('#bz_et').value,$('#bz_pl').value,$('#bz_vl').value,$('#bz_vt').value),o=$('#bz_cand');if(r.err){cand=[];o.innerHTML=`<p class="tip">${esc(r.err)}</p>`;return}
+    cand=r.plantillas;pon(cand[0]);o.innerHTML=(r.controlOk?'':'<p class="tip">Ojo: el dígito de control de esa etiqueta no coincide; puede estar mal leída.</p>')+`<p class="mu">Probé la más probable (ya está cargada abajo). Si no es la tuya, elegí otra:</p>`+cand.map((t,i)=>`<button class="btn sec" data-bzc="${i}" style="margin:0 6px 6px 0">${esc(BZ.describir(t))}</button>`).join('')};
+  $('#bz_cand').onclick=e=>{const b=e.target.closest('[data-bzc]');if(b)pon(cand[+b.dataset.bzc])};
+  $('#bz_gu').onclick=()=>{if(!can('configuracion','editar'))return sin();const t=leer(),e=BZ.tplErr(t);if(e)return toast(e);db.cfg.balanza=t;save();draw();toast('Plantilla de balanza guardada')};
+  $('#bz_qu').onclick=()=>{if(!can('configuracion','editar'))return sin();delete db.cfg.balanza;save();draw();toast('Plantilla quitada')};
+  $('#bz_pr').oninput=()=>{const c=$('#bz_pr').value.trim(),o=$('#bz_rs');if(c.length<13){o.textContent='';return}const r=BZ.decodificar(c,db.cfg.balanza||leer());if(r.err){o.textContent=r.err;return}
+    const p=BZ.producto(r.plu);o.textContent='Producto N.º '+r.plu+(p?' ('+p.name+')':' (ningún producto lo usa)')+' · '+(r.tipo==='peso'?PX.coma(r.valor,3)+' kg':fmt(r.valor))};
+  MODS.push(()=>{if(db.cfg.balanza&&document.activeElement!==$('#bz_ip')&&!$('#bz_ip').value)pon(db.cfg.balanza)})}}
 </script>
 <script>
 // ===== Resumen financiero y Reportes › Tendencias =====

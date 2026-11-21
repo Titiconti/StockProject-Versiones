@@ -48,6 +48,10 @@ function productos(o, a) {
         ant = t.desde;
       }
     }
+    if (p.plu != null && !/^\d{1,13}$/.test(String(p.plu))) return 'Código de balanza inválido en ' + nom(p);
+    if (p.balde != null && (!num(p.balde) || p.balde <= 0 || p.balde > 100)) return 'Kg por balde inválidos en ' + nom(p);
+    if (p.tipo != null && p.tipo !== 'armado') return 'Tipo de producto inválido en ' + nom(p);
+    if (p.receta != null && (!p.receta || !Number.isInteger(p.receta.g) || p.receta.g < 1 || p.receta.g > 20000 || !Number.isInteger(p.receta.gustos) || p.receta.gustos < 1 || p.receta.gustos > 12)) return 'Tamaño de helado inválido en ' + nom(p);
     if (p.minimo != null && (!num(p.minimo) || p.minimo < 0)) return 'Cantidad mínima inválida en ' + nom(p);
     if (p.garantia != null && (!Number.isInteger(p.garantia) || p.garantia < 0 || p.garantia > 240)) return 'Garantía inválida en ' + nom(p);
     if (p.padre != null) {
