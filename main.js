@@ -13,9 +13,9 @@ const pagina = () => path.join(__dirname, faltaClave ? 'clave.html' : usr.habili
 
 function crear() {
   Menu.setApplicationMenu(null);
-  win = new BrowserWindow({ width: 1280, height: 800, title: 'StockProject', autoHideMenuBar: true, backgroundColor: '#12233D',
+  win = new BrowserWindow({ width: 1280, height: 800, title: 'StockProject', autoHideMenuBar: true, show: false, backgroundColor: '#12233D',
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, webviewTag: false } });
-  win.maximize();
+  win.once('ready-to-show', () => win.maximize());   // la ventana aparece (maximizada) recién con el primer cuadro pintado
   // Caja abierta al cerrar la ventana: la página frena el cierre y acá se pregunta. Al cambiar de página (ingresar, salir) no se pregunta.
   let cerrando = false;
   win.on('close', () => { cerrando = true; });
@@ -59,7 +59,7 @@ app.whenReady().then(() => {
     if (primero && r.ok) { const l = usr.login(args[0].user, args[0].clave, 'Escritorio'); if (l.ok) tok = l.token; }
     return r;
   });
-  ipcMain.handle('auth:login', (e, u, c) => { const r = usr.login(u, c, 'Escritorio'); if (!r.ok) return r; tok = r.token; win.loadFile(pagina()); return { ok: true }; });
+  ipcMain.handle('auth:login', (e, u, c) => { const r = usr.login(u, c, 'Escritorio'); if (!r.ok) return r; tok = r.token; setTimeout(() => win.loadFile(pagina()), 220); return { ok: true }; });   // 220 ms: login.html apaga la tarjeta antes de cambiar de página
   ipcMain.handle('auth:logout', () => { usr.logout(tok); tok = null; win.loadFile(pagina()); return { ok: true }; });
   ipcMain.handle('auth:ir', () => { win.loadFile(pagina()); return true; });
   if (!faltaClave) try { store.load(); } catch (x) {}   // inicializa la versión de los datos

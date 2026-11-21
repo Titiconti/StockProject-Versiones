@@ -12,7 +12,7 @@ input{width:100%;padding:11px;font:inherit;color:var(--tx);background:var(--bg);
 button{width:100%;margin-top:14px;padding:12px;border:0;border-radius:10px;background:var(--ac);color:var(--act,#fff);font:inherit;font-weight:700;cursor:pointer}
 button.l{background:none;color:var(--ac);font-weight:600;margin-top:8px;padding:6px}
 #m{min-height:20px;font-size:14px;margin-top:10px;text-align:center;color:var(--bad)}#m.ok{color:var(--ok)}.hide{display:none}
-body{font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;background:radial-gradient(70% 60% at 50% 0,#1D3B6E 0,#12233D 60%) fixed #12233D}.c{border-radius:18px;box-shadow:0 30px 80px -20px rgba(0,0,0,.55);animation:in .35s cubic-bezier(.2,.8,.2,1)}h1{display:flex;align-items:center;gap:12px;color:var(--tx);font-weight:400;letter-spacing:-.02em}h1 b{font-weight:700}input:focus{outline:0;border-color:var(--ac);box-shadow:0 0 0 3px color-mix(in srgb,var(--ac) 22%,transparent)}@keyframes in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}</style></head><body>
+body{font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;background:radial-gradient(70% 60% at 50% 0,#1D3B6E 0,#12233D 60%) fixed #12233D}.c{border-radius:18px;box-shadow:0 30px 80px -20px rgba(0,0,0,.55);animation:in .35s cubic-bezier(.2,.8,.2,1)}h1{display:flex;align-items:center;gap:12px;color:var(--tx);font-weight:400;letter-spacing:-.02em}h1 b{font-weight:700}input:focus{outline:0;border-color:var(--ac);box-shadow:0 0 0 3px color-mix(in srgb,var(--ac) 22%,transparent)}.c{transition:opacity .2s ease}body.sale .c{opacity:0}@keyframes in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}</style></head><body>
 <div class="c">
 <h1><svg viewBox="0 0 64 64" width="44" height="44" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#12233D"/><path d="M32 13 49 22.75 32 32.5 15 22.75Z" fill="#0E9F6E"/><path d="M15 22.75 32 32.5V52L15 42.25Z" fill="#2447F9"/><path d="M49 22.75 32 32.5V52L49 42.25Z" fill="#6E8BFF"/><path d="M23.5 17.9 40.5 27.6V36.5" fill="none" stroke="#fff" stroke-width="3.4" stroke-linejoin="round"/></svg><span><b>Stock</b>Project</span></h1>
 <form id="f"><p>Ingresá con tu usuario</p>
@@ -28,7 +28,7 @@ body{font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;backgr
 <div id="m"></div></div>
 <script>
 const $=s=>document.querySelector(s),msg=(t,ok)=>{$('#m').textContent=t||'';$('#m').className=ok?'ok':''};
-$('#f').onsubmit=async e=>{e.preventDefault();msg();const r=await sp.auth.login($('#u').value,$('#p').value);if(!r.ok){msg(r.err);$('#p').select()}};
+$('#f').onsubmit=async e=>{e.preventDefault();msg();const r=await sp.auth.login($('#u').value,$('#p').value);if(!r.ok){msg(r.err);$('#p').select()}else document.body.classList.add('sale')};
 $('#olv').onclick=()=>{msg();$('#f').classList.add('hide');$('#r').classList.remove('hide');$('#ru').value=$('#u').value;$('#ru').focus()};
 $('#vol').onclick=()=>{msg();$('#r').classList.add('hide');$('#f').classList.remove('hide');$('#rq').classList.add('hide');$('#rb').textContent='Continuar'};
 $('#r').onsubmit=async e=>{e.preventDefault();msg();
