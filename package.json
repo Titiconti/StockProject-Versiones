@@ -20,6 +20,8 @@
       "store.js",
       "validar.js",
       "nube.js",
+      "arca.js",
+      "arca-ws.js",
       "usuarios.js",
       "empresas.js",
       "monedas.js",
@@ -61,7 +63,9 @@
     "jsdom": "^30.0.0"
   },
   "dependencies": {
-    "electron-updater": "^6.8.11"
+    "electron-updater": "^6.8.11",
+    "node-forge": "^1.4.3",
+    "qrcode-generator": "^2.0.4"
   },
   "repository": {
     "type": "git",

@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('sp', {
   upd: { estado: () => ipcRenderer.invoke('upd:estado'), buscar: () => ipcRenderer.invoke('upd:buscar'), instalar: () => ipcRenderer.invoke('upd:instalar'), auto: v => ipcRenderer.invoke('upd:auto', v), alCambiar: f => ipcRenderer.on('upd:estado', (e, s) => f(s)) },
   sys: { metricas: () => ipcRenderer.invoke('sys:metricas') },
   nube: { estado: () => ipcRenderer.invoke('nube:estado'), call: (n, a) => ipcRenderer.invoke('nube:call', n, a) },
+  arca: { estado: () => ipcRenderer.invoke('arca:estado'), config: p => ipcRenderer.invoke('arca:config', p), csr: o => ipcRenderer.invoke('arca:csr', o), cert: (t, a) => ipcRenderer.invoke('arca:cert', t, a), probar: () => ipcRenderer.invoke('arca:probar'), tipos: () => ipcRenderer.invoke('arca:tipos'), facturar: (id, r) => ipcRenderer.invoke('arca:facturar', id, r), qr: u => ipcRenderer.invoke('arca:qr', u) },
   seg: {
     estado: () => ipcRenderer.invoke('seg:estado'),
     activar: () => ipcRenderer.invoke('seg:activar'),
