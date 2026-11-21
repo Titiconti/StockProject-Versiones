@@ -9,7 +9,7 @@ a { color: var(--accent); text-underline-offset: 3px; }
 .skip:focus { top: 16px; }
 header, main, footer { width: min(760px, calc(100% - 40px)); margin-inline: auto; }
 header { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 24px 0; border-bottom: 1px solid var(--line); }
-.marca { font-family: "Space Grotesk", "Chivo", sans-serif; font-size: 22px; letter-spacing: -.03em; color: var(--ink); text-decoration: none; }
+.marca { font-family: "Chivo", sans-serif; font-size: 22px; letter-spacing: -.03em; color: var(--ink); text-decoration: none; }
 .marca b { font-weight: 700; }
 main { padding: 48px 0 32px; }
 h1 { font-size: clamp(32px, 6vw, 48px); line-height: 1.05; letter-spacing: -.03em; font-weight: 600; margin: 0 0 8px; }

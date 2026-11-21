@@ -4,7 +4,7 @@
 // Crossfade entre escenas, la escena activa se agranda y el resto se desenfoca. Con "reducir movimiento" o sin JS
 // quedan los tres videos con sus controles y su descripción, sin movimiento.
 const sec = document.querySelector('[data-videos]');
-const reducir = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const reducir = document.documentElement.classList.contains('sp-quieto');
 if (sec && !reducir) {
   const escenas = [...sec.querySelectorAll('[data-escena]')];
   const items = [...sec.querySelectorAll('.vs__item')];

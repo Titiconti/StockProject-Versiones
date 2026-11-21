@@ -23,7 +23,12 @@ for (const p of paginas) {
   assert(!/(?:src|href)="https?:\/\/(?!wa\.me)/.test(h.replace(/<link rel="canonical"[^>]*>/, '').replace(/<meta[^>]*>/g, '')), p + ' no pide nada a otro sitio');
   assert(!/googleapis|gstatic|cdnjs|unpkg|jsdelivr/.test(h), p + ' sin CDN ni Google Fonts');
 }
-assert(!/localStorage|sessionStorage|document\.cookie|gtag|fbq|analytics/i.test(js + html), 'sin cookies ni analítica');
+const sinMov = fs.readdirSync(path.join(NUBE, 'landing')).filter(f => f.endsWith('.js') && f !== 'movimiento.js').map(f => fs.readFileSync(path.join(NUBE, 'landing', f), 'utf8')).join('\n');
+assert(!/localStorage|sessionStorage|document\.cookie|gtag|fbq|analytics/i.test(sinMov + html), 'sin cookies ni analítica');
+const mov = fs.readFileSync(path.join(NUBE, 'landing', 'movimiento.js'), 'utf8');
+assert(!/document\.cookie/.test(mov) && (mov.match(/localStorage\.\w+Item\('?[^)]*\)/g) || []).length > 0 && /try \{/.test(mov), 'solo recuerda la preferencia de movimiento, con try/catch');
+const priv0 = fs.readFileSync(path.join(NUBE, 'privacidad.html'), 'utf8');
+assert(priv0.includes('Reducir movimiento') && /no en una cookie/.test(priv0), 'la privacidad declara esa preferencia');
 const css = ['landing.css', path.join('fonts', 'fonts.css')].map(f => fs.readFileSync(path.join(NUBE, 'landing', f), 'utf8')).join('\n');
 assert(!/https?:\/\//.test(css), 'los CSS propios no piden nada afuera');
 assert(!html.includes('data-demo'), 'la demo de ventas ya no está');
@@ -40,5 +45,6 @@ for (const x of ['25.326', 'RGPD', 'Vercel', 'Upstash', 'menores', 'supresión']
 assert(/Ejemplo/.test(html) && /no es un cliente real/.test(html), 'el comercio de ejemplo está rotulado');
 assert(/Protenay/.test(html) && !/<blockquote/.test(html), 'Darío figura sin citas inventadas');
 assert(/Meta Platforms/.test(html) && /Microsoft/.test(html), 'aviso de marcas en el pie');
-assert(/prefers-reduced-motion/.test(js), 'respeta movimiento reducido');
+assert(/sp-quieto/.test(js) && /data-mov/.test(html), 'hay un botón para reducir el movimiento');
+assert(/data-anatomia/.test(html) && !/prefers-reduced-motion/.test(js), 'la figura del hero y los efectos no dependen de la opción del sistema');
 console.log('landing OK');

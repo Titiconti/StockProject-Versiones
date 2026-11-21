@@ -7,4 +7,3 @@ Todas son SIL Open Font License 1.1 (https://openfontlicense.org): uso comercial
 |---|---|---|---|
 | chivo-latin-wght-normal.woff2 | Chivo (variable) | The Chivo Project Authors (Omnibus-Type) | @fontsource-variable/chivo |
 | chivo-mono-latin-wght-normal.woff2 | Chivo Mono (variable) | The Chivo Mono Project Authors (Omnibus-Type) | @fontsource-variable/chivo-mono |
-| space-grotesk-latin-400/700-normal.woff2 | Space Grotesk | The Space Grotesk Project Authors (Florian Karsten) | @fontsource/space-grotesk |

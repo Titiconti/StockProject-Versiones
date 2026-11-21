@@ -4,7 +4,7 @@
 //  - números: [data-numero] entran con desenfoque horizontal y se asientan (idea de la plantilla Norte).
 //  - sello (shared element): el cubo de la marca viaja de un título al siguiente y se "posa" en cada marcador.
 //  - foco: lo que está en el centro de la pantalla se agranda (magnification) y el resto se desenfoca (blur).
-const reducir = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const reducir = document.documentElement.classList.contains('sp-quieto');
 const raiz = document.documentElement;
 if (!reducir) {
   raiz.classList.add('fx');
@@ -53,7 +53,7 @@ if (!reducir) {
     const x = mejor.left + (24 - mejor.left) * k, y = (mejor.top) + ((vh - 80) - mejor.top) * k;
     const esc = 1 + (1 - k) * 0.5;
     sello.style.transform = `translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,0) scale(${esc.toFixed(3)})`;
-    sello.style.opacity = String(0.12 + 0.88 * (1 - k));
+    sello.style.opacity = scrollY < innerHeight * 0.8 ? '0' : String(0.12 + 0.88 * (1 - k));
   }
 
   // foco: agranda lo del centro, desenfoca lo demás dentro de su grupo

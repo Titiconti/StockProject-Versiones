@@ -1,6 +1,3 @@
 /* Tipografías servidas desde el propio sitio (sin Google Fonts). Licencia SIL OFL 1.1, ver LICENCIAS.md. */
 @font-face { font-family: "Chivo"; font-style: normal; font-weight: 100 900; font-display: swap; src: url("chivo-latin-wght-normal.woff2") format("woff2"); }
 @font-face { font-family: "Chivo Mono"; font-style: normal; font-weight: 100 900; font-display: swap; src: url("chivo-mono-latin-wght-normal.woff2") format("woff2"); }
-/* Space Grotesk: solo el logotipo de StockProject */
-@font-face { font-family: "Space Grotesk"; font-style: normal; font-weight: 400; font-display: swap; src: url("space-grotesk-latin-400-normal.woff2") format("woff2"); }
-@font-face { font-family: "Space Grotesk"; font-style: normal; font-weight: 700; font-display: swap; src: url("space-grotesk-latin-700-normal.woff2") format("woff2"); }
