@@ -57,5 +57,5 @@ const assert = require('assert'), ExcelJS = require('exceljs'), { web } = requir
   // sin el programa de escritorio, el .xlsx se rechaza con un mensaje claro
   delete w.sp; a.click('#mg_a3'); a.click('#mg_a2'); Object.defineProperty($('#mg_f'), 'files', { value: [file] }); a.ev($('#mg_f'), 'change'); await new Promise(r => setTimeout(r, 100));
   assert(/programa de escritorio/.test(a.txt('#g_d')));
-  assert.deepStrictEqual(a.errs, []); console.log('OK precios-masivos'); process.exit(0);   // exceljs/jsdom dejan timers abiertos
+  assert.deepStrictEqual(a.errs, []); console.log('OK precios-masivos'); w.close();   // sin cerrar la ventana de jsdom sus timers dejan el proceso abierto
 })().catch(e => { console.error(e); process.exit(1); });
