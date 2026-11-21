@@ -115,6 +115,8 @@ module.exports = function ({ usersFile, auditFile, maxSesiones = 3, inactividad 
     audit(quien, 'usuario.editar', u.user + ' ' + Object.keys(patch).filter(k => k !== 'clave').join(',') + (patch.clave ? ',clave' : ''));
     return { ok: true, usuario: publico(u) };
   }
+  // Usuarios activos que pueden vender (id y nombre): los botones de vendedor de la heladería. Lo ve cualquier sesión, sin datos sensibles.
+  const turno = quien => quien ? rd().users.filter(u => u.activo && tiene(u, 'ventas', 'crear')).map(u => ({ id: u.id, nombre: u.nombre || u.user })) : [];
   const listar = quien => tiene(quien, 'usuarios', 'ver') ? rd().users.map(publico) : [];
 
   // ---- inicio de sesión y sesiones (varios dispositivos, con tope) ----
@@ -188,12 +190,13 @@ module.exports = function ({ usersFile, auditFile, maxSesiones = 3, inactividad 
     return { ok: true };
   }
   // Despachador común (escritorio y acceso remoto): cada pantalla llama por nombre; el permiso se resuelve acá, con la sesión.
-  const NOMBRES = ['estado', 'listar', 'crear', 'editar', 'misSesiones', 'cerrarOtras', 'cambiarClave', 'setPregunta', 'setPrefs', 'preguntaDe', 'recuperar', 'auditoria', 'audit'];
+  const NOMBRES = ['estado', 'listar', 'crear', 'editar', 'misSesiones', 'cerrarOtras', 'cambiarClave', 'setPregunta', 'setPrefs', 'preguntaDe', 'recuperar', 'auditoria', 'audit', 'turno'];
   function llamar(token, nombre, a = []) {
     const q = habilitado() ? sesion(token) : null;
     switch (nombre) {
       case 'estado': return { habilitado: habilitado(), usuario: q ? publico(q) : null, permisos: q ? matriz(q) : null, roles: ROLES, modulos: MODULOS, acciones: ACCIONES, permisosRol: PERMISOS };
       case 'listar': return listar(q);
+      case 'turno': return turno(q);
       case 'crear': return crear(q, a[0] || {});
       case 'editar': return editar(q, a[0], a[1] || {});
       case 'misSesiones': return misSesiones(token);
@@ -208,6 +211,6 @@ module.exports = function ({ usersFile, auditFile, maxSesiones = 3, inactividad 
     }
     return { ok: false, err: 'operación desconocida' };
   }
-  return { llamar, NOMBRES, habilitado, crear, editar, listar, login, logout, sesion, misSesiones, cerrarOtras, cambiarClave, setPregunta, setPrefs, preguntaDe, recuperar, tiene, matriz, puedeEscribir, puedePrecios, cambiaPrecios, audit, auditoria, publico, ROLES, MODULOS, ACCIONES, PERMISOS };
+  return { llamar, NOMBRES, habilitado, turno, crear, editar, listar, login, logout, sesion, misSesiones, cerrarOtras, cambiarClave, setPregunta, setPrefs, preguntaDe, recuperar, tiene, matriz, puedeEscribir, puedePrecios, cambiaPrecios, audit, auditoria, publico, ROLES, MODULOS, ACCIONES, PERMISOS };
 };
 module.exports.ACCIONES = ACCIONES; module.exports.MODULOS = MODULOS; module.exports.ROLES = ROLES; module.exports.PERMISOS = PERMISOS;
