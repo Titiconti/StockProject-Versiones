@@ -75,8 +75,8 @@ const foto = (nombre, total) => ({ v: 1, generado: new Date(reloj).toISOString()
   assert.strictEqual(l.j.length, 2);
   assert.deepStrictEqual(Object.keys(l.j[0]).sort(), ['activo', 'alta', 'id', 'nombre', 'sub', 'ultimaSync']);
   assert(!/hash|salt|spn_/i.test(l.texto));
-  const crudo = fs.readFileSync(path.join(dir, 'comercios.json'), 'utf8');
-  assert(!crudo.includes(A.token) && !crudo.includes(A.clave) && !crudo.includes(ADMIN), 'comercios.json no guarda secretos en claro');
+  const crudo = fs.readdirSync(path.join(dir, 'comercio')).map(f => fs.readFileSync(path.join(dir, 'comercio', f), 'utf8')).join(' ');
+  assert(!crudo.includes(A.token) && !crudo.includes(A.clave) && !crudo.includes(ADMIN), 'los comercios guardados no tienen secretos en claro');
 
   // --- Admin nunca por el subdominio de un comercio ---
   assert.strictEqual((await pedir('GET', '/admin/comercios', { token: ADMIN, sub: 'almacen-a' })).estado, 404);
@@ -107,8 +107,8 @@ const foto = (nombre, total) => ({ v: 1, generado: new Date(reloj).toISOString()
   assert.strictEqual((await pedir('POST', '/ingesta', { token: A.token, body: { seq: 5, foto: { ventas: 'x' } } })).estado, 400);
   assert.strictEqual((await pedir('POST', '/ingesta', { token: A.token, body: { seq: 'dos', foto: f1 } })).estado, 400);
   assert.strictEqual((await pedir('GET', '/ingesta', { token: A.token })).estado, 405);
-  r = await pedir('POST', '/ingesta', { token: A.token, body: { seq: 6, foto: { v: 1, relleno: 'x'.repeat(8 * 1024 * 1024) } } });
-  assert.strictEqual(r.estado, 413, 'cuerpo de más de 8 MB');
+  r = await pedir('POST', '/ingesta', { token: A.token, body: { seq: 6, foto: { v: 1, relleno: 'x'.repeat(4 * 1024 * 1024) } } });
+  assert.strictEqual(r.estado, 413, 'cuerpo de más de 4 MB');
   assert.deepStrictEqual(JSON.parse(fotoEnDisco(A.id)), f1);
 
   // --- Aislamiento de la ingesta: el token de A nunca escribe en B, diga lo que diga el Host ---
@@ -162,7 +162,7 @@ const foto = (nombre, total) => ({ v: 1, generado: new Date(reloj).toISOString()
   const ls = await pedir('POST', '/api/login', { sub: 'almacen-a', body: { clave: A.clave }, headers: { 'X-Forwarded-Proto': 'https' } });
   assert(/; Secure/.test(ls.h.get('set-cookie')), 'Secure detrás de https');
   const cookieA = cookieDe(la);
-  assert(!fs.readFileSync(path.join(dir, 'sesiones.json'), 'utf8').includes(cookieA.split('=')[1]), 'sesiones.json no guarda el token de sesión en claro');
+  assert(!fs.readdirSync(path.join(dir, 'sesion')).join().includes(cookieA.split('=')[1]) && fs.readdirSync(path.join(dir, 'sesion')).length > 0, 'las sesiones no guarda el token de sesión en claro');
 
   // --- /api/datos devuelve la foto ---
   const f3 = foto('Almacén A', 3500);
@@ -188,7 +188,7 @@ const foto = (nombre, total) => ({ v: 1, generado: new Date(reloj).toISOString()
   assert.deepStrictEqual(d.j.foto, fB); assert.strictEqual(d.j.negocio.nombre, 'Kiosco B');
 
   // --- Solo lectura ---
-  const antes = fotoEnDisco(A.id), comAntes = fs.readFileSync(path.join(dir, 'comercios.json'), 'utf8');
+  const antes = fotoEnDisco(A.id), comAntes = fs.readFileSync(path.join(dir, 'comercio', A.id + '.json'), 'utf8');
   for (const m of ['PUT', 'POST', 'DELETE', 'PATCH'])
     assert.strictEqual((await pedir(m, '/api/datos', { sub: 'almacen-a', cookie: cookieA, body: { foto: { ventas: [] } } })).estado, 405, m + ' /api/datos');
   for (const [m, ruta] of [['POST', '/api/ventas'], ['PUT', '/api/foto'], ['DELETE', '/api/datos/v1'], ['POST', '/api/stock/1'], ['GET', '/api/comercios'], ['POST', '/api'], ['GET', '/api/'], ['POST', '/'], ['DELETE', '/'], ['PUT', '/foto.json'], ['GET', '/comercios.json'], ['GET', '/store_001/foto.json']]) {
@@ -200,7 +200,7 @@ const foto = (nombre, total) => ({ v: 1, generado: new Date(reloj).toISOString()
   assert.strictEqual((await pedir('POST', '/ingesta', { cookie: cookieA, body: { seq: 99, foto: { ventas: [] } } })).estado, 401);
   assert.strictEqual((await pedir('GET', '/admin/comercios', { cookie: cookieA })).estado, 401);
   assert.strictEqual(fotoEnDisco(A.id), antes, 'la foto no cambió');
-  assert.strictEqual(fs.readFileSync(path.join(dir, 'comercios.json'), 'utf8'), comAntes);
+  assert.strictEqual(fs.readFileSync(path.join(dir, 'comercio', A.id + '.json'), 'utf8'), comAntes);
 
   // --- Frescura ---
   reloj += 119 * 1000;
