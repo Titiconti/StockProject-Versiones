@@ -1530,7 +1530,7 @@ CJ.GRID='align-items:start;grid-template-columns:repeat(auto-fit,minmax(19ch,1fr
 CJ.AYUDA='Para los centavos usá coma: 1500,50';CJ.ERR='Ese monto no es un número válido. Escribilo así: 1500 o 1500,50';
 CJ.campo=(id,val='')=>'<input id="'+id+'" type="text" inputmode="decimal" autocomplete="off" value="'+val+'" aria-describedby="'+id+'_h">';
 // La ayuda va en una fila propia debajo de todos los campos: así no empuja a los vecinos y los inputs quedan alineados.
-CJ.ayuda=id=>'<small id="'+id+'_h" class="mu" style="grid-column:1/-1;margin-top:-4px">'+CJ.AYUDA+'</small>';
+CJ.ayuda=(id,extra)=>'<small id="'+id+'_h" class="mu" style="grid-column:1/-1;margin-top:-4px">'+CJ.AYUDA+(extra?' · '+extra:'')+'</small>';
 // Totales de una caja calculados con los movimientos reales (ventas anuladas no cuentan).
 CJ.calc=c=>{const S=db.sales.filter(s=>s.caja===c.id&&!s.void),P=db.pays.filter(p=>p.caja===c.id),M=c.movs||[];
   const porMedio={};S.forEach(s=>{porMedio[s.pay]=CJ.r2((porMedio[s.pay]||0)+s.total)});
@@ -1574,7 +1574,7 @@ CJ.formCerrar=(msg,c=CJ.abierta())=>{if(!c)return;const k=CJ.calc(c),R=(a,b,x=''
   CJ.ov(`<h3>Cerrar caja</h3>${msg?`<p class="tip">${esc(msg)}</p>`:''}<p class="mu" style="margin-top:0">${esc(c.caja)} · ${esc(c.user)} · desde ${new Date(c.abre).toLocaleString('es-AR',{dateStyle:'short',timeStyle:'short'})}</p>
   ${R('Dinero inicial',fmt(c.ini))}${R('Ventas en efectivo',fmt(k.efVentas))}${R('Cobros de deudas en efectivo',fmt(k.efCobros))}${R('Ingresos',fmt(k.ingresos))}${R('Retiros','− '+fmt(k.egresos))}${R('Efectivo esperado',fmt(k.esperado),'style="font-size:18px"')}
   <p class="mu" style="margin:10px 0 4px">Total vendido en el turno: <b>${fmt(k.vendido)}</b> (${k.ventas} ventas)${Object.keys(k.porMedio).length?' · '+Object.entries(k.porMedio).map(([m,v])=>esc(m)+' '+fmt(v)).join(' · '):''}. Lo cobrado con tarjeta, transferencia o en cuenta corriente no está en la caja.</p>
-  <div class="form" style="${CJ.GRID}"><div><label>Dinero contado</label>${CJ.campo('cj_ct')}</div><div><label>Observaciones</label><input id="cj_cn" placeholder="Obligatorio si hay diferencia"></div>${CJ.ayuda('cj_ct')}</div><div id="cj_df" style="font-weight:700;margin-bottom:10px"></div>
+  <div class="form" style="${CJ.GRID}"><div><label>Dinero contado</label>${CJ.campo('cj_ct')}</div><div><label>Observaciones</label><input id="cj_cn"></div>${CJ.ayuda('cj_ct','Si hay diferencia, explicá por qué en Observaciones')}</div><div id="cj_df" style="font-weight:700;margin-bottom:10px"></div>
   <div style="display:flex;gap:8px"><button class="btn" id="cj_cok">Confirmar cierre</button><button class="btn sec" data-cjx="1">Cancelar</button></div>`);
   $('#cj_ct').oninput=()=>{const v=$('#cj_ct').value.trim();if(v===''){$('#cj_df').textContent='';return}const n=CJ.num(v);if(!isFinite(n)){$('#cj_df').textContent=CJ.ERR;return}const d=CJ.r2(n-k.esperado),[,t]=CJ.dif(d);$('#cj_df').innerHTML=`Diferencia: <span style="color:var(--${Math.abs(d)<0.005?'ok':d>0?'warn':'bad'})">${fmt(d)} · ${t}</span>`};
   $('#cj_cok').onclick=()=>{const r=CJ.cerrar($('#cj_ct').value,$('#cj_cn').value,c);if(r.err)return toast(r.err);CJ.close();draw();const[,t]=CJ.dif(r.caja.dif);toast('Caja cerrada · '+t+(Math.abs(r.caja.dif)>=0.005?' '+fmt(r.caja.dif):''))}};
