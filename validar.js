@@ -63,7 +63,9 @@ function productos(o, a) {
 function ventas(o, a) {
   if (o.sales != null && !Array.isArray(o.sales)) return 'datos inválidos';
   const prev = new Map(((a && a.sales) || []).map(s => [s && s.id, s]));
+  const pagosMp = new Set();   // un pago de Mercado Pago no puede estar en dos ventas vigentes
   for (const s of o.sales || []) {
+    if (s && s.mp && !s.void) { if (pagosMp.has(s.mp.pago)) return 'Ese pago de Mercado Pago ya está registrado en otra venta'; pagosMp.add(s.mp.pago); }
     if (a && igual(s, prev.get(s && s.id))) continue;
     if (!s || !num(s.id) || !num(s.total) || s.total < 0 || !Array.isArray(s.items)) return 'Hay una venta con datos inválidos';
     for (const i of s.items) if (!i || !num(i.qty) || i.qty <= 0 || !num(i.price) || i.price < 0) return 'Hay una venta con una cantidad o un precio inválido';

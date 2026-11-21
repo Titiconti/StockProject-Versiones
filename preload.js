@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('sp', {
   upd: { estado: () => ipcRenderer.invoke('upd:estado'), buscar: () => ipcRenderer.invoke('upd:buscar'), instalar: () => ipcRenderer.invoke('upd:instalar'), auto: v => ipcRenderer.invoke('upd:auto', v), alCambiar: f => ipcRenderer.on('upd:estado', (e, s) => f(s)) },
   sys: { metricas: () => ipcRenderer.invoke('sys:metricas') },
   nube: { estado: () => ipcRenderer.invoke('nube:estado'), call: (n, a) => ipcRenderer.invoke('nube:call', n, a) },
+  mp: Object.fromEntries(['estado', 'guardar', 'quitar', 'probar', 'terminales', 'cobrar', 'consultar', 'cancelar', 'conciliar'].map(n => [n, a => ipcRenderer.invoke('mp:' + n, a)])),
   seg: {
     estado: () => ipcRenderer.invoke('seg:estado'),
     activar: () => ipcRenderer.invoke('seg:activar'),
