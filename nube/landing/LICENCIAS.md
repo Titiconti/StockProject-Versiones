@@ -10,4 +10,4 @@ Adaptados a HTML/CSS/JS puro (sin React, sin CDN), servidos desde el sitio y apa
 | contador.js | @preetsuthar17/animated-counter (solo la idea, código reescrito) | Sin código copiado |
 
 El componente shared-element de @zanwei se usa solo en el programa de escritorio, no en la landing.
-Los términos de 21st.dev piden, al copiar un componente a otro sitio, un enlace visible al componente original: está pendiente decidir si se agrega un crédito visible.
+Los términos de 21st.dev piden un enlace visible al componente original: está en la sección "Créditos" de `aviso-legal.html` (enlazada desde el pie), junto con el texto de la licencia MIT de Motion Primitives (Julien Thibeaut). Nada visible en la portada.

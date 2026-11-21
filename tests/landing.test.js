@@ -20,7 +20,7 @@ const paginas = ['index.html', 'aviso-legal.html', 'privacidad.html'];
 const js = fs.readdirSync(path.join(NUBE, 'landing')).filter(f => f.endsWith('.js')).map(f => fs.readFileSync(path.join(NUBE, 'landing', f), 'utf8')).join('\n');
 for (const p of paginas) {
   const h = fs.readFileSync(path.join(NUBE, p), 'utf8');
-  assert(!/(?:src|href)="https?:\/\/(?!wa\.me)/.test(h.replace(/<link rel="canonical"[^>]*>/, '').replace(/<meta[^>]*>/g, '')), p + ' no pide nada a otro sitio');
+  assert(!/\bsrc="https?:\/\//.test(h) && !/<link\b[^>]*\bhref="https?:\/\/(?!stockprojectapp)/.test(h), p + ' no pide nada a otro sitio (los enlaces <a> de salida, como los créditos, sí pueden ser externos)');
   assert(!/googleapis|gstatic|cdnjs|unpkg|jsdelivr/.test(h), p + ' sin CDN ni Google Fonts');
 }
 const sinMov = fs.readdirSync(path.join(NUBE, 'landing')).filter(f => f.endsWith('.js') && f !== 'movimiento.js').map(f => fs.readFileSync(path.join(NUBE, 'landing', f), 'utf8')).join('\n');
