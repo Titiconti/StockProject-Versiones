@@ -17,7 +17,7 @@ CJ.r2=n=>Math.round((+n||0)*100)/100;
 CJ.EF='Efectivo';
 // Totales de una caja calculados con los movimientos reales (ventas anuladas no cuentan).
 CJ.calc=c=>{const S=db.sales.filter(s=>s.caja===c.id&&!s.void),P=db.pays.filter(p=>p.caja===c.id),M=c.movs||[];
-  const porMedio={};S.forEach(s=>{porMedio[s.pay]=CJ.r2((porMedio[s.pay]||0)+s.total)});
+  const porMedio={};S.forEach(s=>{const k=/^Mercado Pago/.test(s.pay)?'Mercado Pago':s.pay;porMedio[k]=CJ.r2((porMedio[k]||0)+s.total)});
   const vendido=CJ.r2(S.reduce((a,s)=>a+s.total,0)),efV=porMedio[CJ.EF]||0,efC=CJ.r2(P.filter(p=>p.method===CJ.EF).reduce((a,p)=>a+p.amount,0)),
     cobros=CJ.r2(P.reduce((a,p)=>a+p.amount,0)),ing=CJ.r2(M.filter(m=>m.t==='ingreso').reduce((a,m)=>a+m.monto,0)),egr=CJ.r2(M.filter(m=>m.t==='egreso').reduce((a,m)=>a+m.monto,0));
   return{ventas:S.length,vendido,porMedio,efVentas:efV,efCobros:efC,cobros,ingresos:ing,egresos:egr,esperado:CJ.r2(c.ini+efV+efC+ing-egr)}};

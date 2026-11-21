@@ -36,7 +36,7 @@ function errorClave(k, nombre) {
 }
 function calcCaja(db, c) {
   const S = (db.sales || []).filter(s => s.caja === c.id && !s.void), P = (db.pays || []).filter(p => p.caja === c.id), M = c.movs || [], porMedio = {};
-  S.forEach(s => { porMedio[s.pay] = r2((porMedio[s.pay] || 0) + s.total); });
+  S.forEach(s => { const k = /^Mercado Pago/.test(s.pay) ? 'Mercado Pago' : s.pay; porMedio[k] = r2((porMedio[k] || 0) + s.total); });
   const ef = (porMedio.Efectivo || 0) + P.filter(p => p.method === 'Efectivo').reduce((a, p) => a + p.amount, 0) + M.reduce((a, m) => a + (m.t === 'ingreso' ? m.monto : -m.monto), 0);
   return { vendido: S.reduce((a, s) => a + s.total, 0), porMedio, esperado: c.ini + ef };
 }

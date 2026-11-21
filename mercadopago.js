@@ -149,7 +149,7 @@ function crear({ getCfg, setCfg, proteger, desproteger, leer = () => '', http = 
       const q = 'sort=date_approved&criteria=desc&range=date_approved&status=approved&limit=50&offset=' + off + '&begin_date=' + dk + 'T00:00:00.000-03:00&end_date=' + dk + 'T23:59:59.999-03:00';
       const r = await pedir('GET', '/v1/payments/search?' + q); if (!r.ok) return { ok: false, err: r.err, red: !!r.red };
       const rs = (r.j && r.j.results) || [];
-      rs.forEach(p => pagos.push({ id: String(p.id), monto: r2(p.transaction_amount), ext: p.external_reference || '', fecha: p.date_approved || '' }));
+      rs.filter(p => !p.status || p.status === 'approved').forEach(p => pagos.push({ id: String(p.id), monto: r2(p.transaction_amount), ext: p.external_reference || '', fecha: p.date_approved || '' }));
       if (rs.length < 50) break;
     }
     let ventas = []; try { ventas = (JSON.parse(leer() || '{}').sales || []).filter(s => s.mp); } catch (e) {}

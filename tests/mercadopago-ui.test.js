@@ -25,6 +25,9 @@ const assert = require('assert'), { JSDOM, HTML, until, api } = require('./helpe
   let s = A.db().sales[0]; assert.strictEqual(s.pay, 'Mercado Pago QR'); assert.strictEqual(s.mp.pago, 'PAY1'); assert(!('medio' in s.mp)); assert.strictEqual(s.total, total);
   await new Promise(r => setTimeout(r, 120)); assert.strictEqual(ev('db.sales.length'), 1, 'no se registra dos veces'); assert.strictEqual(llamadas.filter(l => l[0] === 'cobrar').length, 1, 'se cobra una sola vez');
 
+  assert.strictEqual(ev("PL.calc().ent['Mercado Pago']"), total, 'Resumen financiero: Mercado Pago es un medio propio'); assert.strictEqual(ev("PL.calc().ent.Otros"), 0);
+  assert.strictEqual(ev("JSON.stringify(CJ.calc({id:db.sales[0].caja,ini:0,movs:[]}).porMedio)"), JSON.stringify({ 'Mercado Pago': total }), 'la caja lo agrupa como Mercado Pago');
+
   // 2) El mismo pago no se puede usar en otra venta
   cargar(); respuestas = [{ ok: true, estado: 'aprobado', monto: ev('cartTotal()') }]; A.click('#cobrar');
   assert(await until(() => /ya estaba registrado/.test(A.txt('#toast')))); assert.strictEqual(ev('db.sales.length'), 1);
