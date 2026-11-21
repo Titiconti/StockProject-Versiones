@@ -82,6 +82,8 @@ const datos = () => ({ prods: [{ id: 1, name: 'Yerba', price: 100, cost: 60, lot
   let r = await prueba(x => { x.sales.push({ id: 2, date: new Date().toISOString(), items: [{ id: 1, qty: 1, price: 100 }], total: 100, pay: 'Efectivo', caja: 1 }); x.prods[0].lots[0].qty = 9; });
   assert(r.ok, 'el empleado registra una venta: ' + r.err);
   r = await prueba(x => { x.sales = x.sales.filter(s => s.id !== 1); }); assert(!r.ok && r.permiso, 'no borra ventas');
+  r = await prueba(x => { x.sales.find(s => s.id === 1).void = true; }); assert(!r.ok && r.permiso, 'el empleado no anula una venta (IPC save)');
+  r = await prueba(x => { x.sales.find(s => s.id === 1).total = 1; }); assert(!r.ok, 'el empleado no cambia el total de una venta');
   r = await prueba(x => { x.cfg.cajaObligatoria = true; x.cfg.moneda = 'USD'; }); assert(!r.ok && r.permiso, 'no cambia la configuración');
   r = await prueba(x => { x.fin.mov = []; }); assert(!r.ok && r.permiso, 'no borra finanzas');
   r = await prueba(x => { delete x.usuariosActivos; x.cfg.nroComp = 2; }); assert(r.ok, r.err);
@@ -89,6 +91,7 @@ const datos = () => ({ prods: [{ id: 1, name: 'Yerba', price: 100, cost: 60, lot
   await m.h['auth:logout']();
   assert((await m.h['auth:login']({}, 'ana', 'Clave1234')).ok);
   r = await prueba(x => { x.fin.mov = []; x.cfg.moneda = 'USD'; }); assert(r.ok, 'el administrador sí: ' + r.err);
+  r = await prueba(x => { x.sales.find(s => s.id === 1).void = true; }); assert(r.ok, 'el administrador anula una venta: ' + r.err);
   await m.h['auth:logout']();
 
   // ---- E4: se borra usuarios.json y se reabre el programa: no queda libre ----
