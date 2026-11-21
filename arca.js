@@ -9,7 +9,8 @@ const MODOS = ['manual', 'siempre', 'clientes'];                 // cuándo se f
 const ALICUOTAS = { 0: 3, 2.5: 9, 5: 8, 10.5: 4, 21: 5, 27: 6 };  // % -> id de ARCA
 const COND_RECEPTOR = [1, 4, 5, 6, 7, 8, 9, 10, 13, 15, 16];       // 5 = consumidor final
 const DOC_TIPOS = [80, 86, 96, 99];                              // CUIT, CUIL, DNI, sin identificar
-const LETRA = { 1: 'A', 6: 'B', 11: 'C' };
+const LETRA = { 1: 'A', 6: 'B', 11: 'C', 3: 'A', 8: 'B', 13: 'C' };
+const NOTA_CREDITO = { 1: 3, 6: 8, 11: 13 };                      // factura A/B/C -> nota de crédito A/B/C (tabla oficial de comprobantes de ARCA)
 const QR_URL = 'https://www.afip.gob.ar/fe/qr/?p=';
 const DIAS_FECHA = 5;                                            // ARCA acepta fechas de hasta 5 días antes (productos)
 
@@ -151,21 +152,23 @@ module.exports = function ({ archivo, proteger, desproteger, post, ahora = () =>
   });
 
   // v: { id, date (ISO), total, receptor }. Devuelve { ok, fe } | { ok:false, pendiente } | { ok:false, rechazo, err }.
-  const facturar = v => enCola(async () => {
+  const emitir = (v, orig) => enCola(async () => {
     const d0 = leer(), c = cfgDe(d0), ic = infoCert(d0);
     if (!listoDe(d0)) return { ok: false, err: 'ARCA todavía no está conectado (Configuración > Facturación electrónica)' };
     if (ic.vencido) return { ok: false, err: 'El certificado venció. Generá uno nuevo en Configuración > Facturación electrónica.' };
-    const rr = receptorOk(v.receptor); if (rr.err) return { ok: false, err: rr.err };
+    if (orig && (!orig.cae || !NOTA_CREDITO[orig.tipo])) return { ok: false, err: 'La venta no tiene una factura autorizada' };
+    if (orig && (orig.amb !== c.ambiente || orig.emisor.cuit !== c.cuit)) return { ok: false, err: 'La factura se emitió en otro ambiente o CUIT: no se puede anular desde la configuración actual' };
+    const rr = receptorOk(orig ? orig.receptor : v.receptor); if (rr.err) return { ok: false, err: rr.err };
     const total = r2(v.total); if (!(total > 0)) return { ok: false, err: 'La venta no tiene importe para facturar' };
-    const amb = c.ambiente, k = amb + ':' + v.id, previo = (d0.jr || {})[k];
+    const amb = c.ambiente, k = amb + ':' + (orig ? 'nc:' : '') + v.id, previo = (d0.jr || {})[k];
     if (previo && previo.estado === 'ok') return { ok: true, fe: previo.fe, repetido: true };   // ya se facturó: nunca otro número
-    const r = rr.r, tipo = tipoDe(c, r), imp = importes(c, total, tipo);
+    const r = rr.r, tipo = orig ? NOTA_CREDITO[orig.tipo] : tipoDe(c, r), imp = orig ? { total, neto: orig.neto, iva: orig.iva, alicuotaId: orig.alicuotaId || 0 } : importes(c, total, tipo);
     if (tipo === 1 && r.docTipo !== 80) return { ok: false, err: 'La factura A necesita el CUIT del cliente' };
     const guardarJr = x => { const n = leer(), jr = { ...(n.jr || {}) }; if (x) jr[k] = x; else delete jr[k]; escribir({ ...n, jr }); };
     try {
       const ta = await credencial(d0, amb);
       const ultimo = await api.ultimoAutorizado(amb, ta, c.cuit, c.ptoVta, tipo);
-      const f = new Date(v.date), hoy = new Date(ahora()), usada = Math.abs(hoy - f) <= DIAS_FECHA * 864e5 ? f : hoy;
+      const f = new Date(v.date), hoy = new Date(ahora()), usada = !orig && Math.abs(hoy - f) <= DIAS_FECHA * 864e5 ? f : hoy;
       let nro = ultimo + 1, adoptado = null;
       // Un intento anterior pudo llegar a ARCA aunque no recibimos la respuesta: se consulta antes de pedir otro número.
       if (previo && previo.estado === 'intento' && previo.tipo === tipo && previo.pto === c.ptoVta && previo.nro <= ultimo) {
@@ -175,11 +178,11 @@ module.exports = function ({ archivo, proteger, desproteger, post, ahora = () =>
       let res = adoptado;
       if (!res) {
         guardarJr({ estado: 'intento', tipo, pto: c.ptoVta, nro, total, docNro: r.docNro });
-        res = await api.solicitarCae(amb, ta, c.cuit, { ptoVta: c.ptoVta, tipo, nro, fecha: ymd(usada).replace(/-/g, ''), total: imp.total, neto: imp.neto, iva: imp.iva, alicuotaId: imp.alicuotaId, docTipo: r.docTipo, docNro: r.docNro, condIvaReceptor: r.condIva });
+        res = await api.solicitarCae(amb, ta, c.cuit, { ptoVta: c.ptoVta, tipo, nro, fecha: ymd(usada).replace(/-/g, ''), total: imp.total, neto: imp.neto, iva: imp.iva, alicuotaId: imp.alicuotaId, docTipo: r.docTipo, docNro: r.docNro, condIvaReceptor: r.condIva, asoc: orig ? { tipo: orig.tipo, ptoVta: orig.ptoVta, nro: orig.nro, cuit: c.cuit, fecha: orig.fecha.replace(/-/g, '') } : null });
       }
       if (!res.ok) { guardarJr(null); return res; }
       const aaaammdd = s => s && /^\d{8}$/.test(s) ? s.slice(0, 4) + '-' + s.slice(4, 6) + '-' + s.slice(6) : s;
-      const fe = { estado: 'ok', amb, tipo, letra: LETRA[tipo], ptoVta: c.ptoVta, nro: res.nro, fecha: ymd(usada), cae: res.cae, vto: aaaammdd(res.vto), receptor: r, obs: res.observaciones || [], iva: imp.iva, neto: imp.neto,
+      const fe = { estado: 'ok', amb, tipo, letra: LETRA[tipo], ptoVta: c.ptoVta, nro: res.nro, fecha: ymd(usada), cae: res.cae, vto: aaaammdd(res.vto), receptor: r, obs: res.observaciones || [], iva: imp.iva, neto: imp.neto, alicuotaId: imp.alicuotaId, ...(orig ? { nc: { tipo: orig.tipo, ptoVta: orig.ptoVta, nro: orig.nro } } : {}),
         emisor: { cuit: c.cuit, razon: c.razon, condIva: c.condIva, domicilio: c.domicilio || '', inicio: c.inicio || '' } };
       fe.qr = armarQr(fe, total);
       guardarJr({ estado: 'ok', fe });
@@ -187,6 +190,6 @@ module.exports = function ({ archivo, proteger, desproteger, post, ahora = () =>
     } catch (e) { return e.fault || e.errores ? (guardarJr(null), falla(e)) : falla(e); }   // sin conexión: el intento queda anotado para consultar antes de reintentar
   });
 
-  return { estado, guardarConfig, generarCsr, cargarCertificado, probar, tipos, facturar, qrSvg };
+  return { estado, guardarConfig, generarCsr, cargarCertificado, probar, tipos, facturar: v => emitir(v), notaCredito: (v, orig) => emitir(v, orig), qrSvg };
 };
 Object.assign(module.exports, { cuitValido, tipoDe, importes, armarQr, qrSvg, receptorOk, QR_URL });

@@ -203,6 +203,14 @@ app.whenReady().then(() => {
     if (r.ok && !r.repetido) usr.audit(quien(), 'arca.facturar', 'venta ' + id + ' ' + r.fe.letra + ' ' + String(r.fe.ptoVta).padStart(4, '0') + '-' + String(r.fe.nro).padStart(8, '0'));
     return r;
   });
+  ipcMain.handle('arca:anular', async (e, id) => {   // anular una venta facturada = emitir la nota de crédito (solo gerente o administrador)
+    if (!permite('ventas', 'eliminar')) return { ok: false, err: 'Solo un gerente o un administrador puede anular una venta facturada' };
+    let venta; try { venta = (JSON.parse(store.snapshot() || '{}').sales || []).find(s => s.id === id); } catch (x) {}
+    if (!venta || !venta.fe || !venta.fe.cae) return { ok: false, err: 'La venta no tiene una factura autorizada' };
+    const r = await arca().notaCredito({ id: venta.id, date: venta.date, total: venta.total }, venta.fe);
+    if (r.ok && !r.repetido) usr.audit(quien(), 'arca.nota_credito', 'venta ' + id + ' NC ' + r.fe.letra + ' ' + String(r.fe.ptoVta).padStart(4, '0') + '-' + String(r.fe.nro).padStart(8, '0'));
+    return r;
+  });
   ipcMain.handle('arca:qr', (e, url) => { try { return String(url).startsWith(require('./arca').QR_URL) ? require('./arca').qrSvg(url) : ''; } catch (x) { return ''; } });  // Panel para el celular desde cualquier lugar: envío de datos de solo lectura al servidor central (nube.js).
   const nube = require('./nube')({ leer: () => store.snapshot(), getCfg: () => principal.getConfig(), setCfg: p => principal.setConfig(p), servidor: defaults().nube || '',
     proteger: t => safeStorage.isEncryptionAvailable() ? 'ss:' + safeStorage.encryptString(t).toString('base64') : t,

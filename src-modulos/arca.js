@@ -23,12 +23,25 @@ FA.emitir=async(id,receptor,callado)=>{const s=db.sales.find(x=>x.id===id);if(!s
 // Gancho de cobrar: según el modo elegido por el comercio (a pedido / siempre / solo clientes marcados).
 FA.alCobrar=s=>{if(!FA.ok()||!FA.e||!FA.e.listo||!s)return;const c=s.cid?cl$(s.cid):null,m=FA.e.cfg.modo;
   if(m==='siempre'||(m==='clientes'&&c&&c.facturar))FA.emitir(s.id,FA.receptorDe(c))};
+// Anular o corregir una venta facturada: primero se emite la nota de crédito (mismo tipo, con el comprobante asociado) y recién después se anula como siempre.
+FA.anular=async(s,fix,btn)=>{
+  if(!can('ventas','eliminar'))return toast('Solo un gerente o un administrador puede anular una venta facturada');
+  if(fix&&Object.keys(cart).length)return toast('Primero cobrá o vaciá la venta actual');
+  if(!confirm('Esta venta tiene la '+FA.nombre(s.fe)+'.\n\nSe emite en ARCA la nota de crédito que la anula y después se '+(fix?'carga para corregir':'anula la venta y se devuelve el stock')+'. ¿Seguir?'))return;
+  let r=s.fe.nc&&s.fe.nc.cae?{ok:true,fe:s.fe.nc}:null;
+  if(!r){try{r=await sp.arca.anular(s.id)}catch(x){r={ok:false,err:'No se pudo emitir la nota de crédito'}}}
+  const v=db.sales.find(x=>x.id===s.id);if(!v)return;
+  if(!r.ok&&!(r.pendiente&&!fix))return toast(r.pendiente?'Sin conexión con ARCA: no se puede corregir ahora, probá de nuevo':'No se pudo emitir la nota de crédito: '+r.err);
+  v.fe={...v.fe,nc:r.ok?r.fe:{estado:'pendiente'}};save();
+  if(!r.ok)toast('Sin conexión con ARCA: la venta se anula y la nota de crédito queda pendiente (se emite sola al volver Internet)');
+  arm=(fix?'c':'s')+s.id;FA.pasar=true;try{(btn.isConnected?btn:$('#hist [data-'+(fix?'c':'v')+'="'+s.id+'"]')).click()}finally{FA.pasar=false}};
 FA.reintentar=async()=>{if(FA.busy||!FA.ok())return;FA.busy=true;try{await FA.cargar();if(!FA.e||!FA.e.listo)return;
-  for(const s of db.sales.filter(x=>!x.void&&x.fe&&x.fe.estado==='pendiente').slice(0,5)){const r=await FA.emitir(s.id,s.fe.receptor,true);if(r&&!r.ok&&r.pendiente)break}}finally{FA.busy=false}};
+  for(const s of db.sales.filter(x=>!x.void&&x.fe&&x.fe.estado==='pendiente').slice(0,5)){const r=await FA.emitir(s.id,s.fe.receptor,true);if(r&&!r.ok&&r.pendiente)break}
+  for(const s of db.sales.filter(x=>x.void&&x.fe&&x.fe.nc&&x.fe.nc.estado==='pendiente').slice(0,5)){let r;try{r=await sp.arca.anular(s.id)}catch(x){break}if(r.ok){s.fe={...s.fe,nc:r.fe};save();draw()}else if(r.pendiente)break}}finally{FA.busy=false}};
 
 // Historial: etiqueta de la factura o botón para emitirla.
 FA.tag=s=>`<span class="tag" title="CAE ${esc(s.fe.cae)}">${esc(FA.nombre(s.fe))}</span>`;
-FA.fila=s=>{if(s.fe&&s.fe.cae)return FA.tag(s);if(!FA.ok()||!FA.e||!FA.e.listo)return'';const f=s.fe&&s.fe.estado;
+FA.fila=s=>{if(s.void)return s.fe&&s.fe.nc?(s.fe.nc.cae?`<span class="tag" title="CAE ${esc(s.fe.nc.cae)}">NC ${s.fe.nc.letra} ${FA.num(s.fe.nc)}</span>`:'<span class="tag low">Nota de crédito pendiente</span>'):'';if(s.fe&&s.fe.cae)return FA.tag(s);if(!FA.ok()||!FA.e||!FA.e.listo)return'';const f=s.fe&&s.fe.estado;
   return `<button class="btn sec" data-fa="${s.id}">${f==='pendiente'?'Reintentar factura':'Facturar'}</button>`+(f==='pendiente'?' <span class="tag low">Pendiente de facturar</span>':f==='error'?` <span class="tag out" title="${esc(s.fe.err||'')}">No se pudo facturar</span>`:'')};
 FA.dialogo=s=>{const c=s.cid?cl$(s.cid):null,r=s.fe&&s.fe.receptor||FA.receptorDe(c),prueba=FA.e.cfg.ambiente!=='produccion';
   document.body.insertAdjacentHTML('beforeend',`<div class="ov" id="fad" role="dialog" aria-modal="true"><div class="card" style="max-width:460px"><h3>Facturar la venta N.º ${String(s.id).padStart(6,'0')} · ${fmt(s.total)}</h3>
@@ -42,7 +55,7 @@ FA.dialogo=s=>{const c=s.cid?cl$(s.cid):null,r=s.fe&&s.fe.receptor||FA.receptorD
   $('#fad_t').onchange=$('#fad_c').onchange=act;act();const x=()=>{const o=$('#fad');if(o)o.remove()};$('#fad_x').onclick=x;
   $('#fad_ok').onclick=async()=>{const t=+$('#fad_t').value,rc={docTipo:t,docNro:t===99?'0':$('#fad_n').value.replace(/\D/g,''),condIva:+$('#fad_c').value};$('#fad_ok').disabled=true;await FA.emitir(s.id,rc);x();
     const v=db.sales.find(y=>y.id===s.id);if(v&&v.fe&&v.fe.cae&&$('#prt')&&$('#prt').checked)printTicket(v)}};
-if(FA.ok()){const h=$('#hist');if(h)h.addEventListener('click',e=>{const b=e.target.closest('[data-fa]');if(!b)return;e.stopImmediatePropagation();const s=db.sales.find(x=>x.id==b.dataset.fa);if(s&&FA.e&&FA.e.listo)FA.dialogo(s)},true)}
+if(FA.ok()){const h=$('#hist');if(h)h.addEventListener('click',e=>{const q=e.target.closest('[data-c],[data-v]');if(q&&!FA.pasar){const v=db.sales.find(x=>x.id==(q.dataset.c||q.dataset.v));if(v&&v.fe&&v.fe.cae){e.stopImmediatePropagation();FA.anular(v,!!q.dataset.c,q);return}}const b=e.target.closest('[data-fa]');if(!b)return;e.stopImmediatePropagation();const s=db.sales.find(x=>x.id==b.dataset.fa);if(s&&FA.e&&FA.e.listo)FA.dialogo(s)},true)}
 
 // Bloque fiscal del comprobante: datos obligatorios, CAE y QR oficial. El QR se dibuja en el proceso principal (necesitaFA.cargarQr antes de mostrar).
 FA.necesitaQr=s=>FA.ok()&&s&&s.fe&&s.fe.cae&&s.fe.qr&&!(s.fe.cae in FA.qrC);

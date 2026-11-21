@@ -142,6 +142,21 @@ function certDesdeCsr(csrPem, { dias = 365, cuit = '20111111112' } = {}) {
   assert(/<ar:DocTipo>80<\/ar:DocTipo><ar:DocNro>30500010912<\/ar:DocNro>/.test(sim.pedidos.pop()));
   assert.strictEqual(crear.tipoDe({ condIva: 'monotributo' }, { docTipo: 80, condIva: 1 }), 11);
 
+  // ---- notas de crédito (anular una venta facturada) ----
+  const hoyIso = new Date().toISOString(), nc1 = await A.notaCredito({ id: 10, date: hoyIso, total: 1234.5 }, fe);
+  assert(nc1.ok, JSON.stringify(nc1)); assert.deepStrictEqual([nc1.fe.tipo, nc1.fe.letra, nc1.fe.nro, nc1.fe.nc.nro, nc1.fe.nc.tipo], [13, 'C', 1, fe.nro, 11], 'C -> NC C con numeración propia');
+  { const pd = sim.pedidos.pop(); assert(/<ar:CbteTipo>13<\/ar:CbteTipo>/.test(pd) && /<ar:CondicionIVAReceptorId>5<\/ar:CondicionIVAReceptorId><ar:CbtesAsoc><ar:CbteAsoc><ar:Tipo>11<\/ar:Tipo><ar:PtoVta>3<\/ar:PtoVta><ar:Nro>1<\/ar:Nro><ar:Cuit>20111111112<\/ar:Cuit><ar:CbteFch>\d{8}<\/ar:CbteFch><\/ar:CbteAsoc><\/ar:CbtesAsoc>/.test(pd), 'comprobante asociado en el orden del WSDL'); assert(/<ar:ImpTotal>1234.50<\/ar:ImpTotal>/.test(pd)); }
+  const cant = sim.pedidos.length; const nc1b = await A.notaCredito({ id: 10, date: hoyIso, total: 1234.5 }, fe); assert(nc1b.ok && nc1b.repetido && nc1b.fe.cae === nc1.fe.cae && sim.pedidos.length === cant, 'no emite dos notas de crédito');
+  assert(/sin una factura|no tiene una factura/.test((await A.notaCredito({ id: 99, date: hoyIso, total: 5 }, { tipo: 11 })).err));
+  assert(/otro ambiente/.test((await A.notaCredito({ id: 98, date: hoyIso, total: 5 }, { ...fe, amb: 'produccion' })).err));
+  // sin conexión / respuesta perdida: pendiente y el reintento no duplica
+  const e0 = Object.keys(sim.emitidos).length; sim.caer = 'perderRespuesta'; assert((await A.notaCredito({ id: 15, date: hoyIso, total: 90 }, rr.fe)).pendiente); assert.strictEqual(Object.keys(sim.emitidos).length, e0 + 1);
+  const ncr = await A.notaCredito({ id: 15, date: hoyIso, total: 90 }, rr.fe); assert(ncr.ok && Object.keys(sim.emitidos).length === e0 + 1, 'el reintento recupera la NC ya emitida');
+  sim.caer = 'todo'; assert((await A.notaCredito({ id: 16, date: hoyIso, total: 95 }, rn.fe)).pendiente); sim.caer = null; assert((await A.notaCredito({ id: 16, date: hoyIso, total: 95 }, rn.fe)).ok);
+  // responsable inscripto: B -> NC B y A -> NC A, con IVA discriminado
+  const ncb = await RI.notaCredito({ id: 1, date: hoyIso, total: 121 }, b.fe); assert(ncb.ok && ncb.fe.tipo === 8 && ncb.fe.letra === 'B'); pd = sim.pedidos.pop();
+  assert(/<ar:CbteTipo>8<\/ar:CbteTipo>/.test(pd) && /<ar:ImpNeto>100.00<\/ar:ImpNeto>/.test(pd) && /<ar:AlicIva><ar:Id>5<\/ar:Id>/.test(pd) && /<ar:CbteAsoc><ar:Tipo>6<\/ar:Tipo>/.test(pd));
+  const nca = await RI.notaCredito({ id: 2, date: hoyIso, total: 242 }, a.fe); assert(nca.ok && nca.fe.tipo === 3 && nca.fe.letra === 'A' && /<ar:DocTipo>80<\/ar:DocTipo>/.test(sim.pedidos.pop()));
   console.log('arca.test.js OK');
   fs.rmSync(tmp, { recursive: true, force: true });
 })().catch(e => { console.error(e); process.exit(1); });
