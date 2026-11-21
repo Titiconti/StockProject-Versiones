@@ -154,10 +154,10 @@ const gz = t => 'gz:' + zlib.gzipSync(Buffer.from(t, 'utf8')).toString('base64')
   assert(!headersPara('/c/prueba')['content-security-policy'] && !headersPara('/c/prueba/api/datos')['content-security-policy'], 'el panel usa la CSP de servidor.js (no se suman dos)');
   assert.strictEqual(headersPara('/c/prueba')['x-frame-options'], 'DENY');
   const bloqueo = V.redirects.find(x => x.destination === '/no-existe'), bloqueadas = rx(bloqueo.source);
-  for (const f of ['/servidor.js', '/almacen.js', '/Caddyfile', '/docker-compose.yml', '/backup.sh', '/Dockerfile', '/README.md', '/package.json', '/.env.ejemplo', '/api/index.js', '/vercel.json']) assert(bloqueadas.test(f), 'bloqueado ' + f);
+  for (const f of ['/servidor.js', '/almacen.js', '/sync.js', '/Caddyfile', '/docker-compose.yml', '/backup.sh', '/Dockerfile', '/README.md', '/package.json', '/.env.ejemplo', '/api/index.js', '/vercel.json']) assert(bloqueadas.test(f), 'bloqueado ' + f);
   for (const f of ['/', '/landing/demo.js', '/ingesta', '/registro', '/clave-instalacion', '/c/prueba', '/c/prueba/api/login', '/salud']) assert(!bloqueadas.test(f), 'no bloqueado ' + f);
   assert.strictEqual(V.redirects.indexOf(bloqueo), 0, 'el bloqueo va antes que la mudanza de dirección');
-  assert.strictEqual(V.functions['api/index.js'].includeFiles, '{panel.html,servidor.js,almacen.js}', 'la función sigue llevando sus archivos');
+  assert.strictEqual(V.functions['api/index.js'].includeFiles, '{panel.html,servidor.js,almacen.js,sync.js}', 'la función sigue llevando sus archivos');
   const vieja = V.redirects.find(x => x.source.includes('ingesta'));
   for (const p of ['ingesta', 'registro', 'clave-instalacion']) assert(!new RegExp('^' + vieja.source.replace('/:ruta', '')).test(p), 'la dirección vieja sigue recibiendo ' + p);
   for (const c of ['INCR', 'PEXPIRE', 'SET', 'MGET', 'DEL']) assert(SIM.usados.has(c), 'se usó ' + c);

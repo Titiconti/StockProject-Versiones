@@ -25,6 +25,16 @@ const assert = require('assert'), crear = require('../nube'), { proyeccion } = c
   const txt = JSON.stringify(f); ['341 555', 'l@x.com', 'vecino', 'secreto', 'fidel', 'cajaObligatoria', '"cost"'].forEach(x => assert(!txt.includes(x), 'no debe enviarse: ' + x));
   assert.doesNotThrow(() => proyeccion({}, T)); assert.doesNotThrow(() => proyeccion(null, T));
 
+  // ---- heladería: tamaños armados sin stock propio, gustos en baldes, vendedor elegido ----
+  const dbH = { shop: { n: 'Heladería Sol' }, prods: [{ id: 1, name: 'Chocolate', unidad: 'kg', balde: 5, baldes: 1.5, price: 100, lots: [{ id: 1, n: 'A', qty: 7500, exp: '' }] },
+      { id: 2, name: 'Limón', unidad: 'kg', balde: 5, price: 100, lots: [{ id: 2, n: 'A', qty: 2500, exp: '' }] }, { id: 3, name: '1/4 kg', tipo: 'tamano', price: 4000, lots: [] }, { id: 4, name: 'Pan', price: 5, lots: [{ id: 3, n: 'A', qty: 3, exp: '' }] }], baldes: [{ date: iso(0), user: 'Ana', pid: 1, qty: 2 }, { date: iso(-1), user: 'Lu', name: 'Limón', qty: 1 }],
+    sales: [{ id: 1, date: iso(0), items: [{ id: 3, name: '1/4 kg', qty: 1, price: 4000 }], total: 4000, pay: 'Efectivo', user: 'Caja', vend: 'Lu' }, { id: 2, date: iso(0), items: [], total: 5, pay: 'Efectivo', user: 'Ana' }], cajas: [], clients: [], pays: [], cargos: [], desv: [] };
+  const fH = JSON.parse(JSON.stringify(proyeccion(dbH, T))), sH = n => fH.stock.find(x => x.n === n);
+  assert.strictEqual(sH('1/4 kg'), undefined, 'los tamaños armados no tienen stock propio: no aparecen como "sin stock"');
+  assert.deepStrictEqual([sH('Chocolate').balde, sH('Chocolate').baldes, sH('Chocolate').disp], [5, 1.5, 7.5], 'gusto con balde y baldes cargados a mano'); assert.strictEqual(sH('Limón').baldes, undefined); assert.strictEqual(sH('Limón').balde, 5);
+  assert(!('balde' in sH('Pan')) && !('baldes' in sH('Pan')), 'sin balde no se agrega nada (compatible con lo anterior)');
+  assert.deepStrictEqual(fH.baldes.map(b => [b.usuario, b.n, b.cant]), [['Ana', 'Chocolate', 2], ['Lu', 'Limón', 1]], 'últimas entradas de baldes: quién y cuándo'); assert(fH.baldes[0].fecha); assert.deepStrictEqual(JSON.parse(JSON.stringify(proyeccion({ prods: [] }, T))).baldes, [], 'sin historial de baldes: lista vacía, no rompe');
+  assert.strictEqual(fH.ventas[0].vend, 'Lu'); assert.strictEqual(fH.ventas[0].usuario, 'Caja'); assert(!('vend' in fH.ventas[1]), 'sin vendedor elegido no se agrega'); assert.strictEqual(fH.ventas[1].usuario, 'Ana');
   // ---- envío ----
   let cfg = {}, reloj = T, red = 'ok'; const envios = [];
   const enviar = async (u, o) => { if (red === 'caida') throw new TypeError('fetch failed'); envios.push({ u, auth: o.headers.Authorization, body: JSON.parse(o.body) }); return { ok: red === 'ok', status: red === 'ok' ? 200 : +red }; };
@@ -36,16 +46,18 @@ const assert = require('assert'), crear = require('../nube'), { proyeccion } = c
   await N.sincronizar(); assert.strictEqual(envios.length, 1); assert.strictEqual(envios[0].u, 'https://nube.ejemplo/ingesta'); assert.strictEqual(envios[0].auth, 'Bearer ' + TOK); assert.strictEqual(envios[0].body.foto.ventas.length, 3);
   const s1 = envios[0].body.seq; assert(N.estado().ultima && !N.estado().error);
   reloj += 30000; await N.sincronizar(); assert.strictEqual(envios.length, 1, 'sin cambios: no reenvía enseguida');
-  reloj += 240000; await N.sincronizar(); assert.strictEqual(envios.length, 1, 'a los 4 minutos y medio todavía no');
-  reloj += 31000; await N.sincronizar(); assert.strictEqual(envios.length, 2, 'cada 5 minutos avisa que sigue conectado'); assert(envios[1].body.seq > s1, 'secuencia creciente');
-  db.sales.push({ id: 5, date: new Date(reloj).toISOString(), items: [], total: 10, pay: 'Efectivo', caja: 1 }); reloj += 5000; await N.sincronizar(); assert.strictEqual(envios.length, 3, 'un cambio se envía enseguida');
-  // sin Internet: no rompe, avisa y reintenta después
+  reloj += 540000; await N.sincronizar(); assert.strictEqual(envios.length, 1, 'a los 9 minutos y medio todavía no');
+  reloj += 31000; await N.sincronizar(); assert.strictEqual(envios.length, 2, 'cada 10 minutos avisa que sigue conectado'); assert.strictEqual(envios[1].u, 'https://nube.ejemplo/ingesta/ops', 'el latido es chico, por diferencias'); assert.strictEqual(envios[1].body.n, envios[0].body.n + 1, 'numeración consecutiva'); assert(!envios[1].body.ventas, 'sin cambios no manda datos');
+  db.sales.push({ id: 5, date: new Date(reloj).toISOString(), items: [], total: 10, pay: 'Efectivo', caja: 1 }); reloj += 5000; await N.sincronizar(); assert.strictEqual(envios.length, 3, 'un cambio se envía enseguida'); assert.deepStrictEqual(envios[2].body.ventas.map(v => v.id), [5], 'solo la venta nueva');
+  // sin Internet: no rompe, avisa y reintenta después (con espera creciente)
+  db.sales.push({ id: 6, date: new Date(reloj).toISOString(), items: [], total: 11, pay: 'Efectivo', caja: 1 });
   red = 'caida'; reloj += 301000; const e1 = await N.sincronizar(); assert(/Sin conexión/.test(e1.error)); const ult = e1.ultima;
-  red = 'ok'; reloj += 1000; const e2 = await N.sincronizar(); assert(!e2.error && e2.ultima > ult, 'se recupera solo');
+  await N.sincronizar(); assert.strictEqual(envios.length, 3, 'tras el fallo espera 2 s antes de reintentar');
+  red = 'ok'; reloj += 3000; const e2 = await N.sincronizar(); assert(!e2.error && e2.ultima > ult, 'se recupera solo');
   // clave revocada y otros errores
-  red = '401'; reloj += 301000; assert(/no reconoce la clave/.test((await N.sincronizar()).error)); red = '500'; reloj += 301000; assert(/error \(500\)/.test((await N.sincronizar()).error));
+  red = '401'; reloj += 601000; assert(/no reconoce la clave/.test((await N.sincronizar()).error)); red = '500'; reloj += 601000; assert(/error \(500\)/.test((await N.sincronizar()).error));
   // pausar y quitar
-  red = 'ok'; const n = envios.length; N.activar(false); reloj += 301000; await N.sincronizar(); assert.strictEqual(envios.length, n, 'en pausa no envía');
+  red = 'ok'; const n = envios.length; N.activar(false); reloj += 601000; await N.sincronizar(); assert.strictEqual(envios.length, n, 'en pausa no envía');
   N.quitar(); assert(!N.estado().configurado && !cfg.nube.token); assert(/Primero cargá/.test(N.activar(true).err));
   console.log('NUBE_CLIENTE_OK'); process.exit(0);
 })().catch(e => { console.log('FALLO', e.stack || e.message); process.exit(1); });

@@ -63,7 +63,7 @@ app.whenReady().then(() => {
   ipcMain.handle('auth:logout', () => { usr.logout(tok); tok = null; win.loadFile(pagina()); return { ok: true }; });
   ipcMain.handle('auth:ir', () => { win.loadFile(pagina()); return true; });
   if (!faltaClave) try { store.load(); } catch (x) {}   // inicializa la versión de los datos
-  ipcMain.handle('save', (e, s, base) => { try { if (usr.habilitado()) { const q = quien(); if (!q) return { ok: false, auth: true, err: 'La sesión venció: volvé a ingresar' }; if (!usr.puedeEscribir(q)) return { ok: false, err: 'Tu usuario es de solo consulta' }; } return store.put(s, base) } catch (x) { return { ok: false, err: String((x && x.message) || x) } } });
+  ipcMain.handle('save', (e, s, base) => { try { if (usr.habilitado()) { const q = quien(); if (!q) return { ok: false, auth: true, err: 'La sesión venció: volvé a ingresar' }; if (!usr.puedeEscribir(q)) return { ok: false, err: 'Tu usuario es de solo consulta' }; } const r = store.put(s, base); if (r && r.ok) { try { nube.avisar(); } catch (e) {} } return r } catch (x) { return { ok: false, err: String((x && x.message) || x) } } });
   ipcMain.on('version', e => { e.returnValue = store.rev(); });
   ipcMain.on('defaults', e => { e.returnValue = defaults() });
   ipcMain.handle('b:info', () => store.info());
