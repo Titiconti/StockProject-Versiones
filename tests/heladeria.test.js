@@ -82,6 +82,15 @@ const assert = require('assert'), fs = require('fs'), path = require('path'), os
   ev("AU.habilitado=false;draw()");
   const { proyeccion } = require('../nube'); const fn = JSON.parse(JSON.stringify(proyeccion(db(), Date.now()))).stock;
   assert.strictEqual(fn.find(x => x.n === 'Vaso térmico 1/4').envase, true, 'el celular sabe qué productos son envases'); assert(!fn.find(x => x.n === 'Chocolate').envase);
+  // ---- precio de gustos en Inventario y eliminar un envase vinculado ----
+  ev("db.prods.push({id:db.nid++,name:'Envase tmp',code:'',price:0,cost:0,min:0,cat:'Envases',lots:[{id:db.lid++,n:'L',qty:5,exp:''}]},{id:db.nid++,name:'Tam tmp',code:'',price:900,cost:0,min:0,tipo:'tamano',cat:'Tamaños',lots:[]});db.prods.find(p=>p.name==='Tam tmp').env=db.prods.find(p=>p.name==='Envase tmp').id;draw()");
+  tab('i');
+  const rowG = [...w.document.querySelectorAll('#inv tr')].find(r => /Chocolate/.test(r.textContent)); assert(/—/.test(rowG.children[3].textContent) && !/\$/.test(rowG.children[3].textContent), 'Precio de un gusto: —');
+  const eb = `#inv [data-d="${P('Envase tmp').id}"]`; click(eb); assert(/Tam tmp usa este envase y va a quedar sin control de stock/.test(toast()), 'avisa antes de confirmar'); assert(P('Envase tmp'));
+  click(eb); assert(!P('Envase tmp'), 'se elimina el envase'); assert.strictEqual(P('Tam tmp').env, undefined, 'el tamaño queda sin vincular');
+  ev('document.querySelector("#masmenu button[data-t=hl]").click()'); assert(/Tam tmp\s*Sin envase vinculado/.test(txt('#hl_tl')), 'se ve Sin envase vinculado'); assert($(`#hl_tl [data-te="${P('Tam tmp').id}"]`).options[0].textContent.includes('Elegí un envase'), 'con acceso para vincular otro');
+  chg($(`#hl_tl [data-te="${P('Tam tmp').id}"]`), String(P('Vaso térmico 1/4').id)); assert.strictEqual(P('Tam tmp').env, P('Vaso térmico 1/4').id, 'se vincula otro'); assert(!/Tam tmp\s*Sin envase/.test(txt('#hl_tl')));
+  ev(`HL.eliminar(${P('Tam tmp').id})`);
   // ---- permiso de precios ----
   ev("AU.habilitado=true;AU.usuario={id:2,rol:'empleado',user:'luis',nombre:'Luis'};AU.permisos={ventas:['ver','crear'],inventario:['ver'],productos:['ver','crear','editar']};draw()");
   assert.strictEqual(ev('HL.puedePrecios()'), false); ev('document.querySelector("#masmenu button[data-t=hl]").click()'); assert.strictEqual($('#hl_tl [data-tp]').disabled, true, 'precios bloqueados en la tabla de tamaños');
