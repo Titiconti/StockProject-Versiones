@@ -1,5 +1,17 @@
 # Novedades de StockProject
 
+## 5.7.0
+- **Facturación electrónica con ARCA:** conectás tu propio certificado desde Configuración › Facturación (te guía paso a paso) y elegís cuándo facturar: a pedido, siempre al cobrar o solo a ciertos clientes. Si anulás una venta facturada, sale sola la nota de crédito.
+- **Cobro con Mercado Pago:** QR y Point con tu cuenta. La venta se marca cobrada sola cuando el pago se aprueba, y en «Conciliar Mercado Pago» cruzás los pagos del día con las ventas.
+- **Aumento masivo de precios** por porcentaje, para todos, una categoría o un proveedor, con vista previa antes de confirmar. **Importás listas de proveedores en Excel (.xlsx)** además de CSV.
+- **Nuevo rubro Heladería:** venta por tamaño (cucurucho, ¼, ½, 1 kg) y una pantalla de baldes para cargar cuánto queda de cada gusto, con aviso de qué pedir.
+- **Ventas por peso más fáciles:** escribís el importe ($4500) y calcula los kilos, o al revés. También lee las etiquetas con código de barras de la balanza.
+- **El panel del celular se actualiza en 2 a 3 segundos** y desde ahí el dueño puede **cambiar precios**; la compu los aplica sola.
+- **Configuración nueva:** secciones claras, menú lateral y buscador. **Tema claro u oscuro** (o según Windows) en Apariencia.
+- **Cierre de caja:** los montos se escriben como texto (sin flechitas), aceptan coma y punto, y se arregló que no se podía escribir al cerrar el programa con la caja abierta.
+- **Solo el gerente o el administrador pueden anular o corregir ventas.**
+- Animación de inicio más larga y sin parpadeo, letra nueva y efectos más suaves (se apagan con «Animaciones suaves»).
+
 ## 5.6.2
 - **«Plata del negocio» ahora se llama «Resumen financiero».** Muestra lo mismo: lo que entró, la ganancia estimada, lo que te deben y lo que debés.
 - **El panel del celular pasa solo a su dirección definitiva** (https://stockprojectapp.vercel.app). No tenés que hacer nada: tu panel y tu clave siguen iguales.
