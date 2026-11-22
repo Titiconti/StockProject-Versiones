@@ -473,9 +473,9 @@ nav button[aria-current="page"]{background:var(--activo);color:#fff}
   }
 
   // ---------- Stock ----------
-  // Gustos de heladería: cuánto queda en baldes (los baldes cargados a mano; si no hay, kilos / kilos por balde), con una decimal.
-  function nBaldes(p) { return typeof p.baldes === 'number' ? p.baldes : num(p.disp) / p.balde; }
-  function baldes(p) { return (Math.round(nBaldes(p) * 10) / 10).toFixed(1).replace('.', ','); }
+  // Gustos de heladería: se ven solo en baldes (nunca kilos), hasta 2 decimales: "Dulce de leche — 1,5 baldes".
+  function nBaldes(p) { return typeof p.baldes === 'number' ? p.baldes : num(p.disp); }
+  function baldes(p) { var n = Math.round(nBaldes(p) * 100) / 100; return String(n).replace('.', ',') + (n === 1 ? ' balde' : ' baldes'); }
   var ESTADOS = { ok: ['ok', 'En stock'], bajo: ['avi', 'Stock bajo'], sin: ['mal', 'Sin stock'], vencido: ['mal', 'Vencido'] };
   // Cambio de precio desde el celular: queda "Pendiente" hasta que la PC del local lo aplica (si está apagada, espera).
   var editando = null, borrador = '', avisoPrecio = '';
@@ -523,7 +523,7 @@ nav button[aria-current="page"]{background:var(--activo);color:#fff}
         return fila(txt(c.n), plata(c.visto) + ' → ' + plata(c.precio) + (c.estado === 'rechazado' && c.motivo ? ' · ' + txt(c.motivo) : '') + (c.estado === 'pendiente' ? ' · espera al local' : ''), e2);
       })));
       var hist = lista(foto().baldes);
-      if (hist.length && !q && !soloProblemas) cuerpo.appendChild(h('div', { class: 'tarj' }, h('b', null, 'Últimos baldes cargados'), hist.slice(-5).reverse().map(function (b) { return h('div', { class: 'det' }, (b.fecha ? fecha(Date.parse(b.fecha), fmt.fh) : '') + ' · ' + txt(b.n) + ' · ' + (b.t === 'ingreso' ? 'Entró ' : 'Quedó en ') + String(Math.round(num(b.baldes) * 100) / 100).replace('.', ',') + ' balde(s)' + (b.usuario ? ' · ' + txt(b.usuario) : '')); })));
+      if (hist.length && !q && !soloProblemas) cuerpo.appendChild(h('div', { class: 'tarj' }, h('b', null, 'Últimos baldes cargados'), hist.slice(-5).reverse().map(function (b) { return h('div', { class: 'det' }, (b.fecha ? fecha(Date.parse(b.fecha), fmt.fh) : '') + ' · ' + txt(b.n) + ' · ' + (b.t === 'ingreso' ? 'Entró ' : 'Quedó en ') + baldes(b) + (b.usuario ? ' · ' + txt(b.usuario) : '')); })));
       var L = h('div', { class: 'lista' }), tope = 200;
       l.slice(0, tope).forEach(function (p) {
         var e = ESTADOS[p.estado] || ['neu', 'Sin estado'];
@@ -538,8 +538,9 @@ nav button[aria-current="page"]{background:var(--activo);color:#fff}
             setTimeout(function () { try { ci.focus(); } catch (x) {} }, 0);
           } else abrir = h('button', { type: 'button', class: 'enlace', onclick: function () { editando = p.id; borrador = ''; avisoPrecio = ''; pintar(); } }, 'Cambiar precio');
         }
+        if (p.gusto) { L.appendChild(h('div', { class: 'it' }, fila(txt(p.n) || 'Sin nombre', '', [h('div', { class: 'imp' }, baldes(p)), (typeof p.pedir === 'boolean' ? p.pedir : nBaldes(p) < 1) ? eti('avi', 'Pedir') : null]))); return; }
         L.appendChild(h('div', { class: 'it' }, fila(txt(p.n) || 'Sin nombre', det,
-          [h('div', { class: 'imp' }, cant(p.disp, p.u)), p.balde > 0 ? h('div', { class: 'det' }, baldes(p) + ' baldes') : null, p.balde > 0 && (typeof p.pedir === 'boolean' ? p.pedir : nBaldes(p) < 1) ? eti('avi', 'Pedir') : null, eti(e[0], e[1])], [h('div', { class: 'det' }, 'Precio ' + plata(p.precio)), abrir]), editor));
+          [h('div', { class: 'imp' }, cant(p.disp, p.u)), eti(e[0], e[1])], [h('div', { class: 'det' }, 'Precio ' + plata(p.precio)), abrir]), editor));
       });
       cuerpo.appendChild(L);
       if (l.length > tope) cuerpo.appendChild(h('p', { class: 'nota' }, 'Se muestran los primeros ' + tope + '. Usá el buscador para encontrar el resto.'));

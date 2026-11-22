@@ -3,7 +3,7 @@
 // habilitan opciones en cada producto (productos2.js). Agregar un rubro = agregar una entrada en RB.PERFILES.
 // Nunca modifica productos existentes. El progreso se guarda (db.cfg.entrevistaBorrador) y se puede retomar.
 const RB={};
-RB.CAPS={heladeria:'Heladería (gustos en baldes, tamaños y vendedor en cada venta)',peso:'Venta por peso',vencimientos:'Lotes y vencimientos obligatorios por producto',series:'Números de serie',garantias:'Garantías, marca y modelo',variantes:'Variantes (talle, color…)',tramos:'Precios por cantidad',minimos:'Compra mínima'};
+RB.CAPS={heladeria:'Heladería (gustos en baldes y tamaños de precio fijo)',peso:'Venta por peso',vencimientos:'Lotes y vencimientos obligatorios por producto',series:'Números de serie',garantias:'Garantías, marca y modelo',variantes:'Variantes (talle, color…)',tramos:'Precios por cantidad',minimos:'Compra mínima'};
 // Cada rubro: tipo (perfil general de menú e Inicio), capacidades de arranque, preguntas propias, categorías sugeridas,
 // motivos de baja propios y textos de ejemplo. Lo que un rubro no usa no aparece en el programa.
 RB.PERFILES={
@@ -23,7 +23,7 @@ RB.PERFILES={
   petshop:{n:'Pet shop',d:'Alimento suelto o en bolsa, accesorios e higiene para mascotas.',tipo:'minorista',caps:{peso:true,vencimientos:true},pregs:['pe_peso','pe_vto','stock'],cats:['Alimento para perros','Alimento para gatos','Accesorios','Higiene','Farmacia veterinaria'],ej:'Alimento adulto 15 kg'},
   dietetica:{n:'Dietética',d:'Frutos secos, harinas, semillas y suplementos, muchos por peso.',tipo:'minorista',caps:{peso:true,unidadPorDefecto:'kg',vencimientos:true},pregs:['d_unidad','d_vto','d_merma','stock'],cats:['Frutos secos','Harinas','Semillas','Legumbres','Suplementos','Sin TACC'],motivos:['Merma por fraccionado'],ej:'Almendras'},
   perfumeria:{n:'Perfumería',d:'Fragancias, maquillaje y cuidado personal.',tipo:'minorista',caps:{vencimientos:true},pregs:['pf_vto','pf_var','stock'],cats:['Fragancias','Maquillaje','Cuidado de la piel','Cabello','Higiene'],ej:'Esmalte de uñas'},
-  heladeria:{n:'Heladería',d:'Gustos por balde, tamaños de precio fijo (cucurucho, ¼, ½, 1 kg) y vendedor en cada venta.',tipo:'minorista',caps:{peso:true,heladeria:true},pregs:['stock'],cats:['Helado','Tamaños','Insumos'],motivos:['Derretido'],ej:'Dulce de leche'},
+  heladeria:{n:'Heladería',d:'Gustos por balde, tamaños de precio fijo (cucurucho, ¼, ½, 1 kg) y conteo de baldes en Inventario.',tipo:'minorista',caps:{peso:true,heladeria:true},pregs:['stock'],cats:['Helado','Tamaños','Insumos'],motivos:['Derretido'],ej:'Dulce de leche'},
   otro:{n:'Otro comercio',d:'Elegí vos qué funciones querés tener disponibles.',tipo:'otro',caps:{},pregs:['o_peso','o_vto','stock'],cats:[],ej:'Producto'}
 };
 // Rubro equivalente para negocios que contestaron la encuesta anterior (por tipo de comercio).

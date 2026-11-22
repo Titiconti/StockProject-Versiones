@@ -32,7 +32,7 @@ $('#fg').closest('.form').insertAdjacentHTML('afterend',`<details class="dt" id=
 <div><label>Categoría</label><input id="px_cat" list="px_cats" placeholder="Ej.: Bebidas"><datalist id="px_cats"></datalist></div>
 <div data-cap="peso"><label>Se vende por</label><select id="px_u"><option value="u">Unidad</option><option value="kg">Peso (precio por kg)</option></select></div>
 <div data-cap="peso"><label>Código de balanza (PLU)</label><input id="px_plu" inputmode="numeric" placeholder="Ej.: 123"></div>
-<div data-cap="heladeria"><label>Kg por balde (gusto de helado)</label><input id="px_bal" inputmode="decimal" placeholder="Ej.: 5"></div>
+<input id="px_bal" type="hidden">
 <div data-cap="control"><label>Control de stock</label><select id="px_ctl"><option value="">Normal (por cantidad y lote)</option><option value="serie" data-cap="series">Por número de serie</option><option value="variantes" data-cap="variantes">Con variantes (talle, color…)</option></select></div>
 <div data-cap="minimos"><label>Compra mínima (unidades)</label><input id="px_min" type="number" min="0"></div>
 <div data-cap="tramos" style="grid-column:span 2"><label>Precios por cantidad (desde=precio)</label><input id="px_tr" placeholder="10=900; 50=800"></div>
@@ -44,7 +44,7 @@ PX.vis=()=>{$$('#pxo [data-cap]').forEach(x=>{const c=x.dataset.cap;x.classList.
   }
   $('#px_cats').innerHTML=[...new Set([...db.prods.map(p=>p.cat).filter(Boolean),...((PX.rubro()||{}).cats||[])])].sort().map(c=>`<option value="${esc(c)}">`).join('');
   const u=$('#px_u').value,c=$('#px_ctl').value,lq=fs.previousElementSibling,ll=fl.previousElementSibling;
-  if(lq)lq.textContent=c==='variantes'?'Cantidad (se carga en cada variante)':u==='kg'?'Cantidad a ingresar (kg)':'Cantidad a ingresar';if(ll)ll.textContent=c==='serie'?'N.º de serie (uno por unidad, separados por coma)':'N.º de lote (opcional)';
+  if(lq)lq.textContent=c==='variantes'?'Cantidad (se carga en cada variante)':u==='kg'?($('#px_bal').value>0?'Cantidad a ingresar (baldes)':'Cantidad a ingresar (kg)'):'Cantidad a ingresar';if(ll)ll.textContent=c==='serie'?'N.º de serie (uno por unidad, separados por coma)':'N.º de lote (opcional)';
   fs.disabled=c==='variantes';fp.disabled=!!editId&&typeof HL!=='undefined'&&!HL.puedePrecios();fp.previousElementSibling.textContent=u==='kg'?'Precio por kg ('+MON+')':'Precio de venta ('+MON+')';
   $('#pxr').textContent=[u==='kg'?'por peso':'',c==='serie'?'con N.º de serie':c==='variantes'?'con variantes':'',$('#px_vr').checked?'vence':'',$('#px_cat').value].filter(Boolean).join(' · ')};
 ['#px_u','#px_ctl','#px_vr','#px_cat'].forEach(x=>$(x).addEventListener('change',PX.vis));

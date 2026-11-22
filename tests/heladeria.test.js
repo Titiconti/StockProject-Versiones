@@ -8,14 +8,14 @@ const assert = require('assert'), fs = require('fs'), path = require('path'), os
   assert(ev("PX.on('heladeria')") && ev("PX.on('peso')"));
 
   // ---- baldes: carga, fracciones, ajuste e historial ----
-  assert(ev("HL.nuevoGusto('Chocolate','5','2').ok") && ev("HL.nuevoGusto('Frutilla','6','1').ok") && ev("HL.nuevoGusto('Limón','','0,5').ok"));
-  assert.strictEqual(kg('Chocolate'), 10000, '2 baldes de 5 kg = 10.000 g'); assert.strictEqual(P('Limón').balde, 5, 'balde lleno ≈ 5 kg por defecto'); assert.strictEqual(kg('Limón'), 2500);
-  assert.deepStrictEqual([ev('HL.fmtB(0.5)'), ev('HL.fmtB(1)'), ev('HL.fmtB(1.5)'), ev('HL.fmtB(1.2)'), ev('HL.fmtB(0.1)')], ['0,5', '1', '1,5', '1', 'menos de 0,5'], 'stock visible en 0,5 / 1 / 1,5 baldes');
-  assert(ev("HL.nuevoGusto('chocolate','5','1').err"), 'no repite nombres');
-  assert.strictEqual(ev(`HL.cargar(${P('Limón').id},1).ok`), true); assert.strictEqual(kg('Limón'), 7500, 'entró 1 balde');
-  assert.strictEqual(ev(`HL.ajustar(${P('Frutilla').id},'0,5').ok`), true); assert.strictEqual(kg('Frutilla'), 3000, '"queda medio balde"');
+  assert(ev("HL.nuevoGusto('Chocolate','2').ok") && ev("HL.nuevoGusto('Frutilla','1').ok") && ev("HL.nuevoGusto('Limón','0,5').ok"));
+  assert.strictEqual(kg('Chocolate'), 2000, '2 baldes = 2000 milésimas'); assert.strictEqual(P('Limón').balde, 1, 'la unidad es el balde'); assert.strictEqual(kg('Limón'), 500);
+  assert.deepStrictEqual([ev('HL.fmtB(0.5)'), ev('HL.fmtB(1)'), ev('HL.fmtB(1.5)'), ev('HL.fmtB(1.2)'), ev('HL.fmtB(0.1)')], ['0,5', '1', '1,5', '1,25', 'menos de 0,25'], 'stock visible en 0,5 / 1 / 1,5 baldes');
+  assert(ev("HL.nuevoGusto('chocolate','1').err"), 'no repite nombres');
+  assert.strictEqual(ev(`HL.cargar(${P('Limón').id},1).ok`), true); assert.strictEqual(kg('Limón'), 1500, 'entró 1 balde');
+  assert.strictEqual(ev(`HL.ajustar(${P('Frutilla').id},'0,5').ok`), true); assert.strictEqual(kg('Frutilla'), 500, '"queda medio balde"');
   assert(ev(`HL.ajustar(${P('Frutilla').id},'abc').err`)); assert(db().ajustes.some(a => a.tipo === 'stock.ajuste'));
-  assert.strictEqual(ev(`HL.ajustar(${P('Frutilla').id},'1').ok`), true); assert.strictEqual(kg('Frutilla'), 6000);
+  assert.strictEqual(ev(`HL.ajustar(${P('Frutilla').id},'1').ok`), true); assert.strictEqual(kg('Frutilla'), 1000);
   const hb = db().baldes; assert.deepStrictEqual(hb.map(h => [h.gusto, h.t, h.baldes]), [['Chocolate', 'ingreso', 2], ['Frutilla', 'ingreso', 1], ['Limón', 'ingreso', 0.5], ['Limón', 'ingreso', 1], ['Frutilla', 'ajuste', 0.5], ['Frutilla', 'ajuste', 1]], 'historial de baldes');
   assert(hb.every(h => h.user === 'Sin usuario' && h.date), 'queda quién y cuándo');
   ev('document.querySelector("#masmenu button[data-t=hl]").click()'); assert(/Entró 2 balde/.test(txt('#hl_hl')) && /Quedó en 0,5 balde/.test(txt('#hl_hl')) && /Chocolate/.test(txt('#hl_hl')), 'se ve el historial');
@@ -35,12 +35,24 @@ const assert = require('assert'), fs = require('fs'), path = require('path'), os
   ev("CJ.abrir(1000,'Caja 1','')"); tab('v'); assert(!w.document.querySelector('#hlbar'), 'sin selector de vendedor');
   click(`#prods .p[data-id="${P('1/4 kg').id}"]`); assert(!$('#pxm'), 'entra directo, sin elegir gustos'); click('#cobrar');
   let s = db().sales[0]; assert.strictEqual(s.total, 8000); assert.strictEqual(s.user, 'Sin usuario'); assert(!('vend' in s), 'no hay vendedor por venta');
-  assert(!s.items[0].gustos && !s.items[0].sel, 'la venta no toca los gustos'); assert.strictEqual(kg('Chocolate'), 10000); assert.strictEqual(s.caja, db().cajas[0].id); assert.strictEqual(ev('CJ.calc(CJ.abierta()).vendido'), 8000, 'la caja cuenta la venta');
+  assert(!s.items[0].gustos && !s.items[0].sel, 'la venta no toca los gustos'); assert.strictEqual(kg('Chocolate'), 2000); assert.strictEqual(s.caja, db().cajas[0].id); assert.strictEqual(ev('CJ.calc(CJ.abierta()).vendido'), 8000, 'la caja cuenta la venta');
   click(`#prods .p[data-id="${P('Cucurucho').id}"]`); click(`#prods .p[data-id="${P('Cucurucho').id}"]`); click('#cobrar'); s = db().sales[1]; assert(s.total === 6000 && s.items[0].qty === 2);
   tab('r'); const sid = db().sales[0].id; click(`#hist [data-v="${sid}"]`); click(`#hist [data-v="${sid}"]`); assert(db().sales[0].void);
   assert.strictEqual(ev('CJ.calc(CJ.abierta()).esperado'), 7000, 'esperado de caja: 1000 + 6000 (la anulada no cuenta)'); assert.strictEqual(db().cajas[0].user, 'Sin usuario');
 
-  // ---- permiso de precios ----
+  // ---- conteo de baldes dentro de Inventario (mismas funciones que Más > Heladería) ----
+  tab('i'); assert(!$('#hl_inv').classList.contains('hide') && $('#i').classList.contains('hlg'), 'panel visible en Inventario');
+  assert(/Limón\s*Pedir/.test(txt('#hl_ib')) && /Chocolate/.test(txt('#hl_ib')), 'gustos con marca Pedir');
+  const l0 = kg('Limón'), h0 = db().baldes.length; click(`#hl_ib [data-hm="${P('Limón').id}"]`); assert.strictEqual(kg('Limón'), l0 + 1000, 'Entró balde desde Inventario'); assert.strictEqual(db().baldes.length, h0 + 1);
+  const q = $(`#hl_ib [data-hq="${P('Limón').id}"]`); q.value = '0,5'; click(`#hl_ib [data-ha="${P('Limón').id}"]`); assert.strictEqual(kg('Limón'), 500, 'Ajustar desde Inventario'); assert.strictEqual(db().baldes.slice(-1)[0].t, 'ajuste');
+  click('#hl_inv [data-hh]'); assert(!$('#hl').classList.contains('hide'), 'Historial lleva a la pantalla Heladería');
+  ev("db.cfg.caps.heladeria=false;draw()"); tab('i'); assert($('#hl_inv').classList.contains('hide') && !$('#i').classList.contains('hlg'), 'otros rubros no ven el panel'); ev("db.cfg.caps.heladeria=true;draw()");
+  // ---- sin kilos ni gramos y migración de datos 5.7.0 (balde = kg, stock en gramos) ----
+  ev("db.prods.push({id:db.nid++,name:'Viejo',code:'',price:0,cost:0,min:0,unidad:'kg',balde:5,cat:'Helado',lots:[{id:db.lid++,n:'Baldes',qty:7500,exp:''}]});HL.migrar();draw()");
+  assert.deepStrictEqual([P('Viejo').balde, kg('Viejo')], [1, 1500], '7,5 kg con balde de 5 kg = 1,5 baldes');
+  ev('HL.migrar();HL.migrar()'); assert.strictEqual(kg('Viejo'), 1500, 'migrar dos veces no cambia nada'); assert.strictEqual(ev(`HL.baldes(db.prods.find(p=>p.name==='Viejo'))`), 1.5);
+  tab('i'); assert(/Viejo\s*1,5 baldes/.test(txt('#hl_ib')), 'se ve 1,5 baldes'); assert(!/\bkg\b|\bg\b|gramos|kilo/i.test(txt('#hl_ib') + txt('#hl_gl') + txt('#hl_hl')), 'ni kilos ni gramos en los baldes');
+  assert(/Viejo[\s\S]*1,5 baldes/.test(txt('#inv')) && !/Viejo[^\n]*\bkg\b/.test(txt('#inv')), 'Inventario muestra baldes, no kg');  // ---- permiso de precios ----
   ev("AU.habilitado=true;AU.usuario={id:2,rol:'empleado',user:'luis',nombre:'Luis'};AU.permisos={ventas:['ver','crear'],inventario:['ver'],productos:['ver','crear','editar']};draw()");
   assert.strictEqual(ev('HL.puedePrecios()'), false); ev('document.querySelector("#masmenu button[data-t=hl]").click()'); assert.strictEqual($('#hl_tl [data-tp]').disabled, true, 'precios bloqueados en la tabla de tamaños');
   tab('i'); click(`#inv [data-e="${P('Chocolate').id}"]`); assert.strictEqual($('#fp').disabled, true, 'el campo precio queda bloqueado'); $('#fp').disabled = false; set('#fp', '9999'); click('#fg');
