@@ -31,28 +31,18 @@ const assert = require('assert'), fs = require('fs'), path = require('path'), os
   const tp4 = $(`#hl_tl [data-tp="${P('1/4 kg').id}"]`); tp4.value = '8000'; tp4.dispatchEvent(new w.Event('change', { bubbles: true })); assert.strictEqual(P('1/4 kg').price, 8000);
   tab('i'); assert(!w.document.querySelector(`#inv [data-e="${P('1/4 kg').id}"]`), 'los tamaños no figuran en Inventario');
 
-  // ---- vendedor en cada venta (lista manual, sin usuarios) ----
-  ev("CJ.abrir(1000,'Caja 1','')"); ev("HL.guardarVend('Ana, Luis, Ana')"); assert.deepStrictEqual(J('db.cfg.hel.vend.map(v=>v.nombre)'), ['Ana', 'Luis']); tab('v');
-  const bar = [...w.document.querySelectorAll('#hlbar [data-hv]')]; assert.strictEqual(bar.length, 2, 'botones con los empleados del turno');
-  click(`#prods .p[data-id="${P('1/4 kg').id}"]`); assert(!$('#pxm'), 'sin elegir gustos: entra directo'); click('#cobrar'); assert(/quién vende/.test(toast()), 'sin vendedor no cobra'); assert.strictEqual(db().sales.length, 0);
-  click(bar[0]); assert($('#hlbar [data-hv].on'), 'queda a la vista'); click('#cobrar');
-  let s = db().sales[0]; assert.strictEqual(s.total, 8000); assert.strictEqual(s.vend.nombre, 'Ana'); assert.strictEqual(s.user, 'Sin usuario', '`user` sigue siendo quien tenía la sesión');
-  assert(!s.items[0].gustos && !s.items[0].sel, 'la venta no toca los gustos'); assert.strictEqual(kg('Chocolate'), 10000); assert.strictEqual(s.caja, db().cajas[0].id); assert.strictEqual(ev('CJ.calc(CJ.abierta()).vendido'), 8000, 'la caja sigue contando la venta');
-  assert(/Ana/.test(txt('#hlbar [data-hv].on')), 'el último vendedor queda preseleccionado');
-  click(`#hlbar [data-hv="${db().cfg.hel.vend[1].id}"]`); click(`#prods .p[data-id="${P('Cucurucho').id}"]`); click(`#prods .p[data-id="${P('Cucurucho').id}"]`); click('#cobrar');
-  s = db().sales[1]; assert(s.vend.nombre === 'Luis' && s.total === 6000 && s.items[0].qty === 2);
+  // ---- ventas por tamaño: user y caja del empleado, como en el resto del sistema ----
+  ev("CJ.abrir(1000,'Caja 1','')"); tab('v'); assert(!w.document.querySelector('#hlbar'), 'sin selector de vendedor');
+  click(`#prods .p[data-id="${P('1/4 kg').id}"]`); assert(!$('#pxm'), 'entra directo, sin elegir gustos'); click('#cobrar');
+  let s = db().sales[0]; assert.strictEqual(s.total, 8000); assert.strictEqual(s.user, 'Sin usuario'); assert(!('vend' in s), 'no hay vendedor por venta');
+  assert(!s.items[0].gustos && !s.items[0].sel, 'la venta no toca los gustos'); assert.strictEqual(kg('Chocolate'), 10000); assert.strictEqual(s.caja, db().cajas[0].id); assert.strictEqual(ev('CJ.calc(CJ.abierta()).vendido'), 8000, 'la caja cuenta la venta');
+  click(`#prods .p[data-id="${P('Cucurucho').id}"]`); click(`#prods .p[data-id="${P('Cucurucho').id}"]`); click('#cobrar'); s = db().sales[1]; assert(s.total === 6000 && s.items[0].qty === 2);
   tab('r'); const sid = db().sales[0].id; click(`#hist [data-v="${sid}"]`); click(`#hist [data-v="${sid}"]`); assert(db().sales[0].void);
   assert.strictEqual(ev('CJ.calc(CJ.abierta()).esperado'), 7000, 'esperado de caja: 1000 + 6000 (la anulada no cuenta)'); assert.strictEqual(db().cajas[0].user, 'Sin usuario');
 
-  // ---- reportes: ventas por vendedor ----
-  assert.deepStrictEqual(J('HL.porVendedor(UT.hoy())').map(o => [o.nombre, o.n, o.total]), [['Luis', 1, 6000]], 'la anulada no cuenta');
-  ev("db.sales.push({id:99,date:new Date().toISOString(),items:[],total:10,pay:'Efectivo',user:'Zoe'})"); assert(J('HL.porVendedor(UT.hoy())').some(o => o.nombre === 'Zoe'), 'sin vend cae a user'); ev('db.sales.pop()');
-  tab('v'); ev('document.querySelector("#masmenu button[data-t=hl]").click()'); assert(/Luis/.test(txt('#hl_vl')) && !/Ana/.test(txt('#hl_vl')));
-
-  // ---- permiso de precios y vendedores desde usuarios ----
-  ev("AU.habilitado=true;AU.usuario={id:2,rol:'empleado',user:'luis',nombre:'Luis'};AU.permisos={ventas:['ver','crear'],inventario:['ver'],productos:['ver','crear','editar']};HL._us=[{id:5,nombre:'Rosa'},{id:6,nombre:'Pedro'}];HL._t=Date.now();draw()");
-  assert.deepStrictEqual(J('HL.vend().map(v=>v.nombre)'), ['Rosa', 'Pedro'], 'con usuarios, los botones salen de los usuarios activos'); tab('v'); assert.strictEqual(w.document.querySelectorAll('#hlbar [data-hv]').length, 2);
-  assert.strictEqual(ev('HL.puedePrecios()'), false); ev('document.querySelector("#masmenu button[data-t=hl]").click()'); assert.strictEqual($('#hl_tl [data-tp]').disabled, true, 'precios bloqueados en la tabla de tamaños'); assert.strictEqual($('#hl_vs').disabled, true, 'lista manual deshabilitada con usuarios');
+  // ---- permiso de precios ----
+  ev("AU.habilitado=true;AU.usuario={id:2,rol:'empleado',user:'luis',nombre:'Luis'};AU.permisos={ventas:['ver','crear'],inventario:['ver'],productos:['ver','crear','editar']};draw()");
+  assert.strictEqual(ev('HL.puedePrecios()'), false); ev('document.querySelector("#masmenu button[data-t=hl]").click()'); assert.strictEqual($('#hl_tl [data-tp]').disabled, true, 'precios bloqueados en la tabla de tamaños');
   tab('i'); click(`#inv [data-e="${P('Chocolate').id}"]`); assert.strictEqual($('#fp').disabled, true, 'el campo precio queda bloqueado'); $('#fp').disabled = false; set('#fp', '9999'); click('#fg');
   assert(/Solo el gerente/.test(toast()) && P('Chocolate').price === 0, 'ni siquiera forzando el campo');
   ev("AU.usuario.rol='gerente';draw()"); assert.strictEqual(ev('HL.puedePrecios()'), true); ev("AU.habilitado=false;draw()");
@@ -61,8 +51,6 @@ const assert = require('assert'), fs = require('fs'), path = require('path'), os
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'sp-hel-')), us = require('../usuarios.js')({ usersFile: path.join(base, 'u.json'), auditFile: path.join(base, 'a.jsonl') });
   us.crear(null, { user: 'ana', nombre: 'Ana', rol: 'admin', clave: 'Clave1234' }); const ses = n => us.sesion(us.login(n, 'Clave1234').token), adm = ses('ana');
   ['luis:empleado', 'gero:gerente'].forEach(x => { const [u, r] = x.split(':'); assert(us.crear(adm, { user: u, rol: r, clave: 'Clave1234' }).ok); });
-  assert.deepStrictEqual(us.llamar(us.login('ana', 'Clave1234').token, 'turno').map(x => x.nombre).sort(), ['Ana', 'gero', 'luis'], 'turno: usuarios activos que venden');
-  us.crear(adm, { user: 'vera', rol: 'consulta', clave: 'Clave1234' }); assert(!us.turno(adm).some(x => x.nombre === 'vera'), 'consulta no vende'); assert.deepStrictEqual(us.turno(null), []);
   assert(us.puedePrecios(adm) && us.puedePrecios(ses('gero')) && !us.puedePrecios(ses('luis')), 'admin y gerente sí; empleado no');
   const hel = (precio, extra = {}) => JSON.stringify({ cfg: { rubro: 'heladeria', ...extra }, prods: [{ id: 1, name: 'x', price: precio }, { id: 2, name: 'y', price: 5 }] });
   assert.strictEqual(us.cambiaPrecios(hel(100), hel(120)), true, 'cambio de precio en heladería'); assert.strictEqual(us.cambiaPrecios(hel(100), hel(100)), false);
