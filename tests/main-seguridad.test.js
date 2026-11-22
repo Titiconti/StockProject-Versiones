@@ -12,7 +12,7 @@ function arrancar() {
   let abrirVentana = null;
   class BrowserWindow {
     constructor() { this.webContents = { on() {}, once() {}, send() {}, setWindowOpenHandler: f => { abrirVentana = f; }, session: { setPermissionRequestHandler() {} } }; }
-    maximize() {} on() {} reload() {} destroy() {} isDestroyed() { return false; }
+    maximize() {} on() {} once() {} reload() {} destroy() {} isDestroyed() { return false; }
     loadFile(f) { ventana.pagina = path.basename(f); }
   }
   const app = { requestSingleInstanceLock: () => true, quit() {}, whenReady: () => Promise.resolve(), on() {}, getVersion: () => '0.0.0', isPackaged: false,
