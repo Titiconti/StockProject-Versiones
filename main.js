@@ -278,7 +278,7 @@ app.whenReady().then(() => {
     qr: d => { const q = require('qrcode-generator')(0, 'M'); q.addData(String(d)); q.make(); return q.createSvgTag({ cellSize: 6, margin: 2, scalable: true }); } });
   const sinVender = { ok: false, err: 'Tu usuario no puede cobrar' };
   const admin = (n, f) => ipcMain.handle('mp:' + n, async (e, a) => { if (!permite('usuarios', 'editar')) return { ok: false, err: 'Solo un administrador puede cambiar Mercado Pago' }; usr.audit(quien(), 'mp.' + n); return f(a); });
-  admin('guardar', a => mp.guardar(a)); admin('quitar', () => mp.quitar()); admin('probar', () => mp.probar()); admin('terminales', () => mp.terminales());
+  admin('guardar', a => mp.guardar(a)); admin('quitar', () => mp.quitar()); admin('probar', () => mp.probar()); admin('terminales', () => mp.terminales()); admin('crearCaja', a => mp.crearCaja(a));
   ipcMain.handle('mp:estado', () => mp.estado());
   ipcMain.handle('mp:cobrar', (e, a) => permite('ventas', 'crear') ? mp.cobrar(a || {}) : sinVender);
   ipcMain.handle('mp:consultar', (e, o) => permite('ventas', 'crear') ? mp.consultar(String(o)) : sinVender);

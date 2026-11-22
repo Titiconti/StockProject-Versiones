@@ -8,7 +8,7 @@ const assert = require('assert'), { JSDOM, HTML, until, api } = require('./helpe
     w.sp = { load: () => '', save: async d => { guardado.push(JSON.parse(d)); return { ok: true, rev: guardado.length }; }, version: () => 0, defaults: () => ({}), info: async () => ({ dir: 'x', last: null, warn: '' }), now: async () => ({}), print: async () => ({ ok: true }),
       auth: { estado: () => ({ habilitado: false }), call: async () => [], ir: async () => true, login: async () => ({}), logout: async () => ({}) },
       mp: { estado: async () => est, cobrar: async a => { llamadas.push(['cobrar', a]); return { ok: true, orden: 'ORD1', medio: a.medio, modo: 'prueba', qrSvg: a.medio === 'qr' ? '<svg xmlns="http://www.w3.org/2000/svg"/>' : undefined }; },
-        consultar: async o => { llamadas.push(['consultar', o]); const r = respuestas.shift() || { ok: true, estado: 'pendiente' }; return r.estado === 'aprobado' ? { ...r, pago: { ...pago, monto: r.monto } } : r; },
+        consultar: async o => { llamadas.push(['consultar', o]); const r = respuestas.shift() || { ok: true, estado: 'pendiente' }; return r.estado === 'aprobado' ? { ...r, pago: { ...pago, pago: r.pagoId || pago.pago, monto: r.monto, tarjeta: r.tarjeta } } : r; },
         cancelar: async o => { llamadas.push(['cancelar', o]); return { ok: true, estado: 'cancelado' }; }, conciliar: async d => ({ ok: true, dia: d, pagos: 2, coinciden: [], diferencias: [{ venta: 1, total: 10, monto: 12, motivo: 'El monto cobrado es distinto al de la venta' }], ventasSinPago: [], pagosSinVenta: [{ pago: '9', monto: 5 }] }) } };
   } });
   const A = { ...api(dom.window), w: dom.window }, ev = A.w.eval.bind(A.w), $ = A.$;
@@ -47,6 +47,16 @@ const assert = require('assert'), { JSDOM, HTML, until, api } = require('./helpe
   // 6) Point con efectivo intacto: cobrar en efectivo no toca Mercado Pago
   llamadas = []; A.set('#pay', 'Efectivo'); A.click('#cobrar'); assert(await until(() => ev('db.sales.length') === 2)); assert(!llamadas.length && !A.db().sales[1].mp);
 
+  // 6b) Débito/Crédito: apagado solo se registra; encendido con Point va a la terminal con el tipo de tarjeta
+  llamadas = []; cargar(); A.set('#pay', 'Tarjeta de débito'); A.click('#cobrar'); assert(await until(() => ev('db.sales.length') === 3)); assert(!llamadas.length && !A.db().sales[2].mp, 'apagado: Débito solo registra');
+  est.tarjetasPoint = true; est.puedeTarjetas = true; await ev('MP.cargar()'); assert.strictEqual(ev('MP.es("Tarjeta de débito")'), true, 'MP.es con Point activo');
+  const totalT = cargar(); respuestas = [{ ok: true, estado: 'aprobado', monto: totalT, tarjeta: 'debit_card', pagoId: 'PAYD' }]; llamadas = []; A.set('#pay', 'Tarjeta de débito'); A.click('#cobrar');
+  assert(await until(() => ev('db.sales.length') === 4), 'débito cobrado por el Point'); const sd = A.db().sales[3]; assert.strictEqual(JSON.stringify(llamadas.find(l => l[0] === 'cobrar')[1]), JSON.stringify({ medio: 'point', monto: totalT, tarjeta: 'debito' }));
+  assert.strictEqual(sd.pay, 'Tarjeta de débito'); assert.strictEqual(sd.mp.pago, 'PAYD'); assert.strictEqual(sd.mp.tarjeta, 'debit_card'); assert.strictEqual(ev('PL.calc().ent.Tarjeta'), ev('db.sales[2].total')+ev('db.sales[3].total'), 'caja y resumen: Tarjeta');
+  const totalC = cargar(); respuestas = [{ ok: true, estado: 'rechazado', msg: 'Mercado Pago rechazó el pago: fondos insuficientes' }]; llamadas = []; A.set('#pay', 'Tarjeta de crédito'); A.click('#cobrar');
+  assert(await until(() => /rechazó/.test(A.txt('#toast')) && !$('#mpov'))); assert.strictEqual(ev('db.sales.length'), 4, 'crédito rechazado: no se registra'); assert.strictEqual(llamadas.find(l => l[0] === 'cobrar')[1].tarjeta, 'credito');
+  respuestas = []; A.click('#cobrar'); assert(await until(() => $('#mpov'))); A.click('#mpx'); assert(await until(() => !$('#mpov') && llamadas.some(l => l[0] === 'cancelar')), 'se puede cancelar'); assert.strictEqual(ev('db.sales.length'), 4);
+  est.puedeTarjetas = false; await ev('MP.cargar()'); llamadas = []; A.click('#cobrar'); assert(await until(() => ev('db.sales.length') === 5) && !llamadas.length, 'sin Point: vuelve a solo registrar');
   // 7) Conciliar muestra las diferencias
   A.tab('g'); ev('CF.sub="n"'); const det = $('#mpc'); assert(det, 'sección de Mercado Pago en Configuración'); A.click('#mp_cc');
   assert(await until(() => /Diferencias \(1\)/.test(A.txt('#mp_r')) && /sin venta/.test(A.txt('#mp_r'))), A.txt('#mp_r'));
