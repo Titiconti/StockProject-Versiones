@@ -31,6 +31,8 @@ function crear() {
     const r = dialog.showMessageBoxSync(win, { type: 'warning', buttons: ['Cerrar la caja', 'Salir igual'], defaultId: 0, cancelId: 0, title: 'StockProject',
       message: 'Tenés la caja abierta', detail: 'Conviene cerrarla contando el efectivo. Si salís igual, la caja queda abierta y la retomás al volver a entrar.' });
     if (r === 1) e.preventDefault();
+    // En Windows, tras el cartel nativo la ventana queda sin foco de teclado (los campos no dejan escribir): se lo devolvemos.
+    else setTimeout(() => { if (!win.isDestroyed()) { win.blur(); win.focus(); win.webContents.focus(); } }, 0);   // solo focus() no alcanza: hace falta blur() antes
   });
   // enlaces de WhatsApp, correo o pago: se abren en el programa predeterminado de Windows, nunca dentro de la app
   win.webContents.setWindowOpenHandler(({ url }) => { if (enlacePermitido(url)) shell.openExternal(url); return { action: 'deny' }; });
