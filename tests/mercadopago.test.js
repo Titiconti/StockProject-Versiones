@@ -88,5 +88,31 @@ const conectado = (h, v, o) => { const t = nuevo(h, v, o); assert(t.mp.guardar({
     assert(!validar(null, { ...base, sales: [v(1, 'A'), v(2, 'B')] }), 'dos pagos distintos');
     assert(/ya está registrado/.test(validar(null, { ...base, sales: [v(1, 'A'), v(2, 'A')] })), 'mismo pago en dos ventas');
     assert(!validar(null, { ...base, sales: [v(1, 'A', { void: true }), v(2, 'A')] }), 'si la anterior está anulada se puede volver a usar'); }
+  // ---- Crear caja QR automáticamente (local + caja en la cuenta del comercio) ----
+  { const dir = { nombre: 'Kiosco Ana', calle: 'Mitre', numero: '123', ciudad: 'Rosario', provincia: 'Santa Fe', lat: -32.9442, lng: -60.6505 };
+    const t = conectado((u, o) => u.endsWith('/users/me') ? resp(200, { id: 777 }) : u.endsWith('/users/777/stores') ? resp(201, { id: '55' }) : resp(201, { id: 9, external_id: 'x' }));
+    const r = await t.mp.crearCaja(dir); assert(r.ok && /^SPCAJA[0-9A-F]{6}$/.test(r.posQr) && r.local === '55', 'crea y devuelve el identificador');
+    const [me, st, pos] = t.llamadas; assert(me.url.endsWith('/users/me') && st.method === 'POST' && st.url === 'https://api.mercadopago.com/users/777/stores' && st.headers.Authorization === 'Bearer ' + TOKEN);
+    assert(st.body.name === 'Kiosco Ana' && /^SPLOCAL[0-9A-F]{6}$/.test(st.body.external_id) && st.body.location.street_name === 'Mitre' && st.body.location.latitude === -32.9442 && st.body.location.longitude === -60.6505 && st.body.location.city_name === 'Rosario' && st.body.location.state_name === 'Santa Fe');
+    assert(pos.url === 'https://api.mercadopago.com/pos' && pos.body.store_id === '55' && pos.body.external_id === r.posQr && pos.body.fixed_amount === true && !('category' in pos.body), 'caja sin category');
+    assert.strictEqual(t.mp.estado().posQr, r.posQr, 'queda guardada en Caja QR'); assert(t.mp.estado().puedeQr);
+    for (const [k, v] of [['calle', ''], ['lat', null], ['lat', 95], ['lng', ''], ['nombre', 'a'], ['nombre', 'Kiosco <script>']]) { const m = conectado(() => resp(200, {})); assert(!(await m.mp.crearCaja({ ...dir, [k]: v })).ok && !m.llamadas.length, 'valida antes de llamar: ' + k); }
+    const sinTok = nuevo(() => resp(200, {})); assert(/Access Token/.test((await sinTok.mp.crearCaja(dir)).err));
+    const e1 = conectado(u => u.endsWith('/users/me') ? resp(200, { id: 777 }) : resp(400, { message: 'location.latitude must be defined.' })); const x1 = await e1.mp.crearCaja(dir); assert(!x1.ok && /No se pudo crear el local: location.latitude/.test(x1.err) && e1.mp.estado().posQr === 'CAJA1');
+    const e2 = conectado(u => u.endsWith('/users/me') ? resp(200, { id: 777 }) : u.endsWith('/stores') ? resp(201, { id: '55' }) : resp(409, { message: 'point_of_sale_exists' })); const x2 = await e2.mp.crearCaja(dir); assert(!x2.ok && /local se creó pero no la caja/.test(x2.err) && e2.mp.estado().posQr === 'CAJA1');
+    const e3 = conectado(() => { throw new Error('red'); }); const x3 = await e3.mp.crearCaja(dir); assert(!x3.ok && x3.red && /No hay conexión/.test(x3.err));
+    const e4 = conectado(() => resp(401, {})); assert(/token/.test((await e4.mp.crearCaja(dir)).err)); }
+  // ---- Débito y crédito con el Point ----
+  { let ref; const t = conectado((u, o, ll) => u.endsWith('/v1/orders') ? resp(201, { id: 'ORD1', type_response: {} }) : resp(200, orden('processed', { payment_method: { type: 'debit_card', id: 'debmaster' } }, { external_reference: ll[0].body.external_reference })));
+    assert(!(await t.mp.cobrar({ medio: 'point', monto: 150, tarjeta: 'debito' })).ok, 'apagado: no manda tarjetas al Point'); assert(!t.mp.estado().puedeTarjetas);
+    assert(t.mp.guardar({ tarjetasPoint: true }).ok && t.mp.estado().puedeTarjetas, 'encendido con terminal');
+    assert(!(await t.mp.cobrar({ medio: 'point', monto: 150, tarjeta: 'cuotas' })).ok && !(await t.mp.cobrar({ medio: 'qr', monto: 150, tarjeta: 'debito' })).ok, 'tipo inválido o con QR');
+    const d = await t.mp.cobrar({ medio: 'point', monto: 150, tarjeta: 'debito' }); assert(d.ok); const b = t.llamadas.at(-1).body; assert(b.type === 'point' && b.config.payment_method.default_type === 'debit_card' && b.config.point.terminal_id === 'PAX_A910__123');
+    const a = await t.mp.consultar('ORD1'); assert(a.estado === 'aprobado' && a.pago.tarjeta === 'debit_card', 'devuelve el tipo de tarjeta del pago');
+    const c = await t.mp.cobrar({ medio: 'point', monto: 150, tarjeta: 'credito' }); assert(c.ok && t.llamadas.at(-1).body.config.payment_method.default_type === 'credit_card');
+    await t.mp.cobrar({ medio: 'point', monto: 150 }); assert(!('payment_method' in t.llamadas.at(-1).body.config), '"Mercado Pago Point" sin tarjeta: el cliente elige en la terminal');
+    assert(t.mp.guardar({ tarjetasPoint: false }).ok && !t.mp.estado().puedeTarjetas);
+    const sinPoint = nuevo(() => resp(200, {})); sinPoint.mp.guardar({ token: TOKEN, tarjetasPoint: true }); assert(!sinPoint.mp.estado().puedeTarjetas, 'sin terminal Point no se activa'); }
+  assert.strictEqual(interpretar(orden('failed', { status_detail: 'insufficient_amount' })).estado, 'rechazado', 'tarjeta rechazada');
   console.log('mercadopago OK');
 })().catch(e => { console.error(e); process.exit(1); });

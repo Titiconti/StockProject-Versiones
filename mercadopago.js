@@ -25,7 +25,7 @@ function interpretar(o, esp) {
     const monto = r2(p.paid_amount != null ? p.paid_amount : p.amount);
     if (esp && (Math.abs(monto - esp.monto) > 0.005 || (o.external_reference && o.external_reference !== esp.ref)))
       return { estado: 'diferencia', msg: 'El pago no coincide con la venta (cobrado ' + monto + '): no se registró. Revisalo en Mercado Pago.' };
-    return { estado: 'aprobado', pago: { orden: o.id, pago: String(p.id), ref: p.reference_id ? String(p.reference_id) : '', ext: o.external_reference || '', monto } };
+    return { estado: 'aprobado', pago: { orden: o.id, pago: String(p.id), ref: p.reference_id ? String(p.reference_id) : '', ext: o.external_reference || '', monto, tarjeta: (p.payment_method && p.payment_method.type) || '' } };
   }
   if (st === 'canceled') return { estado: 'cancelado', msg: 'El cobro se canceló' + (motivo ? ' (' + motivo + ')' : '') };
   if (st === 'expired') return { estado: 'expirado', msg: 'El cobro venció sin pagarse' };
@@ -59,7 +59,7 @@ function crear({ getCfg, setCfg, proteger, desproteger, leer = () => '', http = 
   const conf = () => (getCfg().mp || {});
   const cobros = new Map();   // orden -> { monto, ref, medio } (solo de esta sesión del programa)
   const token = () => { try { return conf().token ? desproteger(conf().token) : ''; } catch (e) { return ''; } };
-  const estado = () => { const c = conf(); return { configurado: !!c.token, modo: c.modo || 'prueba', posQr: c.posQr || '', terminalId: c.terminalId || '', fin: c.fin || '', puedeQr: !!(c.token && c.posQr), puedePoint: !!(c.token && c.terminalId) }; };
+  const estado = () => { const c = conf(); return { configurado: !!c.token, modo: c.modo || 'prueba', posQr: c.posQr || '', terminalId: c.terminalId || '', fin: c.fin || '', puedeQr: !!(c.token && c.posQr), puedePoint: !!(c.token && c.terminalId), tarjetasPoint: !!c.tarjetasPoint, puedeTarjetas: !!(c.token && c.terminalId && c.tarjetasPoint) }; };
 
   async function pedir(metodo, ruta, body, cab = {}) {
     const t = token(); if (!t) return { ok: false, err: 'Falta conectar Mercado Pago en Configuración' };
@@ -89,7 +89,7 @@ function crear({ getCfg, setCfg, proteger, desproteger, leer = () => '', http = 
       if (a.modo === 'produccion' && c.modo !== 'produccion' && a.confirmaProduccion !== true) return { ok: false, err: 'Para cobrar de verdad tenés que confirmar el modo producción' };
       n.modo = a.modo;
     }
-    n.modo = n.modo || 'prueba';
+    n.modo = n.modo || 'prueba'; if (a.tarjetasPoint != null) n.tarjetasPoint = a.tarjetasPoint === true;
     for (const k of ['posQr', 'terminalId']) if (a[k] != null) { const v = String(a[k]).trim(); if (v && !idOk(v)) return { ok: false, err: 'El identificador de ' + (k === 'posQr' ? 'la caja QR' : 'la terminal') + ' tiene caracteres no permitidos' }; n[k] = v; }
     setCfg({ mp: n }); return { ok: true };
   }
@@ -100,24 +100,46 @@ function crear({ getCfg, setCfg, proteger, desproteger, leer = () => '', http = 
     const tags = Array.isArray(r.j && r.j.tags) ? r.j.tags : null;
     return { ok: true, cuenta: String((r.j && (r.j.nickname || r.j.email || r.j.id)) || '').slice(0, 60).replace(/@.*/, '@…'), pareceDePrueba: tags ? tags.includes('test_user') : null };
   }
-  async function terminales() {
+  // Crea en la cuenta del comercio una sucursal y una caja QR (POST /users/{id}/stores y POST /pos) y guarda el identificador externo de la caja.
+  // La sucursal exige dirección y coordenadas (la API responde "location.latitude must be defined" si faltan).
+  async function crearCaja(a) {
+    a = a || {}; if (!conf().token) return { ok: false, err: 'Primero guardá el Access Token' };
+    const txt = (k, n) => String(a[k] == null ? '' : a[k]).trim().slice(0, n), nombre = txt('nombre', 45), calle = txt('calle', 80), numero = txt('numero', 10), ciudad = txt('ciudad', 80), prov = txt('provincia', 80);
+    const lat = Number(a.lat), lng = Number(a.lng);
+    if (nombre.length < 2 || !/^[\p{L}\p{N} _\-]+$/u.test(nombre)) return { ok: false, err: 'El nombre del local solo puede tener letras, números, espacios, guiones y guion bajo (2 a 45)' };
+    if (!calle || !numero || !ciudad || !prov) return { ok: false, err: 'Completá calle, número, localidad y provincia del local' };
+    if (!(Math.abs(lat) <= 90 && Math.abs(lng) <= 180) || a.lat === '' || a.lng === '' || a.lat == null || a.lng == null) return { ok: false, err: 'Faltan las coordenadas (latitud y longitud) del local. Buscá la dirección en Google Maps, clic derecho y copiá los dos números.' };
+    const yo = await pedir('GET', '/users/me'); if (!yo.ok) return yo;
+    const uid = yo.j && yo.j.id; if (!uid) return { ok: false, err: 'Mercado Pago no devolvió el usuario de la cuenta' };
+    const sufijo = crypto.randomBytes(3).toString('hex').toUpperCase();
+    const s = await pedir('POST', '/users/' + encodeURIComponent(uid) + '/stores', { name: nombre, external_id: 'SPLOCAL' + sufijo, location: { street_name: calle, street_number: numero, city_name: ciudad, state_name: prov, latitude: lat, longitude: lng } });
+    if (!s.ok) return { ok: false, err: 'No se pudo crear el local: ' + s.err, red: !!s.red };
+    const storeId = s.j && s.j.id; if (!storeId) return { ok: false, err: 'Mercado Pago no devolvió el local creado' };
+    const ext = 'SPCAJA' + sufijo;
+    const p = await pedir('POST', '/pos', { name: 'Caja 1', fixed_amount: true, store_id: storeId, external_id: ext });
+    if (!p.ok) return { ok: false, err: 'El local se creó pero no la caja: ' + p.err + ' (volvé a intentar o creala a mano en Mercado Pago)', red: !!p.red };
+    const g = guardar({ posQr: ext }); if (!g.ok) return g;
+    return { ok: true, posQr: ext, local: String(storeId) };
+  }  async function terminales() {
     const r = await pedir('GET', '/terminals/v1/list?limit=50'); if (!r.ok) return r;
     return { ok: true, terminales: (((r.j && r.j.data) || {}).terminals || []).map(t => ({ id: t.id, modo: t.operating_mode })) };
   }
 
-  async function cobrar({ medio, monto }) {
+  async function cobrar({ medio, monto, tarjeta }) {
     const m = r2(monto), c = conf();
     if (!c.token) return { ok: false, err: 'Falta conectar Mercado Pago en Configuración' };
     if (!(m > 0) || m > 1e8) return { ok: false, err: 'El monto no es válido' };
     if (medio !== 'qr' && medio !== 'point') return { ok: false, err: 'Medio de cobro inválido' };
     if (medio === 'qr' && !c.posQr) return { ok: false, err: 'Falta el identificador de la caja QR en Configuración' };
     if (medio === 'point' && !c.terminalId) return { ok: false, err: 'Falta elegir la terminal Point en Configuración' };
+    if (tarjeta != null && (medio !== 'point' || !['debito', 'credito'].includes(tarjeta))) return { ok: false, err: 'Tipo de tarjeta inválido' };
+    if (tarjeta && !c.tarjetasPoint) return { ok: false, err: 'Activá "Cobrar débito y crédito con el Point" en Configuración' };
     const ref = 'SP' + crypto.randomBytes(10).toString('hex'), monto2 = m.toFixed(2);
     const body = medio === 'qr'
       ? { type: 'qr', total_amount: monto2, external_reference: ref, description: 'Venta StockProject', expiration_time: 'PT5M', config: { qr: { external_pos_id: c.posQr, mode: 'dynamic' } }, transactions: { payments: [{ amount: monto2 }] } }
-      : { type: 'point', external_reference: ref, description: 'Venta StockProject', expiration_time: 'PT5M', config: { point: { terminal_id: c.terminalId, print_on_terminal: 'no_ticket' } }, transactions: { payments: [{ amount: monto2 }] } };
+      : { type: 'point', external_reference: ref, description: 'Venta StockProject', expiration_time: 'PT5M', config: { point: { terminal_id: c.terminalId, print_on_terminal: 'no_ticket' }, ...(tarjeta ? { payment_method: { default_type: tarjeta === 'debito' ? 'debit_card' : 'credit_card' } } : {}) }, transactions: { payments: [{ amount: monto2 }] } };
     const r = await pedir('POST', '/v1/orders', body, { 'X-Idempotency-Key': uuid() });
-    if (!r.ok) return { ok: false, err: r.err, red: !!r.red };
+    if (!r.ok) return { ok: false, err: r.status === 400 ? 'Mercado Pago no aceptó el cobro: ' + r.err + (medio === 'point' ? ' (revisá la terminal elegida en Configuración)' : '') : r.err, red: !!r.red };
     const o = r.j || {}; if (!o.id) return { ok: false, err: 'Mercado Pago no devolvió el cobro' };
     cobros.set(o.id, { monto: m, ref, medio });
     const datos = o.type_response && o.type_response.qr_data, out = { ok: true, orden: o.id, medio, modo: c.modo || 'prueba' };
@@ -155,6 +177,6 @@ function crear({ getCfg, setCfg, proteger, desproteger, leer = () => '', http = 
     let ventas = []; try { ventas = (JSON.parse(leer() || '{}').sales || []).filter(s => s.mp); } catch (e) {}
     return { ok: true, dia: dk, pagos: pagos.length, ...cruzar(pagos, ventas, dk) };
   }
-  return { estado, guardar, quitar, probar, terminales, cobrar, consultar, cancelar, conciliar };
+  return { estado, guardar, quitar, probar, crearCaja, terminales, cobrar, consultar, cancelar, conciliar };
 }
 module.exports = { crear, interpretar, cruzar, MEDIOS };
