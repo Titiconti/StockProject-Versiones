@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('sp', {
   defaults: () => ipcRenderer.sendSync('defaults'),
   info: () => ipcRenderer.invoke('b:info'),
   now: () => ipcRenderer.invoke('b:now'),
+  leerXlsx: buf => ipcRenderer.invoke('xlsx:leer', buf),
   choose: () => ipcRenderer.invoke('b:choose'),
   restore: () => ipcRenderer.invoke('b:restore'),
   print: (html, opts) => ipcRenderer.invoke('print', html, opts),

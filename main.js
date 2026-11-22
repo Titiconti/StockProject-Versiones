@@ -80,6 +80,7 @@ app.whenReady().then(() => {
   ipcMain.on('version', e => { e.returnValue = store.rev(); });
   ipcMain.on('defaults', e => { e.returnValue = defaults() });
   const sinInfo = { dir: '', last: null, warn: '' };
+  ipcMain.handle('xlsx:leer', async (e, buf) => { try { return await require('./xlsx-lector').leerXlsx(buf) } catch (x) { return { err: 'No se pudo leer el .xlsx' } } });
   ipcMain.handle('b:info', () => conSesion() ? store.info() : sinInfo);
   ipcMain.handle('b:now', () => { if (!permite('respaldo', 'crear')) return store.info(); usr.audit(quien(), 'respaldo.crear'); return store.backup(); });
   ipcMain.handle('b:choose', async () => {

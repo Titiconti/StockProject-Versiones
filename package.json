@@ -21,6 +21,7 @@
       "validar.js",
       "permisos-datos.js",
       "nube.js",
+      "xlsx-lector.js",
       "usuarios.js",
       "empresas.js",
       "monedas.js",
@@ -62,10 +63,14 @@
     "jsdom": "^30.0.0"
   },
   "dependencies": {
-    "electron-updater": "^6.8.11"
+    "electron-updater": "^6.8.11",
+    "exceljs": "^4.4.0"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/Titiconti/StockProject-Versiones.git"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
   }
 }
