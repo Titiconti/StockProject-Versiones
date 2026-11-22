@@ -1,7 +1,9 @@
 # Publica una versión cuando se crea una etiqueta vX.Y.Z (solo con aprobación del dueño: actualiza a todos los clientes).
-# Orden: pruebas (si fallan, no se publica) -> instalador -> verificación de los archivos -> subida a la Release.
+# Orden: pruebas (si fallan, no se publica) -> APROBACIÓN del dueño (environment "publicacion") -> instalador ->
+# verificación de los archivos -> atestaciones de procedencia + SHA256SUMS.txt -> subida a la Release.
 # El programa instalado busca ahí latest.yml y el instalador, y comprueba el sha512 antes de instalar.
 # La etiqueta tiene que coincidir con "version" de package.json: v5.0.0 <-> "version": "5.0.0"
+# Las acciones están fijadas a un SHA (el comentario dice la versión). Para actualizarlas, cambiar SHA y comentario juntos.
 name: Publicar versión
 
 on:
@@ -15,8 +17,8 @@ jobs:
   pruebas:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: npm
@@ -26,23 +28,28 @@ jobs:
   windows:
     needs: pruebas
     runs-on: windows-latest
+    environment: publicacion   # el dueño tiene que aprobar el deployment en GitHub antes de que arranque
     permissions:
-      contents: write   # solo este trabajo puede escribir en Releases
+      contents: write       # solo este trabajo puede escribir en Releases
+      id-token: write       # necesario para firmar las atestaciones
+      attestations: write   # guardar las atestaciones de procedencia
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
 
-      - name: Instalar dependencias
-        run: npm ci
-
       - name: Comprobar que la versión coincide con la etiqueta
         shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
         run: |
           V=$(node -p "require('./package.json').version")
-          if [ "v$V" != "${{ github.ref_name }}" ]; then echo "package.json dice $V pero la etiqueta es ${{ github.ref_name }}"; exit 1; fi
+          if [ "v$V" != "$TAG" ]; then echo "package.json dice $V pero la etiqueta es $TAG"; exit 1; fi
+
+      - name: Instalar dependencias
+        run: npm ci
 
       - name: Construir el instalador (sin publicar)
         run: npx electron-builder --win nsis --x64 --publish never
@@ -50,12 +57,26 @@ jobs:
       - name: Verificar los archivos antes de publicar
         run: node verificar-dist.js
 
+      - name: Calcular SHA256SUMS.txt
+        shell: bash
+        run: |
+          cd dist
+          sha256sum *.exe latest.yml > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Atestación de procedencia (instalador y latest.yml)
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            dist/*.exe
+            dist/latest.yml
+
       - name: Subir a la Release
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
         run: |
-          TAG="${{ github.ref_name }}"
           gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "StockProject ${TAG#v}" --notes "Ver NOVEDADES.md"
-          gh release upload "$TAG" dist/*.exe dist/*.exe.blockmap dist/latest.yml --clobber
+          gh release upload "$TAG" dist/*.exe dist/*.exe.blockmap dist/latest.yml dist/SHA256SUMS.txt --clobber
           gh release view "$TAG" --json assets --jq '.assets[].name'
