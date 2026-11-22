@@ -23,6 +23,8 @@
       "nube.js",
       "xlsx-lector.js",
       "mercadopago.js",
+      "arca.js",
+      "arca-ws.js",
       "usuarios.js",
       "empresas.js",
       "monedas.js",
@@ -66,7 +68,8 @@
   "dependencies": {
     "electron-updater": "^6.8.11",
     "exceljs": "^4.4.0",
-    "qrcode-generator": "^1.4.4"
+    "node-forge": "^1.4.3",
+    "qrcode-generator": "^2.0.4"
   },
   "repository": {
     "type": "git",

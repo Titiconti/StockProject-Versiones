@@ -201,7 +201,36 @@ app.whenReady().then(() => {
     if (!store.restoreFrom(r.filePaths[0], pw)) return { ok: false, err: 'Contraseña incorrecta o archivo dañado.' };
     usr.audit(quien(), 'respaldo.restaurar_protegido'); win.reload(); return { ok: true };
   });
-  // Panel para el celular desde cualquier lugar: envío de datos de solo lectura al servidor central (nube.js).
+  // Facturación electrónica con ARCA: la clave privada y el certificado de cada empresa viven en este equipo (protegidos por Windows) y solo este proceso habla con ARCA.
+  const arcas = new Map(), soloAdmin = () => permite('usuarios', 'editar');
+  const arca = () => { const id = emp.listar().activa; if (!arcas.has(id)) arcas.set(id, require('./arca')({ archivo: path.join(ud, 'arca-' + id + '.json'),
+    proteger: t => { if (!safeStorage.isEncryptionAvailable()) throw new Error('Este equipo no permite proteger la clave privada (Windows no la ofrece).'); return 'ss:' + safeStorage.encryptString(t).toString('base64'); },
+    desproteger: t => safeStorage.decryptString(Buffer.from(String(t).slice(3), 'base64')),
+    post: async (url, o) => { const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/xml; charset=utf-8', SOAPAction: '"' + o.soapAction + '"' }, body: o.body, signal: AbortSignal.timeout(o.timeoutMs) }); return { status: r.status, text: await r.text() }; } })); return arcas.get(id); };
+  const sinAdmin = { ok: false, err: 'Solo un administrador puede configurar ARCA' };
+  ipcMain.handle('arca:estado', () => ({ ...arca().estado(), admin: soloAdmin() }));
+  ipcMain.handle('arca:config', (e, p) => { if (!soloAdmin()) return sinAdmin; const r = arca().guardarConfig(p); if (r.ok) usr.audit(quien(), 'arca.config', String(p && p.ambiente || '')); return r; });
+  ipcMain.handle('arca:csr', (e, o) => { if (!soloAdmin()) return sinAdmin; try { const r = arca().generarCsr(o || {}); if (r.ok) usr.audit(quien(), 'arca.csr'); return r; } catch (x) { return { ok: false, err: String(x.message || x) }; } });
+  ipcMain.handle('arca:cert', (e, t, amb) => { if (!soloAdmin()) return sinAdmin; const r = arca().cargarCertificado(t, amb); if (r.ok) usr.audit(quien(), 'arca.certificado'); return r; });
+  ipcMain.handle('arca:probar', () => soloAdmin() ? arca().probar() : sinAdmin);
+  ipcMain.handle('arca:tipos', () => soloAdmin() ? arca().tipos() : sinAdmin);
+  ipcMain.handle('arca:facturar', async (e, id, receptor) => {
+    if (!permite('ventas', 'crear')) return { ok: false, err: 'Tu usuario no puede facturar' };
+    let venta; try { venta = (JSON.parse(store.snapshot() || '{}').sales || []).find(s => s.id === id); } catch (x) {}
+    if (!venta || venta.void) return { ok: false, err: 'La venta no existe o está anulada' };
+    const r = await arca().facturar({ id: venta.id, date: venta.date, total: venta.total, receptor });
+    if (r.ok && !r.repetido) usr.audit(quien(), 'arca.facturar', 'venta ' + id + ' ' + r.fe.letra + ' ' + String(r.fe.ptoVta).padStart(4, '0') + '-' + String(r.fe.nro).padStart(8, '0'));
+    return r;
+  });
+  ipcMain.handle('arca:anular', async (e, id) => {   // anular una venta facturada = emitir la nota de crédito (solo gerente o administrador)
+    if (!permite('ventas', 'eliminar')) return { ok: false, err: 'Solo un gerente o un administrador puede anular una venta facturada' };
+    let venta; try { venta = (JSON.parse(store.snapshot() || '{}').sales || []).find(s => s.id === id); } catch (x) {}
+    if (!venta || !venta.fe || !venta.fe.cae) return { ok: false, err: 'La venta no tiene una factura autorizada' };
+    const r = await arca().notaCredito({ id: venta.id, date: venta.date, total: venta.total }, venta.fe);
+    if (r.ok && !r.repetido) usr.audit(quien(), 'arca.nota_credito', 'venta ' + id + ' NC ' + r.fe.letra + ' ' + String(r.fe.ptoVta).padStart(4, '0') + '-' + String(r.fe.nro).padStart(8, '0'));
+    return r;
+  });
+  ipcMain.handle('arca:qr', (e, url) => { try { return String(url).startsWith(require('./arca').QR_URL) ? require('./arca').qrSvg(url) : ''; } catch (x) { return ''; } });  // Panel para el celular desde cualquier lugar: envío de datos de solo lectura al servidor central (nube.js).
   const nube = require('./nube')({ leer: () => store.snapshot(), getCfg: () => principal.getConfig(), setCfg: p => principal.setConfig(p), servidor: defaults().nube || '',
     proteger: t => safeStorage.isEncryptionAvailable() ? 'ss:' + safeStorage.encryptString(t).toString('base64') : t,
     desproteger: t => String(t).startsWith('ss:') ? safeStorage.decryptString(Buffer.from(String(t).slice(3), 'base64')) : t });
