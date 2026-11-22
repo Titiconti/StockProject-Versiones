@@ -20,11 +20,19 @@ PX.series=(txt,q,pid)=>{const L=String(txt||'').split(/[,;\s]+/).map(x=>x.trim()
 PX.parseTramos=t=>{t=String(t||'').trim();if(!t)return{v:undefined};const out=[];for(const par of t.split(/[;\n]+/)){const m=par.trim().match(/^(\d+)\s*[=:]\s*([\d.,]+)$/);if(!m)return{err:'Precios por cantidad: usá el formato "desde=precio", por ejemplo 10=900; 50=800'};
   const desde=+m[1],precio=parseFloat(m[2].replace(/\.(?=\d{3}\b)/g,'').replace(',','.'));if(!(desde>=2))return{err:'Cada tramo empieza en 2 unidades o más'};if(!(precio>=0))return{err:'Precio por cantidad inválido'};out.push({desde,precio})}
   out.sort((a,b)=>a.desde-b.desde);for(let i=1;i<out.length;i++)if(out[i].desde===out[i-1].desde)return{err:'Hay dos tramos que empiezan en la misma cantidad'};return{v:out}};
-PX.limpiar=p=>{['unidad','control','reqVto','minimo','tramos','cat','garantia','marca','modelo'].forEach(k=>{const v=p[k];if(v==null||v===''||v===false||v===0||(Array.isArray(v)&&!v.length)||(k==='unidad'&&v==='u'))delete p[k]})};
+// Texto → número: la coma es siempre el decimal ("1,125" = 1,125 kg) y el punto solo separa miles ("4.500,50" = 4500,5). NaN si no se entiende.
+PX.num=v=>{v=String(v==null?'':v).replace(/[\s$]/g,'');if(!v)return NaN;v=v.includes(',')?v.replace(/\./g,'').replace(',','.'):/^\d{1,3}(\.\d{3})+$/.test(v)?v.replace(/\./g,''):v;return /^\d*\.?\d+$/.test(v)?parseFloat(v):NaN};
+// Importe ↔ gramos de un producto por peso, en centavos enteros (mismo criterio que lineaTotal).
+PX.gDesdeImporte=(p,imp)=>{const c=Math.round(precioUnit(p)*100);return c>0&&imp>0?Math.round(imp*100*1000/c):0};
+PX.impDeG=(p,g)=>Math.round(Math.round(precioUnit(p)*100)*g/1000)/100;
+PX.coma=(n,d)=>String(Math.round(n*10**d)/10**d).replace('.',',');
+PX.limpiar=p=>{['unidad','control','reqVto','minimo','tramos','cat','garantia','marca','modelo','plu','balde'].forEach(k=>{const v=p[k];if(v==null||v===''||v===false||v===0||(Array.isArray(v)&&!v.length)||(k==='unidad'&&v==='u'))delete p[k]})};
 // ---------- formulario de producto ----------
 $('#fg').closest('.form').insertAdjacentHTML('afterend',`<details class="dt" id="pxo" style="margin:-2px 0 10px"><summary>Opciones del producto <span class="mu" id="pxr" style="font-weight:400"></span></summary><div class="form" style="margin-top:8px">
 <div><label>Categoría</label><input id="px_cat" list="px_cats" placeholder="Ej.: Bebidas"><datalist id="px_cats"></datalist></div>
 <div data-cap="peso"><label>Se vende por</label><select id="px_u"><option value="u">Unidad</option><option value="kg">Peso (precio por kg)</option></select></div>
+<div data-cap="peso"><label>Código de balanza (PLU)</label><input id="px_plu" inputmode="numeric" placeholder="Ej.: 123"></div>
+<div data-cap="heladeria"><label>Kg por balde (gusto de helado)</label><input id="px_bal" inputmode="decimal" placeholder="Ej.: 5"></div>
 <div data-cap="control"><label>Control de stock</label><select id="px_ctl"><option value="">Normal (por cantidad y lote)</option><option value="serie" data-cap="series">Por número de serie</option><option value="variantes" data-cap="variantes">Con variantes (talle, color…)</option></select></div>
 <div data-cap="minimos"><label>Compra mínima (unidades)</label><input id="px_min" type="number" min="0"></div>
 <div data-cap="tramos" style="grid-column:span 2"><label>Precios por cantidad (desde=precio)</label><input id="px_tr" placeholder="10=900; 50=800"></div>
@@ -37,27 +45,41 @@ PX.vis=()=>{$$('#pxo [data-cap]').forEach(x=>{const c=x.dataset.cap;x.classList.
   $('#px_cats').innerHTML=[...new Set([...db.prods.map(p=>p.cat).filter(Boolean),...((PX.rubro()||{}).cats||[])])].sort().map(c=>`<option value="${esc(c)}">`).join('');
   const u=$('#px_u').value,c=$('#px_ctl').value,lq=fs.previousElementSibling,ll=fl.previousElementSibling;
   if(lq)lq.textContent=c==='variantes'?'Cantidad (se carga en cada variante)':u==='kg'?'Cantidad a ingresar (kg)':'Cantidad a ingresar';if(ll)ll.textContent=c==='serie'?'N.º de serie (uno por unidad, separados por coma)':'N.º de lote (opcional)';
-  fs.disabled=c==='variantes';fp.previousElementSibling.textContent=u==='kg'?'Precio por kg ('+MON+')':'Precio de venta ('+MON+')';
+  fs.disabled=c==='variantes';fp.disabled=!!editId&&typeof HL!=='undefined'&&!HL.puedePrecios();fp.previousElementSibling.textContent=u==='kg'?'Precio por kg ('+MON+')':'Precio de venta ('+MON+')';
   $('#pxr').textContent=[u==='kg'?'por peso':'',c==='serie'?'con N.º de serie':c==='variantes'?'con variantes':'',$('#px_vr').checked?'vence':'',$('#px_cat').value].filter(Boolean).join(' · ')};
 ['#px_u','#px_ctl','#px_vr','#px_cat'].forEach(x=>$(x).addEventListener('change',PX.vis));
 PX.llenarForm=p=>{const d=p||{};$('#px_cat').value=d.cat||'';$('#px_u').value=d.unidad==='kg'?'kg':'u';$('#px_ctl').value=d.control||'';$('#px_min').value=d.minimo||'';$('#px_tr').value=(d.tramos||[]).map(t=>t.desde+'='+t.precio).join('; ');
+  $('#px_plu').value=d.plu||'';$('#px_bal').value=d.balde?PX.coma(d.balde,3):'';
   $('#px_ga').value=d.garantia||'';$('#px_ma').value=d.marca||'';$('#px_mo').value=d.modelo||'';$('#px_vr').checked=p?!!d.reqVto:!!PX.caps().vtoPorDefecto;if(!p&&PX.caps().unidadPorDefecto&&PX.on('peso'))$('#px_u').value=PX.caps().unidadPorDefecto;PX.vis()};
 // Lee y valida las opciones. Nunca cambia la forma de venta o el control de un producto que ya tiene stock (cambiaría el significado de sus cantidades).
 PX.leerForm=prev=>{const u=$('#px_u').value==='kg'?'kg':'u',c=['serie','variantes'].includes($('#px_ctl').value)?$('#px_ctl').value:'',tr=PX.parseTramos($('#px_tr').value);if(tr.err)return{err:tr.err};
   const mi=$('#px_min').value===''?0:+$('#px_min').value,ga=$('#px_ga').value===''?0:+$('#px_ga').value;if(!(mi>=0)||!Number.isInteger(mi))return{err:'La compra mínima tiene que ser un número entero'};if(!(ga>=0&&ga<=240)||!Number.isInteger(ga))return{err:'La garantía va en meses enteros (0 a 240)'};
   if(u==='kg'&&c)return{err:'Un producto por peso no puede tener número de serie ni variantes'};
+  const plu=$('#px_plu').value.trim().replace(/^0+(?=\d)/,''),bal=$('#px_bal').value.trim()===''?0:PX.num($('#px_bal').value);
+  if(plu&&(!/^\d{1,13}$/.test(plu)||u!=='kg'))return{err:'El código de balanza son solo números y va en productos por peso'};
+  {const o=plu&&db.prods.find(x=>(!prev||x.id!==prev.id)&&String(x.plu||'')===plu);if(o)return{err:'El código de balanza '+plu+' ya lo usa '+o.name}}
+  if(!(bal>=0&&bal<=100)||(bal>0&&u!=='kg'))return{err:'Los kg por balde van de 0 a 100 y solo en productos por peso'};
+  // Solo gerente o administrador cambian precios (rubro heladería): el proceso principal lo vuelve a controlar.
+  if(prev&&typeof HL!=='undefined'&&!HL.puedePrecios()&&Math.abs((parseFloat(fp.value)||0)-(prev.price||0))>0.004)return{err:'Solo el gerente o el administrador pueden cambiar precios'};
   if(prev){const t=tot(prev);if(t>0&&(prev.unidad||'u')!==u)return{err:'No se puede cambiar la forma de venta de un producto con stock: dejalo en 0 o creá otro producto'};if(t>0&&(prev.control||'')!==c)return{err:'No se puede cambiar el control de stock de un producto con stock: dejalo en 0 primero'};if(c!=='variantes'&&PX.hijos(prev).length)return{err:'Este producto tiene variantes: no se puede quitar la opción de variantes'}}
-  return{d:{cat:$('#px_cat').value.trim().slice(0,60),unidad:u,control:c,reqVto:$('#px_vr').checked,minimo:mi,tramos:tr.v,garantia:ga,marca:$('#px_ma').value.trim().slice(0,60),modelo:$('#px_mo').value.trim().slice(0,60)}}};
+  return{d:{cat:$('#px_cat').value.trim().slice(0,60),unidad:u,control:c,reqVto:$('#px_vr').checked,minimo:mi,tramos:tr.v,garantia:ga,marca:$('#px_ma').value.trim().slice(0,60),modelo:$('#px_mo').value.trim().slice(0,60),plu,balde:bal}}};
 // ---------- venta por peso o por número de serie ----------
 PX.cerrar=()=>{const o=$('#pxm');if(o)o.remove()};
 PX.ov=h=>{PX.cerrar();document.body.insertAdjacentHTML('beforeend',`<div class="ov" id="pxm" role="dialog" aria-modal="true"><div class="card">${h}</div></div>`);const o=$('#pxm');o.addEventListener('click',e=>{if(e.target.closest('[data-pxx]'))PX.cerrar()});o.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();PX.cerrar()}});return o};
 PX.vigentes=p=>p.lots.filter(l=>l.qty>0&&(!l.exp||l.exp>=T()));
 PX.elegir=(p,editar)=>{if(!p)return;const a=avail(p);if(a<=0&&!cart[p.id])return toast(p.name+': sin stock vendible');
-  if(esPeso(p)){PX.ov(`<h3>${esc(p.name)}</h3><p class="mu" style="margin-top:0">${fmt(precioUnit(p))} por kg · disponible ${fq(p,a)}</p><div class="form"><div><label>Peso</label><input id="pxp" inputmode="decimal" placeholder="0,250" value="${editar&&cart[p.id]?String(cart[p.id]/1000).replace('.',','):''}"></div><div><label>En</label><select id="pxpu"><option value="kg">kg</option><option value="g">gramos</option></select></div></div><div class="tot" id="pxpt">${fmt(0)}</div><div style="display:flex;gap:8px"><button class="btn" id="pxok" style="flex:1">Agregar (Enter)</button><button class="btn sec" data-pxx="1">Cancelar</button></div>`);
+  if(esPeso(p)){PX.ov(`<h3>${esc(p.name)}</h3><p class="mu" style="margin-top:0">${fmt(precioUnit(p))} por kg · disponible ${fq(p,a)}</p><div class="form"><div><label>Peso</label><input id="pxp" inputmode="decimal" placeholder="0,250" value="${editar&&cart[p.id]?String(cart[p.id]/1000).replace('.',','):''}"></div><div><label>En</label><select id="pxpu"><option value="kg">kg</option><option value="g">gramos</option></select></div><div><label>o Importe (${esc(MON)})</label><input id="pxi" inputmode="decimal" placeholder="4500" value="${editar&&cartImp[p.id]&&cartImp[p.id].g===cart[p.id]?PX.coma(cartImp[p.id].imp,2):''}"></div></div><div class="tot" id="pxpt">${fmt(0)}</div><div style="display:flex;gap:8px"><button class="btn" id="pxok" style="flex:1">Agregar (Enter)</button><button class="btn sec" data-pxx="1">Cancelar</button></div>`);
     const g=()=>{const v=String($('#pxp').value).trim().replace(',','.'),n=parseFloat(v);return isFinite(n)&&n>0?Math.round($('#pxpu').value==='g'?n:n*1000):0};
-    const vivo=()=>{$('#pxpt').textContent=fmt(lineaTotal(p,g()))};$('#pxp').oninput=$('#pxpu').onchange=vivo;vivo();
-    const ok=()=>{const q=g();if(!(q>0))return toast('Ingresá el peso');if(q>a)return toast('No hay tanto stock: disponible '+fq(p,a));cart[p.id]=q;PX.cerrar();drawCart();const s=$('#q');if(s)s.focus()};
-    $('#pxok').onclick=ok;$('#pxp').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();ok()}};$('#pxp').focus();return}
+    // Dos formas de cargar: el peso (calcula el importe) o el importe (calcula los kg). Manda lo último que se escribió.
+    let porImp=!!$('#pxi').value;const imp=()=>PX.num($('#pxi').value);
+    const total=()=>porImp&&imp()>0?Math.round(imp()*100)/100:PX.impDeG(p,g()),vivo=()=>{$('#pxpt').textContent=fmt(total())};
+    $('#pxp').oninput=$('#pxpu').onchange=()=>{porImp=false;const q=g();$('#pxi').value=q?PX.coma(PX.impDeG(p,q),2):'';vivo()};
+    $('#pxi').oninput=()=>{porImp=true;const q=PX.gDesdeImporte(p,imp());$('#pxpu').value='kg';$('#pxp').value=q?PX.coma(q/1000,3):'';vivo()};
+    vivo();
+    const ok=()=>{let q=g();if(porImp){if(!(imp()>0))return toast('Escribí el importe con números (ej.: 4500)');q=PX.gDesdeImporte(p,imp());if(q<10)return toast('Ese importe da menos de 10 g: revisalo')}
+      if(!(q>0))return toast('Ingresá el peso');if(q>a)return toast('No hay tanto stock: disponible '+fq(p,a));
+      if(porImp)cartImp[p.id]={g:q,imp:Math.round(imp()*100)/100};else delete cartImp[p.id];cart[p.id]=q;PX.cerrar();drawCart();const s=$('#q');if(s)s.focus()};
+    $('#pxok').onclick=ok;$('#pxp').onkeydown=$('#pxi').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();ok()}};$('#pxp').focus();return}
   if(esSerie(p)){const L=PX.vigentes(p),sel=new Set(cartSer[p.id]||[]);
     PX.ov(`<h3>${esc(p.name)}</h3><p class="mu" style="margin-top:0">Elegí o escaneá los números de serie que se venden${p.garantia?' · garantía de '+p.garantia+' meses':''}.</p><input id="pxs" placeholder="Escribí o escaneá el N.º de serie y Enter"><div id="pxl" style="max-height:40vh;overflow:auto;margin:8px 0">${L.map(l=>`<label class="opt"><input type="checkbox" data-sl="${l.id}" ${sel.has(l.id)?'checked':''}> ${esc(l.n)}${l.exp?' <span class="mu">· vto. '+fD(l.exp)+'</span>':''}</label>`).join('')||'<p class="mu">No hay unidades disponibles.</p>'}</div><div style="display:flex;gap:8px"><button class="btn" id="pxsok" style="flex:1">Listo</button><button class="btn sec" data-pxx="1">Cancelar</button></div>`);
     $('#pxs').onkeydown=e=>{if(e.key!=='Enter')return;e.preventDefault();e.stopPropagation();const v=e.target.value.trim().toUpperCase(),l=L.find(x=>String(x.n).trim().toUpperCase()===v);if(!l)return toast('Ese número de serie no está disponible en '+p.name);$(`#pxl [data-sl="${l.id}"]`).checked=true;e.target.value=''};

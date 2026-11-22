@@ -70,6 +70,17 @@ module.exports = function ({ usersFile, auditFile, maxSesiones = 3, inactividad 
   const matriz = u => Object.fromEntries(MODULOS.map(m => [m, ACCIONES.filter(a => tiene(u, m, a))]));
   const puedeEscribir = u => MODULOS.some(m => ['crear', 'editar', 'eliminar'].some(a => m !== 'usuarios' && tiene(u, m, a)));
 
+  // Heladería: solo administrador y gerente cambian precios (el empleado vende, carga stock y ajusta baldes).
+  const puedePrecios = u => !!u && u.activo && ['admin', 'gerente'].includes(u.rol) && tiene(u, 'productos', 'editar');
+  // ¿El guardado cambia el precio de algún producto que ya existía? Solo cuenta si el negocio es una heladería (cfg.rubro o caps).
+  function cambiaPrecios(antes, despues) {
+    let a, n; try { a = JSON.parse(antes); n = JSON.parse(despues); } catch (e) { return false; }
+    const hel = x => !!(x && x.cfg && (x.cfg.rubro === 'heladeria' || (x.cfg.caps && x.cfg.caps.heladeria)));
+    if (!hel(a) || !Array.isArray(a.prods) || !Array.isArray(n.prods)) return false;
+    const ant = new Map(a.prods.map(p => [p && p.id, p]));
+    return n.prods.some(p => { const o = p && ant.get(p.id); return !!o && Number(o.price || 0) !== Number(p.price || 0); });
+  }
+
   function validarClave(c) {
     c = String(c || '');
     if (c.length < 8) return 'La contraseña debe tener al menos 8 caracteres';
@@ -224,6 +235,6 @@ module.exports = function ({ usersFile, auditFile, maxSesiones = 3, inactividad 
     }
     return { ok: false, err: 'operación desconocida' };
   }
-  return { llamar, NOMBRES, habilitado, faltanUsuarios, crear, editar, listar, login, logout, sesion, misSesiones, cerrarOtras, cambiarClave, setPregunta, setPrefs, preguntaDe, recuperar, tiene, matriz, puedeEscribir, audit, auditoria, publico, ROLES, MODULOS, ACCIONES, PERMISOS };
+  return { llamar, NOMBRES, habilitado, faltanUsuarios, crear, editar, listar, login, logout, sesion, misSesiones, cerrarOtras, cambiarClave, setPregunta, setPrefs, preguntaDe, recuperar, tiene, matriz, puedeEscribir, puedePrecios, cambiaPrecios, audit, auditoria, publico, ROLES, MODULOS, ACCIONES, PERMISOS };
 };
 module.exports.ACCIONES = ACCIONES; module.exports.MODULOS = MODULOS; module.exports.ROLES = ROLES; module.exports.PERMISOS = PERMISOS;
