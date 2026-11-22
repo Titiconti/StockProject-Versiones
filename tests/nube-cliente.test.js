@@ -26,14 +26,14 @@ const assert = require('assert'), crear = require('../nube'), { proyeccion } = c
   assert.doesNotThrow(() => proyeccion({}, T)); assert.doesNotThrow(() => proyeccion(null, T));
 
   // ---- heladería: tamaños armados sin stock propio, gustos en baldes, vendedor elegido ----
-  const dbH = { shop: { n: 'Heladería Sol' }, prods: [{ id: 1, name: 'Chocolate', unidad: 'kg', balde: 5, baldes: 1.5, price: 100, lots: [{ id: 1, n: 'A', qty: 7500, exp: '' }] },
-      { id: 2, name: 'Limón', unidad: 'kg', balde: 5, price: 100, lots: [{ id: 2, n: 'A', qty: 2500, exp: '' }] }, { id: 3, name: '1/4 kg', tipo: 'tamano', price: 4000, lots: [] }, { id: 4, name: 'Pan', price: 5, lots: [{ id: 3, n: 'A', qty: 3, exp: '' }] }], baldes: [{ date: iso(0), user: 'Ana', pid: 1, qty: 2 }, { date: iso(-1), user: 'Lu', name: 'Limón', qty: 1 }],
-    sales: [{ id: 1, date: iso(0), items: [{ id: 3, name: '1/4 kg', qty: 1, price: 4000 }], total: 4000, pay: 'Efectivo', user: 'Caja', vend: 'Lu' }, { id: 2, date: iso(0), items: [], total: 5, pay: 'Efectivo', user: 'Ana' }], cajas: [], clients: [], pays: [], cargos: [], desv: [] };
+  const dbH = { shop: { n: 'Heladería Sol' }, prods: [{ id: 1, name: 'Chocolate', unidad: 'kg', balde: 5, price: 100, lots: [{ id: 1, n: 'A', qty: 7500, exp: '' }] },
+      { id: 2, name: 'Limón', unidad: 'kg', balde: 5, price: 100, lots: [{ id: 2, n: 'A', qty: 2500, exp: '' }] }, { id: 3, name: '1/4 kg', tipo: 'tamano', price: 4000, lots: [] }, { id: 4, name: 'Pan', price: 5, lots: [{ id: 3, n: 'A', qty: 3, exp: '' }] }], baldes: [{ id: 1, date: iso(-1), user: 'Lu', gid: 2, gusto: 'Limón', t: 'ingreso', baldes: 1, g: 5000 }, { id: 2, date: iso(0), user: 'Ana', gid: 1, gusto: 'Chocolate', t: 'ajuste', baldes: 1.5, g: -500 }],
+    sales: [{ id: 1, date: iso(0), items: [{ id: 3, name: '1/4 kg', qty: 1, price: 4000 }], total: 4000, pay: 'Efectivo', user: 'Caja', vend: { id: 2, nombre: 'Lu' } }, { id: 2, date: iso(0), items: [], total: 5, pay: 'Efectivo', user: 'Ana' }], cajas: [], clients: [], pays: [], cargos: [], desv: [] };
   const fH = JSON.parse(JSON.stringify(proyeccion(dbH, T))), sH = n => fH.stock.find(x => x.n === n);
   assert.strictEqual(sH('1/4 kg'), undefined, 'los tamaños armados no tienen stock propio: no aparecen como "sin stock"');
-  assert.deepStrictEqual([sH('Chocolate').balde, sH('Chocolate').baldes, sH('Chocolate').disp], [5, 1.5, 7.5], 'gusto con balde y baldes cargados a mano'); assert.strictEqual(sH('Limón').baldes, undefined); assert.strictEqual(sH('Limón').balde, 5);
-  assert(!('balde' in sH('Pan')) && !('baldes' in sH('Pan')), 'sin balde no se agrega nada (compatible con lo anterior)');
-  assert.deepStrictEqual(fH.baldes.map(b => [b.usuario, b.n, b.cant]), [['Ana', 'Chocolate', 2], ['Lu', 'Limón', 1]], 'últimas entradas de baldes: quién y cuándo'); assert(fH.baldes[0].fecha); assert.deepStrictEqual(JSON.parse(JSON.stringify(proyeccion({ prods: [] }, T))).baldes, [], 'sin historial de baldes: lista vacía, no rompe');
+  assert.deepStrictEqual([sH('Chocolate').balde, sH('Chocolate').baldes, sH('Chocolate').pedir, sH('Chocolate').disp], [5, 1.5, false, 7.5], '7,5 kg con balde de 5 kg = 1,5 baldes'); assert.deepStrictEqual([sH('Limón').baldes, sH('Limón').pedir], [0.5, true], 'queda menos de 1 balde: Pedir');
+  assert(!('balde' in sH('Pan')) && !('baldes' in sH('Pan')) && !('pedir' in sH('Pan')), 'sin balde no se agrega nada (compatible con lo anterior)');
+  assert.deepStrictEqual(fH.baldes.map(b => [b.usuario, b.n, b.t, b.baldes]), [['Lu', 'Limón', 'ingreso', 1], ['Ana', 'Chocolate', 'ajuste', 1.5]], 'últimas entradas de baldes: quién y cuándo'); assert(fH.baldes[0].fecha); assert.deepStrictEqual(JSON.parse(JSON.stringify(proyeccion({ prods: [] }, T))).baldes, [], 'sin historial de baldes: lista vacía, no rompe');
   assert.strictEqual(fH.ventas[0].vend, 'Lu'); assert.strictEqual(fH.ventas[0].usuario, 'Caja'); assert(!('vend' in fH.ventas[1]), 'sin vendedor elegido no se agrega'); assert.strictEqual(fH.ventas[1].usuario, 'Ana');
   // ---- envío ----
   let cfg = {}, reloj = T, red = 'ok'; const envios = [];

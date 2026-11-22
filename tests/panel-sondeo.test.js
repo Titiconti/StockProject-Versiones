@@ -6,7 +6,7 @@ const assert = require('assert'), fs = require('fs'), path = require('path'), { 
   const HTML = fs.readFileSync(path.join(__dirname, '..', 'nube', 'panel.html'), 'utf8');
   let ahora = Date.UTC(2026, 10, 21, 15, 0, 0), oculto = false, verActual = 'v1', estadoVer = 200, id = 0; const cola = [], llamadas = { datos: 0, ver: 0 };
   const iso = () => new Date(ahora).toISOString();
-  const foto = { v: 1, generado: iso(), negocio: { nombre: 'Kiosco', moneda: 'ARS', loc: 'es-AR' }, ventas: [], stock: [{ n: 'Chocolate', disp: 7.5, u: 'kg', balde: 5, estado: 'ok', precio: 100 }, { n: 'Limón', disp: 2.5, u: 'kg', balde: 5, baldes: 0.4, estado: 'bajo', precio: 100 }, { n: 'Fresa', disp: 5, u: 'kg', balde: 5, baldes: 1, estado: 'ok', precio: 100 }, { n: 'Pan', disp: 3, estado: 'ok', precio: 5 }], cajas: [], clientes: [], bajas: [], vencimientos: [], baldes: [{ fecha: iso(), usuario: 'Ana', n: 'Limón', cant: 2 }] };
+  const foto = { v: 1, generado: iso(), negocio: { nombre: 'Kiosco', moneda: 'ARS', loc: 'es-AR' }, ventas: [], stock: [{ n: 'Chocolate', disp: 7.5, u: 'kg', balde: 5, baldes: 1.5, pedir: false, estado: 'ok', precio: 100 }, { n: 'Limón', disp: 2.5, u: 'kg', balde: 5, baldes: 0.4, pedir: true, estado: 'bajo', precio: 100 }, { n: 'Fresa', disp: 5, u: 'kg', balde: 5, estado: 'ok', precio: 100 }, { n: 'Pan', disp: 3, estado: 'ok', precio: 5 }], cajas: [], clientes: [], bajas: [], vencimientos: [], baldes: [{ fecha: iso(), usuario: 'Ana', n: 'Limón', t: 'ingreso', baldes: 2 }] };
   const resp = (status, cuerpo) => Promise.resolve({ status, ok: status < 400, json: () => Promise.resolve(cuerpo) });
   const dom = new JSDOM(HTML, { runScripts: 'dangerously', url: 'http://localhost/c/kiosco/', pretendToBeVisual: true, beforeParse(w) {
     w.setTimeout = (f, ms) => { cola.push({ id: ++id, f, t: ahora + ms }); return id; }; w.clearTimeout = i => { const k = cola.findIndex(x => x.id === i); if (k >= 0) cola.splice(k, 1); };
@@ -34,7 +34,7 @@ const assert = require('assert'), fs = require('fs'), path = require('path'), { 
 
   // heladería: el stock de los gustos se ve en baldes (una decimal); sin balde no cambia nada
   w.document.querySelector('nav button[data-s=stock]').click(); await tic(); const vistaTxt = w.document.getElementById('vista').textContent;
-  assert(vistaTxt.includes('1,5 baldes'), 'kilos / kilos por balde'); assert(vistaTxt.includes('0,4 baldes'), 'baldes cargados a mano'); assert.strictEqual((vistaTxt.match(/\d,\d baldes/g) || []).length, 3, 'solo los productos con balde'); assert.strictEqual((vistaTxt.match(/Pedir/g) || []).length, 1, 'Pedir solo si queda menos de 1 balde (Limón 0,4)'); assert(vistaTxt.includes('Últimos baldes cargados') && vistaTxt.includes('Ana'), 'historial de baldes: quién y cuándo');
+  assert(vistaTxt.includes('1,5 baldes'), 'kilos / kilos por balde'); assert(vistaTxt.includes('0,4 baldes'), 'baldes cargados a mano'); assert.strictEqual((vistaTxt.match(/\d,\d baldes/g) || []).length, 3, 'solo los productos con balde'); assert.strictEqual((vistaTxt.match(/Pedir/g) || []).length, 1, 'Pedir solo si queda menos de 1 balde (Limón 0,4)'); assert(vistaTxt.includes('Últimos baldes cargados') && vistaTxt.includes('Entró 2 balde(s)') && vistaTxt.includes('Ana'), 'historial de baldes: quién y cuándo');
 
   // sin cambios: solo versión, cada 2,5 s, y los datos no se vuelven a bajar
   await avanzar(10000); assert.strictEqual(llamadas.ver, 4, 'una consulta de versión cada 2,5 s'); assert.strictEqual(llamadas.datos, 1, 'sin cambios no baja datos');

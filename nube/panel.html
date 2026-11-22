@@ -498,13 +498,13 @@ nav button[aria-current="page"]{background:var(--activo);color:#fff}
       cuerpo.appendChild(h('div', { class: 'resu' }, h('span', null, l.length + ' de ' + todos.length + (todos.length === 1 ? ' producto' : ' productos'))));
       if (!l.length) { cuerpo.appendChild(h('div', { class: 'tarj vacio-pag' }, h('b', null, todos.length ? 'Ningún producto coincide.' : 'No hay productos cargados.'), soloProblemas && todos.length && !q ? 'No hay productos con problemas de stock.' : null)); return; }
       var hist = lista(foto().baldes);
-      if (hist.length && !q && !soloProblemas) cuerpo.appendChild(h('div', { class: 'tarj' }, h('b', null, 'Últimos baldes cargados'), hist.slice(-5).reverse().map(function (b) { return h('div', { class: 'det' }, (b.fecha ? fecha(Date.parse(b.fecha), fmt.fh) : '') + ' · ' + txt(b.n) + ' · ' + num(b.cant) + (b.usuario ? ' · ' + txt(b.usuario) : '')); })));
+      if (hist.length && !q && !soloProblemas) cuerpo.appendChild(h('div', { class: 'tarj' }, h('b', null, 'Últimos baldes cargados'), hist.slice(-5).reverse().map(function (b) { return h('div', { class: 'det' }, (b.fecha ? fecha(Date.parse(b.fecha), fmt.fh) : '') + ' · ' + txt(b.n) + ' · ' + (b.t === 'ingreso' ? 'Entró ' : 'Quedó en ') + String(Math.round(num(b.baldes) * 100) / 100).replace('.', ',') + ' balde(s)' + (b.usuario ? ' · ' + txt(b.usuario) : '')); })));
       var L = h('div', { class: 'lista' }), tope = 200;
       l.slice(0, tope).forEach(function (p) {
         var e = ESTADOS[p.estado] || ['neu', 'Sin estado'];
         var det = [txt(p.cat), txt(p.cod), p.vence ? 'Vence ' + soloFecha(p.vence) : '', num(p.min) > 0 ? 'Mínimo ' + cant(p.min, p.u) : ''].filter(Boolean).join(' · ');
         L.appendChild(h('div', { class: 'it' }, fila(txt(p.n) || 'Sin nombre', det,
-          [h('div', { class: 'imp' }, cant(p.disp, p.u)), p.balde > 0 ? h('div', { class: 'det' }, baldes(p) + ' baldes') : null, p.balde > 0 && nBaldes(p) < 1 ? eti('avi', 'Pedir') : null, eti(e[0], e[1])], h('div', { class: 'det' }, 'Precio ' + plata(p.precio)))));
+          [h('div', { class: 'imp' }, cant(p.disp, p.u)), p.balde > 0 ? h('div', { class: 'det' }, baldes(p) + ' baldes') : null, p.balde > 0 && (typeof p.pedir === 'boolean' ? p.pedir : nBaldes(p) < 1) ? eti('avi', 'Pedir') : null, eti(e[0], e[1])], h('div', { class: 'det' }, 'Precio ' + plata(p.precio)))));
       });
       cuerpo.appendChild(L);
       if (l.length > tope) cuerpo.appendChild(h('p', { class: 'nota' }, 'Se muestran los primeros ' + tope + '. Usá el buscador para encontrar el resto.'));

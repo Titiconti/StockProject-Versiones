@@ -116,8 +116,22 @@ const crearPC = require('../nube'), { proyeccion } = crearPC, { crear } = requir
   vender(); reloj += 3000; const mEnvio = await med(() => PC.sincronizar()); const mLatido = await med(async () => { reloj += 601000; await PC.sincronizar(); });
   const mVer = await med(() => ver('ana', ckA)), mDatos = await med(() => datos('ana', ckA));
   console.log('MEDIDO comandos -> envío de una venta:', mEnvio.cmd, '(' + mEnvio.http + ' pedidos HTTP) | latido:', mLatido.cmd, '| consulta de versión:', mVer.cmd, '| bajar datos:', mDatos.cmd);
-  assert(mEnvio.cmd <= 9 && mEnvio.http <= 6, 'envío de una venta'); assert(mLatido.cmd <= 8, 'latido'); assert(mVer.cmd <= 2, 'consulta de versión'); const mVer2 = await med(() => ver('ana', ckA)); console.log('MEDIDO consulta de versión repetida (sesión recordada 10 s):', mVer2.cmd); assert(mVer2.cmd <= 1, 'la segunda consulta seguida cuesta 1 comando'); assert(mDatos.cmd <= 4, 'bajar datos');
+  assert(mEnvio.cmd <= 10 && mEnvio.http <= 6, 'envío de una venta (8 normal; +1 al abrirse la ventana de límites, +1 al volcar la cuenta de uso)'); assert(mLatido.cmd <= 8, 'latido'); assert(mVer.cmd <= 2, 'consulta de versión'); const mVer2 = await med(() => ver('ana', ckA)); console.log('MEDIDO consulta de versión repetida (sesión recordada 10 s):', mVer2.cmd); assert(mVer2.cmd <= 1, 'la segunda consulta seguida cuesta 1 comando'); assert(mDatos.cmd <= 4, 'bajar datos');
   const mFoto = await med(() => PC.sincronizar(true)); console.log('MEDIDO comandos -> foto entera de reparación (sin cambios):', mFoto.cmd);
+
+  // 12 bis) CIERRE DEL PROGRAMA con cambios sin confirmar: al reabrir se mandan (por foto entera) y no se pierde ni duplica nada
+  const abrirPC = () => { let c = {}; const n = crearPC({ leer: () => JSON.stringify(db), getCfg: () => c, setCfg: p => { c = { ...c, ...p }; }, enviar, ahora: () => reloj, programar: () => 1, cancelar: () => {} }); n.configurar({ url: base, token: ana.token }); return n; };
+  const antesCierre = ids(await datos('ana', ckA)).length;
+  vender(); vender(); red = 'caida'; reloj += 61000; let viejaPC = abrirPC(); await viejaPC.sincronizar(); await viejaPC.sincronizar(true);   // se corta internet y el programa se cierra sin haber podido enviar
+  assert.strictEqual(ids(await datos('ana', ckA)).length, antesCierre, 'el servidor todavía no tiene esas 2 ventas');
+  viejaPC = null; red = 'ok'; vender(); enviados.length = 0; reloj += 61000; const nuevaPC = abrirPC(); await nuevaPC.sincronizar();   // "reabrir": otra ejecución del programa (otro inst)
+  assert.strictEqual(enviados[0].u, '/ingesta', 'al reabrir manda la foto entera'); d = await datos('ana', ckA);
+  assert.deepStrictEqual(ids(d), db.sales.map(s => s.id).sort((a, b) => a - b), 'llegaron las ventas del cierre y la nueva, sin duplicar');
+  // lo mismo si el servidor SÍ alcanzó a aplicar el último envío pero la respuesta se perdió justo antes de cerrar
+  vender(); red = 'perdida'; reloj += 61000; const pcP = abrirPC(); await pcP.sincronizar(); await pcP.sincronizar(true); red = 'ok'; vender(); reloj += 61000; await abrirPC().sincronizar();
+  d = await datos('ana', ckA); assert.deepStrictEqual(ids(d), db.sales.map(s => s.id).sort((a, b) => a - b), 'sin duplicados tras cierre con respuesta perdida'); assert.strictEqual(d.foto.ventas.length, new Set(ids(d)).size);
+  console.log('MEDIDO cierre del programa con cambios pendientes: al reabrir llegan todas (foto entera), ventas en servidor:', d.foto.ventas.length);
+
 
   // 13) alerta al pasar el 70 % del cupo mensual
   const av = []; const S2 = crear({ almacen: redis({ url: 'https://redis.prueba', token: 'tok', pedir: require('./redis-simulado')({ reloj: () => reloj }).pedir, limite: 60, avisar: m => av.push(m), ahora: () => reloj }), adminToken: ADMIN, ahora: () => reloj });
