@@ -5,15 +5,15 @@
       { "key": "X-Frame-Options", "value": "DENY" }
     ] },
     { "source": "/((?!c/|c$).*)", "headers": [
-      { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; media-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" },
+      { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" },
       { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
     ] }
   ],
   "redirects": [
-    { "source": "/:archivo(servidor\\.js|almacen\\.js|Caddyfile|docker-compose\\.yml|backup\\.sh|Dockerfile|README\\.md|package\\.json|vercel\\.json|panel\\.html|\\.env\\.ejemplo|\\.dockerignore|\\.gitignore|\\.gitattributes|api/index\\.js)", "destination": "/no-existe", "permanent": false },
+    { "source": "/:archivo(servidor\\.js|almacen\\.js|sync\\.js|Caddyfile|docker-compose\\.yml|backup\\.sh|Dockerfile|README\\.md|package\\.json|vercel\\.json|panel\\.html|\\.env\\.ejemplo|\\.dockerignore|\\.gitignore|\\.gitattributes|api/index\\.js)", "destination": "/no-existe", "permanent": false },
     { "source": "/", "has": [{ "type": "host", "value": "stock-project-versiones.vercel.app" }], "destination": "https://stockprojectapp.vercel.app/", "permanent": true },
     { "source": "/:ruta((?!ingesta$|registro$|clave-instalacion$).*)", "has": [{ "type": "host", "value": "stock-project-versiones.vercel.app" }], "destination": "https://stockprojectapp.vercel.app/:ruta", "permanent": true }
   ],
   "rewrites": [{ "source": "/(.*)", "destination": "/api/index?__ruta=/$1" }],
-  "functions": { "api/index.js": { "includeFiles": "{panel.html,servidor.js,almacen.js}", "maxDuration": 15 } }
+  "functions": { "api/index.js": { "includeFiles": "{panel.html,servidor.js,almacen.js,sync.js}", "maxDuration": 15 } }
 }

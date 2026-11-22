@@ -15,7 +15,7 @@ const assert = require('assert'), { web } = require('./helpers.js');
   // asistente completo por pantalla
   ev('db.prods.length=0;db.nid=1;db.lid=1');
   ev(`db.prods.push({id:db.nid++,name:'Yerba',code:'7790001',price:100,cost:50,min:1,lots:[]});addLot(db.prods[0],'Viejo',5,'')`);
-  ev('UT.bajar=(n,t)=>{window.__f=[n,t]}'); a.tab('g'); a.click('#gp [data-s=d]'); assert(/Qué importar/.test(a.txt('#g_d'))); a.click('#mg_pl'); assert(/^plantilla-productos\.csv$/.test(ev('window.__f[0]')) && /Nombre;Código;Precio de venta/.test(ev('window.__f[1]')));
+  ev('UT.bajar=(n,t)=>{window.__f=[n,t]}'); a.tab('g'); a.click('#gp [data-s=p]'); assert(/Qué importar/.test(a.txt('#g_d'))); a.click('#mg_pl'); assert(/^plantilla-productos\.csv$/.test(ev('window.__f[0]')) && /Nombre;Código;Precio de venta/.test(ev('window.__f[1]')));
   a.set('#mg_e', 'productos'); a.click('#mg_n1');
   const csv = `Artículo;Cód. Barras;Precio;Costo;Existencia;Mínimo;Vencimiento
 Yerba mate 1 kg;7790001;"1.500,50";900;10;2;31/12/2099

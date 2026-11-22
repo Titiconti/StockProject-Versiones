@@ -5,9 +5,9 @@
 const PL={per:'s'};
 PL.GASTOS=['Proveedor','Mercadería e insumos','Servicios','Sueldos','Otros'];
 PL.rango=()=>{const h=UT.hoy();return PL.per==='h'?[h,h]:PL.per==='s'?[UT.add(h,-6),h]:[h.slice(0,8)+'01',h]};
-PL.medio=m=>m==='Efectivo'?'Efectivo':/Tarjeta/.test(m||'')?'Tarjeta':m==='Transferencia'?'Transferencia':'Otros';
+PL.medio=m=>m==='Efectivo'?'Efectivo':/Tarjeta/.test(m||'')?'Tarjeta':m==='Transferencia'?'Transferencia':/^Mercado Pago/.test(m||'')?'Mercado Pago':'Otros';
 PL.calc=()=>{const[d,h]=PL.rango(),en=x=>{const k=UT.dk(x);return k>=d&&k<=h},S=db.sales.filter(s=>!s.void&&en(s.date)),P=db.pays.filter(p=>en(p.date));
-  const ent={Efectivo:0,Tarjeta:0,Transferencia:0,Otros:0};S.filter(s=>s.pay!=='Cuenta corriente').forEach(s=>{ent[PL.medio(s.pay)]+=s.total});P.forEach(p=>{ent[PL.medio(p.method)]+=p.amount});
+  const ent={Efectivo:0,Tarjeta:0,Transferencia:0,'Mercado Pago':0,Otros:0};S.filter(s=>s.pay!=='Cuenta corriente').forEach(s=>{ent[PL.medio(s.pay)]+=s.total});P.forEach(p=>{ent[PL.medio(p.method)]+=p.amount});
   const gastos=[];(db.cajas||[]).forEach(c=>(c.movs||[]).forEach(m=>{if(m.t==='egreso'&&en(m.date))gastos.push({date:m.date,motivo:m.motivo,cat:m.cat||'Otros',monto:m.monto,user:m.user})}));gastos.sort((a,b)=>a.date<b.date?1:-1);
   const vendido=UT.suma(S),costo=S.reduce((a,s)=>a+s.items.reduce((b,i)=>b+i.qty*(i.cost||0),0),0),gas=gastos.reduce((a,g)=>a+g.monto,0);
   const deben=db.clients.reduce((a,c)=>a+Math.max(0,debtOf(c.id)),0),debes=db.fin.pagar.filter(g=>!g.pagado),caja=typeof CJ!=='undefined'&&CJ.abierta()?CJ.calc(CJ.abierta()).esperado:null;
@@ -23,7 +23,7 @@ $('#masmenu').insertAdjacentHTML('afterbegin','<button data-t="w">Resumen financ
 MODT.w='finanzas';CF.NAVN.w='Resumen financiero';CF.HELP.w='Lo que entró por cada medio de pago, la ganancia estimada, lo que te deben, lo que debés a proveedores y los gastos pagados con la caja. Todo sale solo de tus ventas, cobros y caja.';
 {const r0=relevante;relevante=t=>t==='w'?true:r0(t)}
 PL.draw=()=>{if($('#w').classList.contains('hide'))return;const k=PL.calc(),N={h:'hoy',s:'esta semana',m:'este mes'}[PL.per];
-  $('#pn_et').textContent='Entró '+N;$('#pn_e').textContent=fmt(k.entro);$('#pn_m').innerHTML=Object.entries(k.ent).filter(([m,v])=>v||m!=='Otros').map(([m,v])=>`<span>${m} ${fmt(v)}</span>`).join('');
+  $('#pn_et').textContent='Entró '+N;$('#pn_e').textContent=fmt(k.entro);$('#pn_m').innerHTML=Object.entries(k.ent).filter(([m,v])=>v||!['Otros','Mercado Pago'].includes(m)).map(([m,v])=>`<span>${m} ${fmt(v)}</span>`).join('');
   $('#pn_g').textContent=fmt(k.ganancia);$('#pn_g').style.color=k.ganancia<0?'var(--bad)':'var(--ok)';$('#pn_td').textContent=fmt(k.deben);$('#pn_dp').textContent=fmt(k.totalDebes);$('#pn_ca').textContent=k.caja==null?'Caja cerrada':fmt(k.caja);
   $('#pn_gt').textContent='Total '+fmt(k.totalGastos);$('#pn_gl').innerHTML=k.gastos.slice(0,60).map(g=>`<tr><td>${new Date(g.date).toLocaleDateString('es-AR',{weekday:'short',day:'2-digit',month:'2-digit'})}</td><td style="white-space:normal">${esc(g.motivo)} <span class="tag ${g.cat==='Proveedor'?'':'low'}">${esc(g.cat)}</span></td><td class="n"><b>${fmt(g.monto)}</b></td></tr>`).join('')||'<tr><td class="mu">No hubo gastos pagados con la caja en este período.</td></tr>';
   $('#pn_dl').innerHTML=k.debes.map(g=>`<div class="row"><span><b>${esc(g.prov)}</b><br><span class="mu" style="font-size:12.5px">${esc(g.desc||'')}</span></span><span style="display:flex;gap:8px;align-items:center"><b>${fmt(g.monto)}</b><button class="btn sec" data-pg="${g.id}">Pagar</button></span></div>`).join('')||'<p class="mu" style="margin:0">No le debés nada a ningún proveedor.</p>'};
@@ -46,4 +46,6 @@ $('#r').appendChild($('#a'));
 PL.rtab='r';
 PL.verTend=t=>{PL.rtab=t;$$('#r_t button').forEach(x=>x.classList.toggle('on',x.dataset.rt===t));$('#r').classList.toggle('tend',t==='t');$('#a').classList.toggle('hide',t!=='t');if(t==='t'&&typeof AN!=='undefined')AN.draw();else draw()};
 $('#r_t').onclick=e=>{const b=e.target.closest('[data-rt]');if(b)PL.verTend(b.dataset.rt)};
+// Analítica vive dentro de Reportes: si algo activa la pestaña oculta "a" (que no existe sola), se abre Reportes › Tendencias en vez de dejar la pantalla vacía.
+$('nav button[data-t="a"]').onclick=()=>{PL.verTend('t');$('nav button[data-t="r"]').click()};
 MODS.push(()=>{if($('#r').classList.contains('hide'))return;if(PL.rtab==='t'&&$('#a').classList.contains('hide')){$('#a').classList.remove('hide');if(typeof AN!=='undefined')AN.draw()}});

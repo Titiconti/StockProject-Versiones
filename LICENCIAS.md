@@ -1,9 +1,9 @@
 # Licencias de terceros
 
-## Space Grotesk (tipografía de la marca)
-Copyright 2020 The Space Grotesk Project Authors (https://github.com/floriankarsten/space-grotesk).
+## Chivo (tipografía del programa y de la marca)
+Copyright The Chivo Project Authors (Omnibus-Type) — https://github.com/Omnibus-Type/Chivo
 Licencia: SIL Open Font License, versión 1.1 — https://openfontlicense.org
-Se distribuye incluida en `index.html` sin modificaciones.
+Se distribuye sin modificaciones: incluida en `index.html` (módulo `src-modulos/fuente.js`) y como archivo en `fonts/` para `login.html` y `clave.html`.
 
 ## React Bits (efectos visuales)
 Copyright (c) David Haz — https://reactbits.dev · https://github.com/DavidHDev/react-bits

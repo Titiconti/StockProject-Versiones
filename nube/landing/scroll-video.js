@@ -2,7 +2,7 @@
 // (GSAP + ScrollTrigger miden el scroll; Lenis lo suaviza). Con "reducir movimiento" o sin librerías queda el
 // primer cuadro quieto y los textos a la vista.
 const raiz = document.querySelector('[data-scroll-video]');
-const reducir = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const reducir = document.documentElement.classList.contains('sp-quieto');
 
 function cfg() {
   const movil = matchMedia('(max-width: 767px)').matches;

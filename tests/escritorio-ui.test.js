@@ -18,7 +18,7 @@ const assert = require('assert'), { JSDOM, HTML, until, api } = require('./helpe
   ev('UT.bajar=(n,t)=>{window.__f=[n,t]}'); A.tab('g');
 
   // ---- Seguridad ----
-  A.click('#gp [data-s=s]'); assert(await until(() => /Desactivado/.test(A.txt('#sg_c'))), A.txt('#sg_c')); assert(!$('#sg_on').classList.contains('hide') && $('#sg_off').classList.contains('hide'));
+  A.click('#gp [data-s=r]'); assert(await until(() => /Desactivado/.test(A.txt('#sg_c'))), A.txt('#sg_c')); assert(!$('#sg_on').classList.contains('hide') && $('#sg_off').classList.contains('hide'));
   A.click('#sg_on'); assert(await until(() => $('#clv')), 'muestra la clave de recuperación'); assert.strictEqual($('#clv_k').value, 'ab'.repeat(32)); assert($('#clv_x').disabled, 'no deja continuar sin confirmar que la guardó');
   A.click('#clv_d'); assert(/StockProject-clave/.test(ev('window.__f[0]')) && ev('window.__f[1]').includes('ab'.repeat(32)));
   const ok = $('#clv_ok'); ok.checked = true; A.ev(ok, 'change'); assert(!$('#clv_x').disabled); A.click('#clv_x'); assert(!$('#clv'));
@@ -26,17 +26,17 @@ const assert = require('assert'), { JSDOM, HTML, until, api } = require('./helpe
 
 
   // ---- Empresas, datos fiscales, tipos de cambio ----
-  A.click('#gp2 [data-s=m]'); assert(await until(() => /Kiosco/.test(A.txt('#g_m')) && /En uso/.test(A.txt('#g_m'))));
+  A.click('#gp [data-s=n]'); assert(await until(() => /Kiosco/.test(A.txt('#g_m')) && /En uso/.test(A.txt('#g_m'))));
   A.set('#em_n', 'Local 2'); A.click('#em_g'); assert(await until(() => hubo('emp.crear').length === 1) && await until(() => /Local 2/.test(A.txt('#g_m'))));
   A.click($('#g_m [data-ec="sucursal"]')); assert.strictEqual(hubo('emp.cambiar').length, 0, 'pide confirmar el cambio de empresa'); A.click($('#g_m [data-ec="sucursal"]')); assert(await until(() => hubo('emp.cambiar').length === 1));
   A.click($('#g_m [data-er="sucursal"]')); assert(await until(() => $('#er_n'))); A.set('#er_n', 'Sucursal Centro'); A.click($('#g_m [data-ers]')); assert(await until(() => hubo('emp.renombrar').length === 1));
-  A.set('#fx_b', 'USD'); A.click('#fx_a'); assert(await until(() => ev('db.cfg.tasas.tasas.ARS') === 1000), 'guarda las cotizaciones en los datos'); A.set('#cv_m', '2'); A.set('#cv_d', 'USD'); A.set('#cv_a', 'ARS'); assert(/2\.000/.test(A.txt('#cv_r')), A.txt('#cv_r'));
+  A.set('#fx_b', 'USD'); A.click('#fx_a'); assert(await until(() => ev('db.cfg.tasas&&db.cfg.tasas.tasas.ARS') === 1000), 'guarda las cotizaciones en los datos'); A.set('#cv_m', '2'); A.set('#cv_d', 'USD'); A.set('#cv_a', 'ARS'); assert(/2\.000/.test(A.txt('#cv_r')), A.txt('#cv_r'));
   A.set('#fx_d', 'USD'); A.set('#fx_h', 'ARS'); A.set('#fx_v', '1200'); A.click('#fx_m'); assert.strictEqual(ev('db.cfg.tasas.manual["USD/ARS"]'), 1200); A.set('#cv_m', '1'); A.set('#cv_d', 'USD'); A.set('#cv_a', 'ARS'); assert(/1\.200/.test(A.txt('#cv_r')), 'la tasa manual manda');
   A.click('#co_g'); assert(await until(() => /Total \(/.test(A.txt('#co_r')))); assert(/sin tasa/.test(A.txt('#co_r')) && /Falta la tasa/.test(A.txt('#co_r')), 'avisa que el total está incompleto');
   A.set('#fi_m', 'EUR'); A.set('#fi_r', 'Mi SRL'); A.set('#fi_id', '30-12345678-9'); A.set('#fi_t', '21'); A.click('#fi_g'); assert.strictEqual(ev('MON'), 'EUR'); assert(/€/.test(A.f(10))); assert.strictEqual(ev('db.cfg.fiscalCustom.tasa'), 21);
 
   // ---- Sistema ----
-  A.click('#gp2 [data-s=x]'); assert(await until(() => /memoria 210 MB/.test(A.txt('#g_x'))), A.txt('#g_x').slice(0, 100)); assert(!/pedidos atendidos/.test(A.txt('#g_x')) && !/Redis/.test(A.txt('#g_x')), 'estado en una línea, sin texto técnico (ya no hay acceso por red local)');
+  A.click('#gp [data-s=x]'); assert(await until(() => /memoria 210 MB/.test(A.txt('#g_x'))), A.txt('#g_x').slice(0, 100)); assert(!/pedidos atendidos/.test(A.txt('#g_x')) && !/Redis/.test(A.txt('#g_x')), 'estado en una línea, sin texto técnico (ya no hay acceso por red local)');
   A.click('#sy_m'); assert(await until(() => /Guardar/.test(A.txt('#g_x')) && /Todo en orden/.test(A.txt('#g_x'))));
   // ---- Actualizaciones ----
   assert(/Versión 2\.0\.0/.test(A.txt('#g_x')) && /Tenés la última versión/.test(A.txt('#g_x')), A.txt('#g_x').slice(0, 150)); assert(!$('#up_i'), 'sin versión nueva no hay botón de actualizar');

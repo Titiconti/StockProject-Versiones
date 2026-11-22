@@ -48,6 +48,9 @@ function productos(o, a) {
         ant = t.desde;
       }
     }
+    if (p.plu != null && !/^\d{1,13}$/.test(String(p.plu))) return 'Código de balanza inválido en ' + nom(p);
+    if (p.balde != null && (!num(p.balde) || p.balde <= 0 || p.balde > 100)) return 'Kg por balde inválidos en ' + nom(p);
+    if (p.tipo != null && p.tipo !== 'tamano') return 'Tipo de producto inválido en ' + nom(p);
     if (p.minimo != null && (!num(p.minimo) || p.minimo < 0)) return 'Cantidad mínima inválida en ' + nom(p);
     if (p.garantia != null && (!Number.isInteger(p.garantia) || p.garantia < 0 || p.garantia > 240)) return 'Garantía inválida en ' + nom(p);
     if (p.padre != null) {
@@ -63,7 +66,9 @@ function productos(o, a) {
 function ventas(o, a) {
   if (o.sales != null && !Array.isArray(o.sales)) return 'datos inválidos';
   const prev = new Map(((a && a.sales) || []).map(s => [s && s.id, s]));
+  const pagosMp = new Set();   // un pago de Mercado Pago no puede estar en dos ventas vigentes
   for (const s of o.sales || []) {
+    if (s && s.mp && !s.void) { if (pagosMp.has(s.mp.pago)) return 'Ese pago de Mercado Pago ya está registrado en otra venta'; pagosMp.add(s.mp.pago); }
     if (a && igual(s, prev.get(s && s.id))) continue;
     if (!s || !num(s.id) || !num(s.total) || s.total < 0 || !Array.isArray(s.items)) return 'Hay una venta con datos inválidos';
     for (const i of s.items) if (!i || !num(i.qty) || i.qty <= 0 || !num(i.price) || i.price < 0) return 'Hay una venta con una cantidad o un precio inválido';

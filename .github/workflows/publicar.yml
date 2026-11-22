@@ -40,6 +40,7 @@ jobs:
         with:
           node-version: 24
 
+      # El nombre de la etiqueta entra por una variable de entorno, nunca pegado dentro del script (no se puede inyectar un comando).
       - name: Comprobar que la versión coincide con la etiqueta
         shell: bash
         env:

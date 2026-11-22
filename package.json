@@ -1,7 +1,7 @@
 {
   "name": "stockproject",
   "productName": "StockProject",
-  "version": "5.6.2",
+  "version": "5.7.0",
   "description": "StockProject - Punto de venta e inventario",
   "author": "StockProject",
   "main": "main.js",
@@ -19,12 +19,19 @@
       "preload.js",
       "store.js",
       "validar.js",
+      "permisos-datos.js",
       "nube.js",
+      "xlsx-lector.js",
+      "mercadopago.js",
+      "arca.js",
+      "arca-ws.js",
+      "precios-remoto.js",
       "usuarios.js",
       "empresas.js",
       "monedas.js",
       "login.html",
       "clave.html",
+      "fonts/chivo-latin-wght-normal.woff2",
       "index.html",
       "defaults.json"
     ],
@@ -61,10 +68,16 @@
     "jsdom": "^30.0.0"
   },
   "dependencies": {
-    "electron-updater": "^6.8.11"
+    "electron-updater": "^6.8.11",
+    "exceljs": "^4.4.0",
+    "node-forge": "^1.4.3",
+    "qrcode-generator": "^2.0.4"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/Titiconti/StockProject-Versiones.git"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
   }
 }

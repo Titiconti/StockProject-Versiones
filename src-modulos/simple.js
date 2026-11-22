@@ -9,9 +9,9 @@ const SI={};
 SI.on=()=>!!db.cfg.avanzado;
 document.head.insertAdjacentHTML('beforeend',`<style id="sicss">
 body.simple nav button[data-t="f"],body.simple #fnp [data-s="b"],body.simple #fnp [data-s="s"],body.simple #cs_det,body.simple #c_x .chips,body.simple #c_x details[data-k="priv"],
-body.simple #gp2 [data-s="m"],body.simple details.card:has(#g_tabs),body.simple [data-sub="s"]>.card{display:none!important}
+body.simple #cfg_emp,body.simple #cfg_menu,body.simple #cfg_priv{display:none!important}
 </style>`);
-{const n=$('[data-sub="n"]');if(n){n.insertAdjacentHTML('beforeend',`<details class="card" id="si"><summary>Funciones avanzadas</summary><label class="opt"><input type="checkbox" id="si_on"> Mostrar las funciones avanzadas</label><p class="mu" style="margin:4px 0 0">Finanzas completa (libro mayor, gastos fijos), conciliación bancaria, sueldos, análisis de clientes y programa de puntos, empresas y monedas, y personalización manual del menú. Están ocultas para que el programa sea más simple; tus datos no se tocan.</p></details>`);
+{const n=$('#cfg_si');if(n){n.insertAdjacentHTML('beforeend',`<div class="card" id="si" data-kw="funciones avanzadas simple finanzas libro mayor conciliacion sueldos puntos empresas"><h3>Funciones avanzadas</h3><div class="aj"><div class="aj-t"><label for="si_on">Mostrar las funciones avanzadas</label><p class="mu">Finanzas completa (libro mayor, gastos fijos), conciliación bancaria, sueldos, análisis de clientes y programa de puntos, empresas y monedas, y personalización manual del menú. Están ocultas para que el programa sea más simple; tus datos no se tocan.</p></div><div class="aj-c"><input type="checkbox" id="si_on"></div></div></div>`);
   $('#si_on').onchange=()=>{if(!can('configuracion','editar')){$('#si_on').checked=SI.on();return toast('Tu usuario no tiene permiso para esto')}db.cfg.avanzado=$('#si_on').checked;save();draw();toast(db.cfg.avanzado?'Funciones avanzadas a la vista':'Funciones avanzadas ocultas')}}}
 SI.aplicar=()=>{document.body.classList.toggle('simple',!SI.on());const c=$('#si_on');if(c)c.checked=SI.on();
   // Si quedó abierta una pantalla que ahora está oculta, se vuelve a Ventas.

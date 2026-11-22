@@ -1,0 +1,3 @@
+/* Vuelta suave al soltar (resorte con overshoot leve). */
+[data-magnetico] { transition: transform .45s cubic-bezier(.34, 1.56, .64, 1); will-change: transform; }
+html.sin-animaciones [data-magnetico], html.sin-magnetico [data-magnetico] { transform: none !important; transition: none; }

@@ -10,14 +10,14 @@ FX.on=()=>document.documentElement.classList.contains('anim');
 // Los efectos de lienzo solo se arman si el equipo puede dibujar (en el navegador simulado de las pruebas no se puede).
 FX.lienzo=(()=>{try{const c=document.createElement('canvas');return typeof c.getContext==='function'&&typeof CanvasRenderingContext2D!=='undefined'&&!!c.getContext('2d')}catch(e){return false}})();
 document.head.insertAdjacentHTML('beforeend',`<style id="fxcss">
-header nav{position:relative}header nav>button,header nav #masb{position:relative;z-index:1}#fxind{position:absolute;left:0;top:0;z-index:0;border-radius:10px;background:rgba(255,255,255,.13);box-shadow:inset 3px 0 0 var(--ok);pointer-events:none;opacity:0;display:none}
+header nav{position:relative}header nav>button,header nav #masb{position:relative;z-index:1}#fxind{position:absolute;left:0;top:0;z-index:0;border-radius:10px;background:rgba(255,255,255,.13);pointer-events:none;opacity:0;display:none}
 html.anim #fxind{display:block;transition:transform .38s cubic-bezier(.22,1,.36,1),width .38s cubic-bezier(.22,1,.36,1),height .38s cubic-bezier(.22,1,.36,1),opacity .2s}html.anim header nav.fx-ind>button.on,html.anim header nav.fx-ind #masb.on{background:transparent;box-shadow:none}
 html.anim header{background-image:linear-gradient(180deg,rgba(36,71,249,.22) 0,rgba(36,71,249,0) 260px)}
-html.anim .kpis .card,html.anim #v .p:not(:disabled){background-image:radial-gradient(220px circle at var(--fx-x,-999px) var(--fx-y,-999px),color-mix(in srgb,var(--ac) 10%,transparent),transparent 70%)}
+html.anim .kpis .card,html.anim #v .p:not(:disabled){background-image:radial-gradient(220px circle at var(--fx-x,-999px) var(--fx-y,-999px),color-mix(in srgb,var(--ac) 6%,transparent),transparent 70%)}
 .fx-cu{position:relative;color:transparent!important}.fx-cu::after{content:attr(data-cu);position:absolute;left:0;top:0;white-space:nowrap;color:var(--fx-c,var(--tx))}
 #fxspark{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:160}
-#splash{background-image:radial-gradient(60% 50% at 50% 42%,#1D3B6E 0,transparent 70%),radial-gradient(rgba(255,255,255,.07) 1px,transparent 1.6px);background-size:auto,22px 22px}
-#splash .wm{background:linear-gradient(110deg,#fff 42%,#9FB4FF 50%,#fff 58%) 100% 0/250% 100% no-repeat;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:tmIn .4s var(--ease) .62s both,fxShine 1.1s cubic-bezier(.4,0,.2,1) .8s both}
+#splash{background-image:radial-gradient(70% 60% at 50% 0,var(--pre2) 0,var(--pre) 60%),radial-gradient(color-mix(in srgb,var(--pre-tx) 7%,transparent) 1px,transparent 1.6px);background-size:auto,22px 22px}
+#splash .wm{color:var(--pre-tx)}
 @keyframes fxShine{from{background-position:100% 0}to{background-position:0 0}}
 @media print{#fxind,#fxspark{display:none!important}}
 </style>`);

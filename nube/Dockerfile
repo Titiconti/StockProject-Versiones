@@ -2,7 +2,7 @@
 FROM node:22-alpine
 ENV NODE_ENV=production PORT=8080 DATA_DIR=/datos
 WORKDIR /app
-COPY servidor.js panel.html ./
+COPY servidor.js almacen.js sync.js panel.html ./
 RUN mkdir -p /datos && chown node:node /datos
 USER node
 EXPOSE 8080

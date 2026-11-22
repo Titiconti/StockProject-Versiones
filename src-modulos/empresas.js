@@ -3,7 +3,7 @@ const EM={};
 EM.tasa=(est,de,a)=>{if(de===a)return 1;const m=(est&&est.manual)||{};if(m[de+'/'+a]>0)return m[de+'/'+a];if(m[a+'/'+de]>0)return 1/m[a+'/'+de];const t=(est&&est.tasas)||{};return t[de]>0&&t[a]>0?t[a]/t[de]:null};
 EM.conv=(monto,de,a)=>{const t=EM.tasa(db.cfg.tasas,de,a);return t==null?null:UT.r2(monto*t)};
 EM.cons=null;
-EM.render=async()=>{const box=$('#g_m'),T=db.cfg.tasas=db.cfg.tasas||{base:'USD',tasas:{},manual:{}},ed=EDA&&sp.emp,E=ed?await sp.emp.listar():null,F=db.cfg.fiscalCustom||(db.cfg.encuesta||{}).fiscal||{imp:'IVA',tasa:0,id:'ID fiscal'},mons=Object.entries(CF.MONEDAS);
+EM.render=async()=>{const box=$('#g_m'),T=db.cfg.tasas||{base:'USD',tasas:{},manual:{}},ed=EDA&&sp.emp,E=ed?await sp.emp.listar():null,F=db.cfg.fiscalCustom||(db.cfg.encuesta||{}).fiscal||{imp:'IVA',tasa:0,id:'ID fiscal'},mons=Object.entries(CF.MONEDAS);
   const opt=(v)=>mons.map(([k,n])=>`<option value="${k}" ${k===v?'selected':''}>${k} · ${n}</option>`).join('');
   const nueva=Object.keys(T.tasas||{}).length||Object.keys(T.manual||{}).length,hoy=UT.hoy();
   box.innerHTML=`${ed?`<div class="card"><h3>Empresas</h3><p class="mu" style="margin-top:0">Cada empresa tiene sus propios productos, clientes, ventas y respaldos. Los usuarios son compartidos. Al cambiar de empresa el programa se recarga, y lo mismo ven los celulares conectados.</p>
@@ -22,12 +22,11 @@ $('#g_m').onchange=e=>{if(['cv_m','cv_d','cv_a'].includes(e.target.id))EM.conver
 $('#g_m').onclick=async e=>{const b=e.target.closest('button,a');if(!b)return;const d=b.dataset;
   if(d.fb){e.preventDefault();delete db.cfg.tasas.manual[d.fb];save();EM.render()}
   if(b.id==='fi_g'){if(!UT.chk('configuracion','editar'))return;db.cfg.moneda=$('#fi_m').value;db.cfg.loc=(Object.values(CF.PAISES).find(p=>p.mon===db.cfg.moneda)||{loc:LOC}).loc;db.cfg.fiscalDatos={razon:$('#fi_r').value.trim(),id:$('#fi_id').value.trim()};db.cfg.fiscalCustom={imp:$('#fi_i').value.trim()||'Impuesto',tasa:Math.max(0,UT.num($('#fi_t').value)||0),id:((db.cfg.encuesta||{}).fiscal||{id:'ID fiscal'}).id};save();call('audit','empresa.datos_fiscales','');CF.aplicar();draw();toast('Datos guardados');EM.render()}
-  if(b.id==='fx_m'){if(!UT.chk('configuracion','editar'))return;const v=UT.num($('#fx_v').value),de=$('#fx_d').value,a=$('#fx_h').value;if(!(v>0)||de===a)return toast('Elegí dos monedas distintas y un valor mayor a cero');db.cfg.tasas.manual[de+'/'+a]=v;save();EM.render()}
+  if(b.id==='fx_m'){if(!UT.chk('configuracion','editar'))return;const v=UT.num($('#fx_v').value),de=$('#fx_d').value,a=$('#fx_h').value;if(!(v>0)||de===a)return toast('Elegí dos monedas distintas y un valor mayor a cero');db.cfg.tasas=db.cfg.tasas||{base:'USD',tasas:{},manual:{}};db.cfg.tasas.manual=db.cfg.tasas.manual||{};db.cfg.tasas.manual[de+'/'+a]=v;save();EM.render()}
   if(b.id==='fx_a'){if(!UT.chk('configuracion','editar'))return;b.disabled=true;const r=await sp.fx.actualizar($('#fx_b').value);b.disabled=false;if(!r.ok)return toast(r.err);db.cfg.tasas={...db.cfg.tasas,...r.estado};save();call('audit','monedas.actualizar',r.estado.base);toast('Cotizaciones actualizadas');EM.render()}
   if(b.id==='em_g'){const r=await sp.emp.crear($('#em_n').value);if(!r.ok)return toast(r.err);toast('Empresa creada');EM.render()}
   if(d.er){EM.ren=d.er;EM.render()}
   if(d.ers){const r=await sp.emp.renombrar(d.ers,$('#er_n').value);if(!r.ok)return toast(r.err);EM.ren=null;EM.render()}
   if(d.ec){if(!armed('ec'+d.ec))return;await sp.emp.cambiar(d.ec)}
   if(b.id==='co_g'){const r=await sp.emp.consolidado({desde:$('#co_d').value,hasta:$('#co_h').value,base:$('#co_b').value,estado:db.cfg.tasas});if(!r)return toast('Sin permiso para ver el consolidado');EM.cons=r;$('#co_r').innerHTML=EM.tablaCons(r);call('audit','empresa.consolidado',r.base)}};
-CF.extras.empresas=sub=>{if(sub==='m'&&!$('#g_m').dataset.r){$('#g_m').dataset.r=1;EM.render()}};
-document.querySelector('#gp').addEventListener('click',e=>{if(e.target.dataset&&e.target.dataset.s==='m')$('#g_m').dataset.r=''});
+CF.extras.empresas=(sub,nueva)=>{if(sub!=='m')return;if(nueva)$('#g_m').dataset.r='';if(!$('#g_m').dataset.r){$('#g_m').dataset.r=1;EM.render()}};

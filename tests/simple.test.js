@@ -4,7 +4,7 @@ const assert = require('assert'), { web } = require('./helpers');
   const { w, $, tab, db, errs } = web();
   const ev = w.eval.bind(w), css = $('#sicss').textContent;
   assert(w.document.body.classList.contains('simple'), 'arranca en modo simple');
-  ['nav button[data-t="f"]', '#fnp [data-s="b"]', '#fnp [data-s="s"]', '#cs_det', '#gp2 [data-s="m"]'].forEach(s => { assert(css.includes('body.simple ' + s), 'se oculta ' + s); assert($(s), 'sigue existiendo ' + s); });
+  ['nav button[data-t="f"]', '#fnp [data-s="b"]', '#fnp [data-s="s"]', '#cs_det', '#cfg_emp', '#cfg_menu', '#cfg_priv'].forEach(s => { assert(css.includes('body.simple ' + s), 'se oculta ' + s); assert($(s), 'sigue existiendo ' + s); });
   // las pantallas esenciales no se ocultan
   ['v', 'p', 'i', 'c', 'r', 'k', 'o', 'e'].forEach(t => assert(!css.includes(`nav button[data-t="${t}"]`), 'esencial o útil: ' + t));
   // activar desde Configuración

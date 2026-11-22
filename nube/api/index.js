@@ -13,7 +13,9 @@ function iniciar() {
   if (!url || !token) { error = 'Falta conectar la base de datos (Storage > Upstash for Redis en el panel de Vercel).'; return; }
   // Las vistas previas usan la misma base que producción: van a otro espacio de claves para no tocar (ni mudar) los datos reales.
   const prefijo = e.VERCEL_ENV === 'production' ? 'sp:' : 'sp-preview:';
-  servidor = crear({ almacen: redis({ url, token, prefijo }), recargar: true, adminToken, dominioBase: (e.DOMAIN_BASE || '').trim(), confiarProxy: true, frescuraMs: (Number(e.FRESCURA_SEG) || 420) * 1000 });
+  // LIMITE_COMANDOS: cupo mensual de comandos del plan de Upstash (Free = 500000); al pasar el 70 % se avisa en el log y en /salud.
+  // La PC manda un latido cada 10 min, así que se considera desactualizado recién a los 12 (720 s).
+  servidor = crear({ almacen: redis({ url, token, prefijo, limite: Number(e.LIMITE_COMANDOS) || 500000 }), recargar: true, adminToken, dominioBase: (e.DOMAIN_BASE || '').trim(), confiarProxy: true, frescuraMs: (Number(e.FRESCURA_SEG) || 720) * 1000 });
 }
 module.exports = (req, res) => {
   if (!servidor && !error) iniciar();

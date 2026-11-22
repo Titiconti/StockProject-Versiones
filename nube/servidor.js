@@ -6,6 +6,7 @@
 'use strict';
 const http = require('http'), crypto = require('crypto'), fs = require('fs'), path = require('path'), zlib = require('zlib');
 const { archivos } = require('./almacen');
+const sincro = require('./sync'), { ErrorHttp, CAMPOS_ESTADO, estadoDe, conEstado } = sincro;
 
 const SUB_OK = /^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])$/;
 const RESERVADOS = new Set(['www', 'admin', 'api', 'app', 'panel', 'mail']);
@@ -18,6 +19,10 @@ const LOGIN_COMERCIO_MAX = 30;                // intentos por comercio desde cua
 const FALLOS_MAX = 20, FALLOS_VENTANA = 60 * 1000;
 // La PC envía cada 30 s solo si hubo cambios (y un latido cada 5 min): 60 en 10 min alcanza para dos PCs con margen.
 const INGESTA_MAX = 60, INGESTA_VENTANA = 10 * 60 * 1000;
+// Envíos por diferencias (/ingesta/ops): la PC manda uno por cambio (mínimo 3 s entre envíos) y un latido cada 10 min.
+const PRECIOS_POR_MINUTO = 20, OPS_MAX = 300, LIMITE_OPS = 1024 * 1024, UMBRAL_AVISO_USO = 70;
+// "ver" que ve el panel: opaco (no deja contar cuántos envíos hubo). La respuesta de /api/ver puede guardarse 1 s en la caché de la CDN.
+const CACHE_VER = 'public, max-age=0, s-maxage=1, stale-while-revalidate=1';
 // Alta automática desde el programa (sin la clave de administración, que nunca va en el instalador): limitada por IP
 // (por hora y por día) y con un tope diario total para que nadie pueda llenar la base creando comercios.
 const REG_IP_MAX = 3, REG_IP_VENTANA = 60 * 60 * 1000, REG_IP_DIA_MAX = 10, REG_DIA_MAX = 200, DIA = 24 * 60 * 60 * 1000;
@@ -45,8 +50,6 @@ function errorClave(clave, nombre) {
 // Las claves generadas (y las de comercios viejos, sin claveTipo) no distinguen mayúsculas; las propias sí.
 const normalizarClave = (clave, tipo) => tipo === 'propia' ? clave.trim() : clave.trim().toLowerCase();
 
-class ErrorHttp extends Error { constructor(estado, mensaje) { super(mensaje); this.estado = estado; } }
-
 // almacen: dónde se guardan los datos (por defecto, archivos en dataDir). Todo se lee del almacén en cada pedido, así
 // que pueden correr varias copias a la vez (funciones de Vercel). "recargar" se acepta por compatibilidad y ya no hace
 // falta. frescuraMs: pasado ese tiempo sin noticias del comercio, el panel avisa que los datos pueden no estar al día.
@@ -65,13 +68,18 @@ function crear({ dataDir, almacen, frescuraMs = 120 * 1000, dominioBase, adminTo
   //   lim:<límite>:<ventana> contadores atómicos de intentos.
   // Formato viejo (hasta 5.6.x): "comercios" (lista) y "sesiones" (objeto) enteros. Se copian una vez al formato nuevo y
   // se dejan como estaban (por si hubiera que volver a la versión anterior). "version-datos" = '2' marca la mudanza hecha.
-  const K = { com: id => 'comercio:' + id, sub: s => 'sub:' + s, tok: h => 'token:' + h, ses: h => 'sesion:' + h, est: id => 'estado:' + id, foto: id => 'foto:' + id };
-  const fijos = c => { const { seq, ultimaSync, ...r } = c; return r; };
+  const K = { cmds: id => 'cmds:' + id, cola: h => 'cola:' + h, cmdv: id => 'cmdv:' + id, base: id => 'base:' + id, vd: (id, d) => 'vd:' + id + ':' + d, com: id => 'comercio:' + id, sub: s => 'sub:' + s, tok: h => 'token:' + h, ses: h => 'sesion:' + h, est: id => 'estado:' + id, foto: id => 'foto:' + id };
+  // estado:<id> cambia en cada envío (aparte de los datos fijos): seq (fotos), inst+ultOp (diferencias), ver (cambia con cada dato
+  // nuevo) y modo ('foto' = documento único de las versiones viejas; 'dif' = base:<id> + vd:<id>:<día> con las ventas de cada día).
+  const fijos = c => { const r = { ...c }; CAMPOS_ESTADO.forEach(k => delete r[k]); return r; };
   const guardar = c => almacen.escribir(K.com(c.id), JSON.stringify(fijos(c)));
-  const guardarEstado = c => almacen.escribir(K.est(c.id), JSON.stringify({ seq: c.seq, ultimaSync: c.ultimaSync }));
+  const guardarEstado = c => almacen.escribir(K.est(c.id), JSON.stringify(estadoDe(c)));
   const comprimir = t => 'gz:' + zlib.gzipSync(Buffer.from(t, 'utf8')).toString('base64');
   const descomprimir = t => t && t.startsWith('gz:') ? zlib.gunzipSync(Buffer.from(t.slice(3), 'base64')).toString('utf8') : t;
   const iso = () => new Date(ahora()).toISOString();
+  const datos = sincro.crear({ almacen, K, comprimir, descomprimir, ahora });
+  const memoVer = new Map(), MEMO_VER_MS = 10000;
+  const verDe = c => sha256(c.id + ':' + (c.ver || 0) + ':' + (c.cmdv || 0)).slice(0, 12);
   const publico = c => ({ id: c.id, nombre: c.nombre, sub: c.sub, activo: c.activo, alta: c.alta, ultimaSync: c.ultimaSync });
 
   let mudado = false;
@@ -96,11 +104,9 @@ function crear({ dataDir, almacen, frescuraMs = 120 * 1000, dominioBase, adminTo
     mudado = true;
     if (lista.length) console.log(`[datos] ${lista.length} comercio(s) pasados al formato nuevo`);
   }
-  async function porId(id, conEstado = true) {
-    const [t, e] = await almacen.leerVarios([K.com(id), K.est(id)]);
-    if (!t) return null;
-    const c = JSON.parse(t), x = conEstado && e ? JSON.parse(e) : {};
-    return { ...c, seq: x.seq || 0, ultimaSync: x.ultimaSync || null };
+  async function porId(id) {
+    const [t, e, v] = await almacen.leerVarios([K.com(id), K.est(id), K.cmdv(id)]);   // un solo MGET: el contador de cambios no cuesta un comando más
+    return t ? conEstado(JSON.parse(t), e ? JSON.parse(e) : {}, v) : null;
   }
   async function porSub(sub) {
     if (!sub) return null;
@@ -117,7 +123,7 @@ function crear({ dataDir, almacen, frescuraMs = 120 * 1000, dominioBase, adminTo
     if (!n) return [];
     const ids = Array.from({ length: n }, (_, i) => idDe(i + 1));
     const [cs, es] = await Promise.all([almacen.leerVarios(ids.map(K.com)), almacen.leerVarios(ids.map(K.est))]);
-    return cs.map((t, i) => { if (!t) return null; const e = es[i] ? JSON.parse(es[i]) : {}; return { ...JSON.parse(t), seq: e.seq || 0, ultimaSync: e.ultimaSync || null }; }).filter(Boolean);
+    return cs.map((t, i) => t ? conEstado(JSON.parse(t), es[i] ? JSON.parse(es[i]) : {}) : null).filter(Boolean);
   }
   // Cerrar todas las sesiones de un comercio = pasar a la generación siguiente (las sesiones guardan la suya).
   const nuevaGeneracion = c => { c.sesGen = (c.sesGen || 0) + 1; };
@@ -239,7 +245,7 @@ function crear({ dataDir, almacen, frescuraMs = 120 * 1000, dominioBase, adminTo
     const token = nuevoToken(), clave = propia ? propia.trim() : nuevaClave();
     const c = { id, nombre, sub, activo: true, alta: iso(), origen, tokenHash: sha256(token), ultimaSync: null, seq: 0, sesGen: 0 };
     ponerClave(c, clave, propia ? 'propia' : 'generada');
-    await guardar(c); await almacen.escribir(K.tok(c.tokenHash), id); await guardarEstado(c);
+    await guardar(c); await almacen.escribir(K.tok(c.tokenHash), id); await guardarEstado(c); await almacen.escribir(K.cola(c.tokenHash), '[]');
     console.log(`[${origen}] alta ${c.id} (${c.sub})`);
     return propia ? { id: c.id, sub: c.sub, token } : { id: c.id, sub: c.sub, token, clave };
   }
@@ -300,7 +306,8 @@ function crear({ dataDir, almacen, frescuraMs = 120 * 1000, dominioBase, adminTo
       // Un token nuevo es una instalación nueva: la numeración de envíos vuelve a empezar.
       c.tokenHash = sha256(token); c.seq = 0;
       await almacen.escribir(K.tok(c.tokenHash), c.id); await guardar(c); await guardarEstado(c);
-      if (viejo) await almacen.borrar(K.tok(viejo));
+      if (viejo) { await almacen.borrar(K.tok(viejo)); await almacen.borrar(K.cola(viejo)); }
+      await almacen.escribir(K.cola(c.tokenHash), '[]');   // los cambios pendientes de la instalación anterior se descartan
       console.log(`[admin] token nuevo para ${c.id}`);
       return json(res, 200, { id: c.id, token });
     }
@@ -328,6 +335,16 @@ function crear({ dataDir, almacen, frescuraMs = 120 * 1000, dominioBase, adminTo
     if (!c || !c.activo) { await sumarIntento(kf, FALLOS_VENTANA); req.resume(); json(res, 401, { error: 'No autorizado' }); return null; }
     return c;
   }
+  // POST /ingesta/ops: cambios desde el último envío confirmado (las reglas están en sync.js, que no depende de Node).
+  async function ops(req, res) {
+    if (req.method !== 'POST') { req.resume(); return json(res, 405, { error: 'Método no permitido' }, { Allow: 'POST' }); }
+    const c = await instalacion(req, res); if (!c) return;
+    if (await sumarIntento('ops-token|' + c.id, INGESTA_VENTANA) > OPS_MAX) { req.resume(); return json(res, 429, { error: 'Demasiados envíos seguidos. Se reintenta solo.' }); }
+    const r = await datos.aplicarOps(c, await leerJson(req, LIMITE_OPS));
+    return json(res, r.estado, { ...r.cuerpo, cv: c.cmdv || 0 });   // cv: si cambió, la PC pregunta por cambios de precio pendientes
+  }
+  // POST /ingesta { seq, foto[, inst, n] }: la foto entera. Sin "inst" (versiones viejas) se guarda como documento único; con
+  // "inst" (versiones nuevas) se reparte en base + días y fija desde dónde cuentan las diferencias (n).
   async function ingesta(req, res) {
     if (req.method !== 'POST') { req.resume(); return json(res, 405, { error: 'Método no permitido' }, { Allow: 'POST' }); }
     const c = await instalacion(req, res); if (!c) return;
@@ -338,9 +355,30 @@ function crear({ dataDir, almacen, frescuraMs = 120 * 1000, dominioBase, adminTo
     if (!foto || typeof foto !== 'object' || Array.isArray(foto)) throw new ErrorHttp(400, '"foto" debe ser un objeto');
     if (foto.ventas !== undefined && !Array.isArray(foto.ventas)) throw new ErrorHttp(400, '"foto.ventas" debe ser una lista');
     if (b.seq <= c.seq) return json(res, 200, { ok: true, seq: c.seq, repetido: true });
-    await almacen.escribir(K.foto(c.id), comprimir(JSON.stringify(foto)));
-    c.seq = b.seq; c.ultimaSync = iso(); await guardarEstado(c);
-    return json(res, 200, { ok: true, seq: c.seq });
+    if (b.inst === undefined) {
+      c.seq = b.seq; c.inst = null; c.ultOp = 0; c.modo = 'foto'; c.ver = (c.ver || 0) + 1; c.ultimaSync = iso();
+      await almacen.escribirVarios([[K.foto(c.id), comprimir(JSON.stringify(foto))], [K.est(c.id), JSON.stringify(estadoDe(c))]]);
+    } else {
+      if (typeof b.inst !== 'string' || !/^[A-Za-z0-9_-]{8,64}$/.test(b.inst) || !Number.isSafeInteger(b.n) || b.n < 1) throw new ErrorHttp(400, '"inst" y "n" no son válidos');
+      await datos.guardarFoto(c, foto, b);
+    }
+    return json(res, 200, b.inst === undefined ? { ok: true, seq: c.seq } : { ok: true, seq: c.seq, cv: c.cmdv || 0 });
+  }
+  // GET /ingesta/pendientes: lo que el dueño pidió cambiar desde el celular. Una sola lectura (cola:<hash del token>); el token es
+  // la credencial. Sin cola todavía (comercio anterior) se valida el token una vez y se crea.
+  async function pendientes(req, res) {
+    if (req.method !== 'GET') { req.resume(); return json(res, 405, { error: 'Método no permitido' }, { Allow: 'GET' }); }
+    const t = bearer(req); if (!t) return json(res, 401, { error: 'No autorizado' });
+    let p = await datos.pendientes(sha256(t));
+    if (p === null) { const c = await instalacion(req, res); if (!c) return; await datos.iniciarCola(c); p = []; }
+    return json(res, 200, { pendientes: p });
+  }
+  // POST /ingesta/ack { resultados:[{id, estado:'aplicado'|'rechazado', motivo}] }: la PC confirma (idempotente).
+  async function ackPrecios(req, res) {
+    if (req.method !== 'POST') { req.resume(); return json(res, 405, { error: 'Método no permitido' }, { Allow: 'POST' }); }
+    const c = await instalacion(req, res); if (!c) return;
+    const b = await leerJson(req, LIMITE_CHICO);
+    return json(res, 200, await datos.ackCambios(c, b.resultados));
   }
 
   // ---------- Cambio de clave desde el programa (token de instalación; la PC ya es dueña del comercio) ----------
@@ -377,7 +415,7 @@ function crear({ dataDir, almacen, frescuraMs = 120 * 1000, dominioBase, adminTo
     return kf;
   }
   async function api(req, res, ruta, c) {
-    const metodos = { '/api/login': 'POST', '/api/logout': 'POST', '/api/clave': 'POST', '/api/datos': 'GET' };
+    const metodos = { '/api/login': 'POST', '/api/logout': 'POST', '/api/clave': 'POST', '/api/datos': 'GET', '/api/ver': 'GET', '/api/precio': 'POST' };
     if (!metodos[ruta]) { req.resume(); return json(res, 404, { error: 'No existe' }); }
     if (req.method !== metodos[ruta]) { req.resume(); return json(res, 405, { error: 'Método no permitido' }, { Allow: metodos[ruta] }); }
     if (!c) { req.resume(); return json(res, 404, { error: 'Comercio no encontrado' }); }
@@ -411,13 +449,33 @@ function crear({ dataDir, almacen, frescuraMs = 120 * 1000, dominioBase, adminTo
       await olvidar(kf, LOGIN_VENTANA);
       return json(res, 200, { ok: true });
     }
-    // GET /api/datos
-    if (!c.activo || !(await sesionDe(req, c))) return json(res, 401, { error: 'Sesión no válida' });
+    // POST /api/precio { pid, precio, visto }: el dueño (con su sesión) pide cambiar un precio; queda pendiente hasta que la PC lo aplique.
+    if (ruta === '/api/precio') {
+      if (!c.activo || !(await sesionDe(req, c))) { req.resume(); return json(res, 401, { error: 'Sesión no válida' }); }
+      if (await sumarIntento('precio|' + c.id, 60 * 1000) > PRECIOS_POR_MINUTO) { req.resume(); return json(res, 429, { error: 'Demasiados cambios de precio seguidos. Esperá un minuto.' }); }
+      return json(res, 201, { cambio: await datos.crearCambio(c, await leerJson(req, LIMITE_CHICO), () => 'p_' + crypto.randomBytes(8).toString('hex')) });
+    }
+    // GET /api/ver y /api/datos (la sesión ya pudo validarse antes, con menos lecturas: req.spSesion)
+    if (!c.activo || !(req.spSesion || await sesionDe(req, c))) return json(res, 401, { error: 'Sesión no válida' });
+    if (ruta === '/api/ver') {
+      // Solo un identificador opaco del último dato y si está desactualizado: nada del negocio, así que puede guardarse
+      // 1 s en la CDN (la dirección incluye el comercio, no se mezclan). Los demás celulares comparten la misma consulta.
+      const viejo = !c.ultimaSync || ahora() - Date.parse(c.ultimaSync) > FRESCURA_MS;
+      return json(res, 200, { v: verDe(c), viejo }, { 'Cache-Control': CACHE_VER });
+    }
     let foto = 'null';
-    try { const t0 = descomprimir(await almacen.leer(K.foto(c.id))); if (t0) { JSON.parse(t0); foto = t0; } }
+    try { foto = await datos.leerFoto(c); }
     catch (e) { console.error(`[datos] foto ilegible de ${c.id}`); foto = 'null'; }
-    const t = ahora(), viejo = !c.ultimaSync || foto === 'null' || t - Date.parse(c.ultimaSync) > FRESCURA_MS;
-    return json(res, 200, `{"negocio":${JSON.stringify({ nombre: c.nombre })},"foto":${foto},"ultimaSync":${JSON.stringify(foto === 'null' ? null : c.ultimaSync)},"ahora":${JSON.stringify(new Date(t).toISOString())},"desactualizado":${viejo}}`);
+    const cambios = c.cmdv > 0 ? await datos.leerCambios(c) : [], t = ahora(), viejo = !c.ultimaSync || foto === 'null' || t - Date.parse(c.ultimaSync) > FRESCURA_MS;
+    return json(res, 200, `{"negocio":${JSON.stringify({ nombre: c.nombre })},"foto":${foto},"ultimaSync":${JSON.stringify(foto === 'null' ? null : c.ultimaSync)},"ahora":${JSON.stringify(new Date(t).toISOString())},"desactualizado":${viejo},"ver":${JSON.stringify(verDe(c))},"cambios":${JSON.stringify(cambios)}}`);
+  }
+  // Sesión primero (GET sesión + MGET comercio/estado = 2 comandos): se evita buscar el comercio por su dirección (1 más).
+  // Si algo no cuadra devuelve null y el pedido sigue por el camino de siempre, con los mismos errores.
+  async function porSesion(req, sub) {
+    const t = cookieSesion(req); if (!t || !sub) return null;
+    const k = sha256(t), txt = await almacen.leer(K.ses(k)); if (!txt) return null;
+    const s = JSON.parse(txt), c = s.vence > ahora() ? await porId(s.id) : null;
+    return c && c.activo && c.sub === sub && (s.gen || 0) === (c.sesGen || 0) ? { c, x: { k, s } } : null;
   }
 
   // ---------- Enrutador ----------
@@ -425,7 +483,11 @@ function crear({ dataDir, almacen, frescuraMs = 120 * 1000, dominioBase, adminTo
     let u;
     try { u = new URL(req.url, 'http://x'); } catch { req.resume(); return json(res, 400, { error: 'Pedido inválido' }); }
     let ruta = u.pathname;
-    if (ruta === '/salud') { req.resume(); return json(res, 200, { ok: true }); }
+    if (ruta === '/salud') {
+      // Sin consultar la base: usa la cuenta que ya lleva esta instancia. Pasado el 70 % del cupo del mes avisa (y el log del servidor también).
+      req.resume(); const u = almacen.uso && almacen.uso();
+      return json(res, 200, u && u.pct >= UMBRAL_AVISO_USO ? { ok: true, aviso: `La base de datos usó el ${u.pct} % de su cupo mensual de comandos`, uso: u } : { ok: true });
+    }
     if (req.method !== 'GET' && req.method !== 'HEAD' && !origenBien(req)) { req.resume(); return json(res, 403, { error: 'Pedido de otra página: no permitido' }); }
     await mudar();
     const mc = /^\/c\/([^/]+)(\/.*)?$/.exec(ruta);
@@ -439,6 +501,9 @@ function crear({ dataDir, almacen, frescuraMs = 120 * 1000, dominioBase, adminTo
       return json(res, ok ? 200 : 404, { ok });
     }
     if (ruta === '/ingesta') return ingesta(req, res);
+    if (ruta === '/ingesta/ops') return ops(req, res);
+    if (ruta === '/ingesta/pendientes') return pendientes(req, res);
+    if (ruta === '/ingesta/ack') return ackPrecios(req, res);
     if (ruta === '/registro') return registro(req, res);
     if (ruta === '/clave-instalacion') return claveInstalacion(req, res);
 
@@ -449,7 +514,19 @@ function crear({ dataDir, almacen, frescuraMs = 120 * 1000, dominioBase, adminTo
     }
     const esApi = ruta === '/api' || ruta.startsWith('/api/');
     if (!esApi && ruta !== '/') { req.resume(); return json(res, 404, { error: 'No existe' }); }
-    const c = sub ? await porSub(sub) : null;
+    let c = null;
+    if (esApi && req.method === 'GET' && (ruta === '/api/datos' || ruta === '/api/ver')) {
+      if (ruta === '/api/ver' && !cookieSesion(req)) return json(res, 401, { error: 'Sesión no válida' });   // sin sesión no se gasta ningún comando
+      // /api/ver recuerda 10 s la validación de la sesión (solo devuelve un identificador opaco): baja de 2 a 1 comando.
+      // Una sesión cerrada puede seguir viendo esa versión hasta 10 s; /api/datos siempre la revalida.
+      const mk = ruta === '/api/ver' ? sha256(cookieSesion(req)) + '|' + sub : '', m = mk && memoVer.get(mk);
+      if (m && m.hasta > ahora()) { const [e, v] = await almacen.leerVarios([K.est(m.c.id), K.cmdv(m.c.id)]); c = conEstado(m.c, e ? JSON.parse(e) : {}, v); req.spSesion = m.x; }
+      else {
+        const r = await porSesion(req, sub); if (r) { c = r.c; req.spSesion = r.x; }
+        if (r && mk) { if (memoVer.size > 500) memoVer.clear(); memoVer.set(mk, { c: r.c, x: r.x, hasta: ahora() + MEMO_VER_MS }); }
+      }
+    }
+    if (!c) c = sub ? await porSub(sub) : null;
     if (esApi) return api(req, res, ruta, c);
     if (req.method !== 'GET' && req.method !== 'HEAD') { req.resume(); return json(res, 405, { error: 'Método no permitido' }, { Allow: 'GET' }); }
     if (sub === null) return html(res, 200, pagina('StockProject', 'Para ver tu negocio entrá con la dirección de tu comercio. Te la dio quien te instaló el programa.'));
@@ -490,7 +567,7 @@ if (require.main === module) {
   const dominioBase = (process.env.DOMAIN_BASE || '').trim();
   if (!dominioBase) console.warn('Aviso: DOMAIN_BASE no está definido; los comercios solo se podrán identificar con el header X-Comercio.');
   const port = Number(process.env.PORT) || 8080, dataDir = path.resolve(process.env.DATA_DIR || './datos-nube');
-  const s = crear({ dataDir, dominioBase, adminToken, confiarProxy: process.env.CONFIAR_PROXY === '1', frescuraMs: (Number(process.env.FRESCURA_SEG) || 420) * 1000 });
+  const s = crear({ dataDir, dominioBase, adminToken, confiarProxy: process.env.CONFIAR_PROXY === '1', frescuraMs: (Number(process.env.FRESCURA_SEG) || 720) * 1000 });
   s.listen(port).then(p => console.log(`StockProject Nube escuchando en el puerto ${p} (dominio base: ${dominioBase || 'sin definir'})`))
     .catch(e => { console.error('No se pudo abrir el puerto ' + port + ': ' + e.message); process.exit(1); });
   for (const señal of ['SIGTERM', 'SIGINT']) process.on(señal, () => s.close().then(() => process.exit(0)));
