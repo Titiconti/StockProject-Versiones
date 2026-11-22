@@ -213,6 +213,19 @@ app.whenReady().then(() => {
     return r;
   });
   nube.iniciar(); app.on('before-quit', () => nube.detener());
+  // Cobro con Mercado Pago (cuenta del comercio). El token se guarda cifrado con Windows y nunca llega a la interfaz.
+  const mp = require('./mercadopago').crear({ getCfg: () => principal.getConfig(), setCfg: p => principal.setConfig(p), leer: () => store.snapshot(),
+    proteger: t => { if (!safeStorage.isEncryptionAvailable()) throw new Error('sin cifrado'); return 'ss:' + safeStorage.encryptString(t).toString('base64'); },
+    desproteger: t => safeStorage.decryptString(Buffer.from(String(t).slice(3), 'base64')),
+    qr: d => { const q = require('qrcode-generator')(0, 'M'); q.addData(String(d)); q.make(); return q.createSvgTag({ cellSize: 6, margin: 2, scalable: true }); } });
+  const sinVender = { ok: false, err: 'Tu usuario no puede cobrar' };
+  const admin = (n, f) => ipcMain.handle('mp:' + n, async (e, a) => { if (!permite('usuarios', 'editar')) return { ok: false, err: 'Solo un administrador puede cambiar Mercado Pago' }; usr.audit(quien(), 'mp.' + n); return f(a); });
+  admin('guardar', a => mp.guardar(a)); admin('quitar', () => mp.quitar()); admin('probar', () => mp.probar()); admin('terminales', () => mp.terminales());
+  ipcMain.handle('mp:estado', () => mp.estado());
+  ipcMain.handle('mp:cobrar', (e, a) => permite('ventas', 'crear') ? mp.cobrar(a || {}) : sinVender);
+  ipcMain.handle('mp:consultar', (e, o) => permite('ventas', 'crear') ? mp.consultar(String(o)) : sinVender);
+  ipcMain.handle('mp:cancelar', (e, o) => permite('ventas', 'crear') ? mp.cancelar(String(o)) : sinVender);
+  ipcMain.handle('mp:conciliar', (e, d) => permite('reporte', 'ver') ? mp.conciliar(String(d)) : { ok: false, err: 'Tu usuario no puede ver reportes' });
   ipcMain.handle('b:export', async () => {
     if (!permite('respaldo', 'ver')) return { ok: false };
     const r = await dialog.showSaveDialog(win, { title: 'Guardar copia de seguridad', defaultPath: path.join(app.getPath('documents'), 'StockProject-copia-' + new Date().toISOString().slice(0, 10) + '.json'), filters: [{ name: 'Copia de StockProject', extensions: ['json'] }] });
