@@ -106,3 +106,25 @@ if(FA.ok()){const n=$('#cfg_fa');if(n){n.insertAdjacentHTML('beforeend',`<div cl
   $('#fa_g5').onclick=g5;$('#fa_g5p').onclick=g5;
   MODS.push(()=>{if($('#fa')&&CF.sub==='f'&&!$('#g').classList.contains('hide'))FA.pintar()});
   FA.cargar().then(()=>{if(FA.e&&FA.e.listo)draw()});setInterval(()=>FA.reintentar(),6e4);setTimeout(()=>FA.reintentar(),5e3)}}
+
+// ===== Transparencia fiscal al consumidor (Ley 27.743, RG ARCA 5614/2024) =====
+// Bloque "IVA Contenido" + "Otros Impuestos Nacionales Indirectos" al pie del ticket y de la factura. Config: db.cfg.transp = { modo:'auto'|'si'|'no', alic }.
+// 'auto' = se muestra si el comercio es responsable inscripto según la configuración de ARCA (monotributo: queda apagado, a confirmar con contador).
+const TF_ALIC={3:0,4:10.5,5:21,6:27,8:5,9:2.5};
+FA.r2=n=>Math.round(n*100)/100;
+FA.transpCfg=()=>{const t=(db.cfg&&db.cfg.transp)||{},modo=['si','no'].includes(t.modo)?t.modo:'auto',ri=!!(FA.e&&FA.e.cfg&&FA.e.cfg.condIva==='ri');return{modo,on:modo==='si'||(modo==='auto'&&ri),alic:t.alic!=null&&t.alic!==''?+t.alic:(FA.e&&FA.e.cfg&&+FA.e.cfg.alicuota)||21}};
+// IVA contenido por alícuota: el total ya lleva IVA; se separa el neto (redondeado a centavos) y el IVA es la diferencia. Una línea por alícuota (si un renglón trae `iva`, se respeta).
+FA.ivaLineas=(s,def)=>{const it=s.items||[],bruto=it.reduce((a,i)=>a+(i.tot!=null?i.tot:i.qty*i.price),0),k=bruto>0?(+s.total||0)/bruto:1,g={};
+  it.forEach(i=>{const a=i.iva!=null?+i.iva:def;g[a]=(g[a]||0)+(i.tot!=null?i.tot:i.qty*i.price)*k});if(!it.length)g[def]=+s.total||0;
+  return Object.keys(g).map(a=>{const b=FA.r2(g[a]);return{a:+a,iva:FA.r2(b-FA.r2(b/(1+a/100)))}}).sort((x,y)=>y.a-x.a)};
+FA.pct=a=>String(a).replace('.',',');
+FA.transpBloque=s=>{if(!s)return'';const c=FA.transpCfg();if(!c.on)return'';const f=s.fe&&s.fe.cae&&s.fe.iva>0?s.fe:null,L=f?[{a:TF_ALIC[f.alicuotaId],iva:f.iva}]:FA.ivaLineas(s,c.alic);
+  return `<hr><div class="tf" style="font-size:.92em"><b>Régimen de Transparencia Fiscal al Consumidor (Ley 27.743)</b>${L.map(x=>`<div class="r" style="display:flex;justify-content:space-between;gap:8px"><span>IVA Contenido${x.a!=null?' ('+FA.pct(x.a)+' %)':''}</span><span>${fmt(x.iva)}</span></div>`).join('')}<div class="r" style="display:flex;justify-content:space-between;gap:8px"><span>Otros Impuestos Nacionales Indirectos</span><span>${fmt(0)}</span></div></div>`};
+{const n=FA.ok()?$('#cfg_fa'):$('#cfg_caja');if(n){n.insertAdjacentHTML('beforeend',`<div class="card" id="tf" data-kw="transparencia fiscal iva contenido ley 27743 ticket impuestos nacionales indirectos"><h3>Transparencia fiscal en tickets y facturas</h3>
+<p class="mu" style="margin:0 0 8px">La Ley 27.743 (resolución general 5614/2024 de ARCA) pide que las facturas y tickets a consumidores finales muestren el <b>IVA contenido</b> en el precio. Es obligatorio para responsables inscriptos desde el 1/4/2025. Para monotributistas la norma no define cómo calcularlo: consultalo con tu contador antes de activarlo.</p>
+<div class="opt-list"><label class="opt"><input type="radio" name="tf_m" value="auto"> Automático: se muestra si en ARCA sos responsable inscripto</label><label class="opt"><input type="radio" name="tf_m" value="si"> Siempre mostrarlo</label><label class="opt"><input type="radio" name="tf_m" value="no"> No mostrarlo</label></div>
+<div class="form" style="margin-top:8px"><div><label for="tf_a">IVA incluido en tus precios</label><select id="tf_a"><option value="21">21 %</option><option value="10.5">10,5 %</option><option value="27">27 %</option><option value="0">0 %</option></select></div></div>
+<p id="tf_e" class="mu" style="margin:8px 0"></p><button class="btn" id="tf_g">Guardar</button></div>`);
+  const E=()=>{const c=FA.transpCfg();$$('input[name=tf_m]').forEach(r=>r.checked=r.value===c.modo);$('#tf_a').value=String(c.alic);$('#tf_e').textContent=c.on?'Hoy se muestra el bloque "Régimen de Transparencia Fiscal" en los tickets y las facturas.':'Hoy no se muestra en los tickets.'};
+  $('#tf_g').onclick=()=>{if(!can('configuracion','editar'))return toast('Tu usuario no tiene permiso para esto');db.cfg.transp={modo:($$('input[name=tf_m]').find(r=>r.checked)||{}).value||'auto',alic:+$('#tf_a').value};save();E();toast('Guardado')};
+  E();MODS.push(()=>{const c=FA.transpCfg(),e=$('#tf_e');if(e)e.textContent=c.on?'Hoy se muestra el bloque "Régimen de Transparencia Fiscal" en los tickets y las facturas.':'Hoy no se muestra en los tickets.'})}}
