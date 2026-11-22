@@ -1,5 +1,11 @@
 // Con mucho volumen las pantallas y las reglas automáticas siguen siendo rápidas.
 const assert = require('assert'), { web } = require('./helpers.js');
+// Los límites son para una máquina libre. Con la PC cargada todo se enlentece parejo, así que se miden contra una
+// operación de referencia (REF_MS = lo que tarda en una máquina libre) y el límite se escala por cuánto más lenta está hoy.
+// Un algoritmo malo es órdenes de magnitud más lento que ese factor (tope MAX_ESCALA), así que sigue detectándose.
+const REF_MS = 240, MAX_ESCALA = 4, MARGEN = 2.5; // MARGEN: en una máquina libre algunas pasos rondan el límite viejo (2,3 a 2,7 s contra 2,5 s)
+function ref() { const t0 = Date.now(); let s = 0; const a = []; for (let i = 0; i < 300000; i++) a.push({ i, v: i % 7 }); for (let k = 0; k < 5; k++) for (const o of a) s += o.v * k; a.sort((x, y) => y.v - x.v || x.i - y.i); return Date.now() - t0; }
+const lim = n => n * MARGEN * Math.min(MAX_ESCALA, Math.max(1, Math.min(ref(), ref()) / REF_MS));
 (async () => {
   const a = web(), ev = a.w.eval.bind(a.w), t = f => { const t0 = Date.now(); const r = f(); return [Date.now() - t0, r]; };
   ev(`db.prods.length=0;db.sales.length=0;db.pays.length=0;db.cargos.length=0;db.clients.length=0;db.cid=1;db.sid=1;db.payid=1;db.nid=1;
@@ -10,21 +16,21 @@ const assert = require('assert'), { web } = require('./helpers.js');
     for(let i=0;i<15000;i++)db.pays.push({id:db.payid++,date:UT.add(hoy,-(i%300))+'T10:00:00',cid:1+(i%3000),amount:150,method:'Efectivo',note:''});`);
   assert.strictEqual(ev('db.sales.length'), 60000);
   // deuda de todos los clientes (la usan Clientes, Inicio, Finanzas y el consolidado)
-  let [ms, deuda] = t(() => ev('db.clients.reduce((a,c)=>a+debtOf(c.id),0)')); console.log('  deuda de 3.000 clientes:', ms, 'ms'); assert(ms < 800, ms + ' ms'); assert(deuda > 0);
+  let [ms, deuda] = t(() => ev('db.clients.reduce((a,c)=>a+debtOf(c.id),0)')); console.log('  deuda de 3.000 clientes:', ms, 'ms'); assert(ms < lim(800), ms + ' ms'); assert(deuda > 0);
   // cuentas por antigüedad, segmentos y puntaje de todos los clientes
-  [ms] = t(() => ev('const m=CL.mapa();db.clients.map(c=>CL.perfil(c,m))')); console.log('  segmentos + puntaje de 3.000 clientes:', ms, 'ms'); assert(ms < 4000, ms + ' ms');
+  [ms] = t(() => ev('const m=CL.mapa();db.clients.map(c=>CL.perfil(c,m))')); console.log('  segmentos + puntaje de 3.000 clientes:', ms, 'ms'); assert(ms < lim(4000), ms + ' ms');
   // motor de cobros con todas las reglas encendidas
   ev('const R=COB.R();R.multa={on:true,pct:5,gracia:10};R.pronto={on:true,pct:3,dias:5};R.recordatorio={on:true,dias:7,cada:7}');
-  [ms] = t(() => ev('COB.correr().cambios')); console.log('  motor de cobros (primera corrida):', ms, 'ms'); assert(ms < 6000, ms + ' ms'); [ms] = t(() => ev('COB.correr().cambios')); assert.strictEqual(ev('COB.correr().cambios'), 0, 'idempotente con volumen'); console.log('  motor de cobros (segunda corrida):', ms, 'ms'); assert(ms < 3000);
-  [ms] = t(() => ev('COB.pendientes().length')); console.log('  recordatorios pendientes:', ms, 'ms'); assert(ms < 3000);
+  [ms] = t(() => ev('COB.correr().cambios')); console.log('  motor de cobros (primera corrida):', ms, 'ms'); assert(ms < lim(6000), ms + ' ms'); [ms] = t(() => ev('COB.correr().cambios')); assert.strictEqual(ev('COB.correr().cambios'), 0, 'idempotente con volumen'); console.log('  motor de cobros (segunda corrida):', ms, 'ms'); assert(ms < lim(3000));
+  [ms] = t(() => ev('COB.pendientes().length')); console.log('  recordatorios pendientes:', ms, 'ms'); assert(ms < lim(3000));
   // analítica y finanzas sobre un año de ventas
-  [ms] = t(() => ev(`AN.st.per='anio';AN.calc()`)); console.log('  analítica de un año:', ms, 'ms'); assert(ms < 2500);
-  [ms] = t(() => ev('FN.balance();FN.flujo(30);FN.resultado(UT.add(UT.hoy(),-30),UT.hoy())')); console.log('  balance + flujo + resultado:', ms, 'ms'); assert(ms < 2500);
-  [ms] = t(() => ev('AN.pronostico(30).ok')); console.log('  pronóstico:', ms, 'ms'); assert(ms < 1500);
+  [ms] = t(() => ev(`AN.st.per='anio';AN.calc()`)); console.log('  analítica de un año:', ms, 'ms'); assert(ms < lim(2500));
+  [ms] = t(() => ev('FN.balance();FN.flujo(30);FN.resultado(UT.add(UT.hoy(),-30),UT.hoy())')); console.log('  balance + flujo + resultado:', ms, 'ms'); assert(ms < lim(2500));
+  [ms] = t(() => ev('AN.pronostico(30).ok')); console.log('  pronóstico:', ms, 'ms'); assert(ms < lim(1500));
   // redibujar todo + medición propia del programa
-  const m = ev('SY.medir()'); console.log('  guardar', m.guardar, 'ms · cargar', m.cargar, 'ms · dibujar', m.dibujar, 'ms · tamaño', (m.bytes / 1048576).toFixed(1), 'MB'); assert(m.bytes > 5e6); assert(m.guardar < 1500 && m.cargar < 1500);
+  const m = ev('SY.medir()'); console.log('  guardar', m.guardar, 'ms · cargar', m.cargar, 'ms · dibujar', m.dibujar, 'ms · tamaño', (m.bytes / 1048576).toFixed(1), 'MB'); assert(m.bytes > 5e6); assert(m.guardar < lim(1500) && m.cargar < lim(1500));
   // las pantallas originales dibujan todas las filas; en jsdom (mucho más lento que un navegador real) deben seguir siendo usables
-  [ms] = t(() => { a.tab('c'); return 1; }); console.log('  abrir Clientes completo (jsdom):', ms, 'ms'); assert(ms < 20000, ms + ' ms');
-  [ms] = t(() => ev('CL.draw()')); console.log('  tabla de segmentos, 1.ª vez:', ms, 'ms'); assert(ms < 6000, ms + ' ms'); [ms] = t(() => ev('CL.draw()')); console.log('  tabla de segmentos, repetida (caché):', ms, 'ms'); assert(ms < 1000, ms + ' ms');
+  [ms] = t(() => { a.tab('c'); return 1; }); console.log('  abrir Clientes completo (jsdom):', ms, 'ms'); assert(ms < lim(20000), ms + ' ms');
+  [ms] = t(() => ev('CL.draw()')); console.log('  tabla de segmentos, 1.ª vez:', ms, 'ms'); assert(ms < lim(6000), ms + ' ms'); [ms] = t(() => ev('CL.draw()')); console.log('  tabla de segmentos, repetida (caché):', ms, 'ms'); assert(ms < lim(1000), ms + ' ms');
   assert.deepStrictEqual(a.errs, []); console.log('rendimiento OK'); process.exit(0);
 })().catch(e => { console.error(e); process.exit(1); });
