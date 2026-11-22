@@ -404,7 +404,7 @@ sg.innerHTML=m.map(p=>`<div data-s='${p.id}'><b>${esc(p.name)}</b> <span class='
 fn.oninput=sugg;fn.onfocus=sugg;fn.onblur=()=>setTimeout(()=>sg.classList.add('hide'),150);
 fn.onkeydown=e=>{if(e.key==='Enter'&&!sg.classList.contains('hide')){e.preventDefault();pick(db.prods.find(p=>p.id==sg.firstChild.dataset.s))}};
 sg.onmousedown=e=>{const r=e.target.closest('[data-s]');if(r){e.preventDefault();pick(db.prods.find(p=>p.id==r.dataset.s))}};
-$('#fg').onclick=()=>{const name=fn.value.trim(),price=parseFloat(fp.value);if(!name||isNaN(price)||price<0)return toast('Completá nombre y precio');
+$('#fg').onclick=()=>{const name=fn.value.trim(),price=parseFloat(fp.value);if(!name||isNaN(price)||price<0)return toast('Completá nombre y precio');if(name.length>200)return toast('El nombre es demasiado largo (máximo 200 caracteres)');
 const d={name,code:fc.value.trim(),price,cost:Math.max(0,parseFloat(fk.value)||0),min:parseInt(fm.value)||0};const ex2=PX.leerForm(editId?db.prods.find(x=>x.id==editId):null);if(ex2.err)return toast(ex2.err);Object.assign(d,ex2.d);
 const dup=d.code&&db.prods.find(p=>p.id!==editId&&String(p.code||'').trim().toLowerCase()===d.code.toLowerCase());if(dup)return toast('El código '+d.code+' ya lo tiene '+dup.name);
 const q=PX.cantidad(d,fs.value),lt=fl.value.trim(),ex=fv.value;if(q<0)return toast('Cantidad inválida');if(q>0&&d.reqVto&&!ex)return toast('Este producto exige la fecha de vencimiento del lote');
