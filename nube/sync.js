@@ -6,15 +6,16 @@
 'use strict';
 const DIAS_VENTANA = 91, VIDA_DIA_MS = 100 * 24 * 3600 * 1000, DIA_MS = 86400000;
 const FECHA_DIA = /^\d{4}-\d{2}-\d{2}$/, INST_OK = /^[A-Za-z0-9_-]{8,64}$/;
+const PRECIO_MAX = 1e7, CAMBIO_RATIO = 20, CAMBIOS_GUARDADOS = 30, CAMBIOS_PENDIENTES_MAX = 20;
 const OTROS = ['negocio', 'cajas', 'clientes', 'bajas', 'vencimientos', 'baldes'];
 
 class ErrorHttp extends Error { constructor(estado, mensaje) { super(mensaje); this.estado = estado; } }
 
 // Estado que cambia en cada envío (estado:<id>): seq (fotos), inst + ultOp (diferencias), ver (cambia con cada dato nuevo) y
 // modo ('foto' = documento único de las versiones viejas; 'dif' = base + ventas por día).
-const CAMPOS_ESTADO = ['seq', 'ultimaSync', 'inst', 'ultOp', 'ver', 'modo'];
+const CAMPOS_ESTADO = ['seq', 'ultimaSync', 'inst', 'ultOp', 'ver', 'modo', 'cmdv'];
 const estadoDe = c => ({ seq: c.seq, ultimaSync: c.ultimaSync, inst: c.inst || null, ultOp: c.ultOp || 0, ver: c.ver || 0, modo: c.modo || 'foto' });
-const conEstado = (c, e) => ({ ...c, seq: e.seq || 0, ultimaSync: e.ultimaSync || null, inst: e.inst || null, ultOp: e.ultOp || 0, ver: e.ver || 0, modo: e.modo || 'foto' });
+const conEstado = (c, e, cv) => ({ ...c, cmdv: Number(cv) || 0, seq: e.seq || 0, ultimaSync: e.ultimaSync || null, inst: e.inst || null, ultOp: e.ultOp || 0, ver: e.ver || 0, modo: e.modo || 'foto' });
 
 const diaDe = f => String(f || '').slice(0, 10);
 const esObjeto = o => !!o && typeof o === 'object' && !Array.isArray(o);
@@ -81,6 +82,58 @@ function crear({ almacen, K, comprimir, descomprimir, ahora }) {
     await almacen.escribirVarios([...escribir, [K.est(c.id), JSON.stringify(estadoDe(c))]]);   // una sola llamada; el estado va último
     return { estado: 200, cuerpo: { ok: true, ultOp: c.ultOp } };
   }
-  return { guardarFoto, leerFoto, aplicarOps };
+
+  // ---------- Cambios de precio pedidos desde el celular (comandos pendientes por comercio) ----------
+  // cmds:<id> = últimos 30 pedidos con su estado (pendiente → aplicado | rechazado); cola:<hash del token> = solo los pendientes que
+  // la PC tiene que aplicar (una sola lectura); cmdv:<id> = contador que sube con cada alta o confirmación (avisa al panel y a la PC).
+  // shortcut: lista y cola se reescriben enteras (sin bloqueo): dos pedidos en el mismo milisegundo podrían pisarse; es una acción humana poco frecuente.
+  const leerLista = async id => { const t = await almacen.leer(K.cmds(id)); try { return t ? JSON.parse(t) : []; } catch (e) { return []; } };
+  const publicos = l => l.map(({ id, pid, n, precio, visto, quien, cuando, estado, motivo, resuelto }) => ({ id, pid, n, precio, visto, quien, cuando, estado, motivo: motivo || '', resuelto: resuelto || null }));
+  async function guardarLista(c, lista) {
+    while (lista.length > CAMBIOS_GUARDADOS) { const i = lista.findIndex(x => x.estado !== 'pendiente'); if (i < 0) break; lista.splice(i, 1); }
+    const pend = lista.filter(x => x.estado === 'pendiente').map(({ id, pid, n, precio, visto, quien, cuando }) => ({ id, pid, n, precio, visto, quien, cuando }));
+    await almacen.escribirVarios([[K.cmds(c.id), JSON.stringify(lista)], [K.cola(c.tokenHash), JSON.stringify(pend)]]);
+    await almacen.sumar(K.cmdv(c.id));
+  }
+  async function stockDe(c) {
+    if (c.modo === 'dif') { const t = await almacen.leer(K.base(c.id)); return t ? desgz(t).stock || [] : []; }
+    const t = descomprimir(await almacen.leer(K.foto(c.id))); try { return t ? JSON.parse(t).stock || [] : []; } catch (e) { return []; }
+  }
+  // Valida el pedido del dueño. El producto tiene que existir en la última foto que mandó la PC (se identifica por su id).
+  async function crearCambio(c, b, nuevoId) {
+    const num = x => typeof x === 'number' && Number.isFinite(x);
+    if (!Number.isSafeInteger(b.pid) || b.pid < 0) throw new ErrorHttp(400, 'Falta el producto');
+    if (!num(b.precio) || b.precio <= 0) throw new ErrorHttp(400, 'El precio tiene que ser un número mayor que 0');
+    if (b.precio > PRECIO_MAX) throw new ErrorHttp(400, 'El precio es demasiado alto');
+    if (Math.round(b.precio * 100) / 100 !== b.precio) throw new ErrorHttp(400, 'El precio admite hasta 2 decimales');
+    if (!num(b.visto) || b.visto < 0) throw new ErrorHttp(400, 'Falta el precio que ves hoy');
+    if (b.precio === b.visto) throw new ErrorHttp(400, 'Es el mismo precio que ya tiene');
+    if (b.visto > 0 && (b.precio > b.visto * CAMBIO_RATIO || b.precio * CAMBIO_RATIO < b.visto)) throw new ErrorHttp(400, 'El cambio es demasiado grande: revisá el precio');
+    const prod = (await stockDe(c)).find(p => p && p.id === b.pid);
+    if (!prod) throw new ErrorHttp(404, 'Ese producto no está en los datos del local');
+    const lista = await leerLista(c.id), pend = lista.filter(x => x.estado === 'pendiente');
+    if (pend.some(x => x.pid === b.pid)) throw new ErrorHttp(409, 'Ese producto ya tiene un cambio pendiente');
+    if (pend.length >= CAMBIOS_PENDIENTES_MAX) throw new ErrorHttp(429, 'Hay demasiados cambios pendientes: esperá a que el local los aplique');
+    const it = { id: nuevoId(), pid: b.pid, n: String(prod.n || '').slice(0, 80), precio: b.precio, visto: b.visto, quien: 'dueño (celular)', cuando: iso(), estado: 'pendiente' };
+    lista.push(it); await guardarLista(c, lista);
+    return publicos([it])[0];
+  }
+  const leerCambios = async c => publicos(await leerLista(c.id));
+  // Cola de la PC: null = no hay cola todavía (comercio anterior a esta función).
+  const pendientes = async hash => { const t = await almacen.leer(K.cola(hash)); try { return t === null ? null : JSON.parse(t); } catch (e) { return []; } };
+  const iniciarCola = c => almacen.crearSiNo(K.cola(c.tokenHash), '[]');
+  // La PC confirma lo que aplicó o rechazó. Idempotente: lo que ya no está pendiente no se toca.
+  async function ackCambios(c, resultados) {
+    if (!Array.isArray(resultados) || resultados.length > 50) throw new ErrorHttp(400, '"resultados" debe ser una lista de hasta 50');
+    const lista = await leerLista(c.id); let cambiados = 0;
+    for (const r of resultados) {
+      if (!esObjeto(r) || typeof r.id !== 'string' || !['aplicado', 'rechazado'].includes(r.estado)) throw new ErrorHttp(400, 'Resultado inválido');
+      const it = lista.find(x => x.id === r.id && x.estado === 'pendiente'); if (!it) continue;
+      it.estado = r.estado; it.motivo = typeof r.motivo === 'string' ? r.motivo.slice(0, 120) : ''; it.resuelto = iso(); cambiados++;
+    }
+    if (cambiados) await guardarLista(c, lista);
+    return { ok: true, cambiados };
+  }
+  return { guardarFoto, leerFoto, aplicarOps, crearCambio, leerCambios, pendientes, iniciarCola, ackCambios };
 }
 module.exports = { crear, ErrorHttp, CAMPOS_ESTADO, estadoDe, conEstado, ventasPorDia, esObjeto };

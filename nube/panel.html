@@ -128,6 +128,8 @@ button.fila:hover{background:var(--tenue)}
 .detalle .meta{color:var(--suave);font-size:13px;padding-top:8px;border-top:1px dashed var(--linea)}
 .tachado{text-decoration:line-through;color:var(--suave);font-weight:400}
 .nota{color:var(--suave);font-size:13px;margin:10px 4px 0}
+.enlace{background:none;border:0;padding:0 2px;min-height:44px;font-size:14px;font-weight:600;color:inherit;text-decoration:underline;cursor:pointer}
+.edit{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:4px 0 10px}.edit .campo{width:140px}.edit .primario{width:auto;padding:0 18px}
 .subt{font-size:14px;font-weight:600;color:var(--suave);margin:18px 4px 8px}
 .subt:first-child{margin-top:2px}
 
@@ -475,6 +477,22 @@ nav button[aria-current="page"]{background:var(--activo);color:#fff}
   function nBaldes(p) { return typeof p.baldes === 'number' ? p.baldes : num(p.disp) / p.balde; }
   function baldes(p) { return (Math.round(nBaldes(p) * 10) / 10).toFixed(1).replace('.', ','); }
   var ESTADOS = { ok: ['ok', 'En stock'], bajo: ['avi', 'Stock bajo'], sin: ['mal', 'Sin stock'], vencido: ['mal', 'Vencido'] };
+  // Cambio de precio desde el celular: queda "Pendiente" hasta que la PC del local lo aplica (si está apagada, espera).
+  var editando = null, borrador = '', avisoPrecio = '';
+  function cambiosPrecio() { return lista(datos && datos.cambios); }
+  function pedirPrecio(p, texto, hecho) {
+    var v = Number(String(texto).trim().replace(',', '.'));
+    if (!(v > 0) || !isFinite(v)) { avisoPrecio = 'Escribí un precio mayor que 0.'; return hecho(); }
+    if (Math.round(v * 100) / 100 !== v) { avisoPrecio = 'El precio admite hasta 2 decimales.'; return hecho(); }
+    fetch('/api/precio', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pid: p.id, precio: v, visto: num(p.precio) }) })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { s: r.status, j: j }; }); })
+      .then(function (x) {
+        if (x.s === 201) { editando = null; borrador = ''; avisoPrecio = 'Pedido enviado. Queda Pendiente hasta que el local lo aplique (la computadora del negocio tiene que estar prendida).'; if (datos) datos.cambios = lista(datos.cambios).concat([x.j.cambio]); cargar(); }
+        else if (x.s === 401) pedirClave('La sesión se cerró. Ingresá de nuevo.');
+        else avisoPrecio = (x.j && x.j.error) || 'No se pudo enviar el pedido. Probá de nuevo.';
+        hecho();
+      }).catch(function () { avisoPrecio = 'No se pudo conectar con el servidor. Probá de nuevo.'; hecho(); });
+  }
   function vistaStock(cont) {
     var cuerpo = h('div');
     var inp = h('input', { class: 'campo', type: 'search', placeholder: 'Buscar por nombre, código o categoría', 'aria-label': 'Buscar producto', value: busca,
@@ -497,14 +515,31 @@ nav button[aria-current="page"]{background:var(--activo);color:#fff}
       });
       cuerpo.appendChild(h('div', { class: 'resu' }, h('span', null, l.length + ' de ' + todos.length + (todos.length === 1 ? ' producto' : ' productos'))));
       if (!l.length) { cuerpo.appendChild(h('div', { class: 'tarj vacio-pag' }, h('b', null, todos.length ? 'Ningún producto coincide.' : 'No hay productos cargados.'), soloProblemas && todos.length && !q ? 'No hay productos con problemas de stock.' : null)); return; }
+      var cam = cambiosPrecio(), pend = {};
+      cam.forEach(function (c) { if (c.estado === 'pendiente') pend[c.pid] = true; });
+      if (avisoPrecio) cuerpo.appendChild(h('p', { class: 'nota', role: 'status' }, avisoPrecio));
+      if (cam.length && !q && !soloProblemas) cuerpo.appendChild(h('div', { class: 'tarj' }, h('b', null, 'Cambios de precio'), cam.slice(-6).reverse().map(function (c) {
+        var e2 = c.estado === 'aplicado' ? eti('ok', 'Aplicado') : c.estado === 'rechazado' ? eti('mal', 'Rechazado') : eti('avi', 'Pendiente');
+        return fila(txt(c.n), plata(c.visto) + ' → ' + plata(c.precio) + (c.estado === 'rechazado' && c.motivo ? ' · ' + txt(c.motivo) : '') + (c.estado === 'pendiente' ? ' · espera al local' : ''), e2);
+      })));
       var hist = lista(foto().baldes);
       if (hist.length && !q && !soloProblemas) cuerpo.appendChild(h('div', { class: 'tarj' }, h('b', null, 'Últimos baldes cargados'), hist.slice(-5).reverse().map(function (b) { return h('div', { class: 'det' }, (b.fecha ? fecha(Date.parse(b.fecha), fmt.fh) : '') + ' · ' + txt(b.n) + ' · ' + (b.t === 'ingreso' ? 'Entró ' : 'Quedó en ') + String(Math.round(num(b.baldes) * 100) / 100).replace('.', ',') + ' balde(s)' + (b.usuario ? ' · ' + txt(b.usuario) : '')); })));
       var L = h('div', { class: 'lista' }), tope = 200;
       l.slice(0, tope).forEach(function (p) {
         var e = ESTADOS[p.estado] || ['neu', 'Sin estado'];
         var det = [txt(p.cat), txt(p.cod), p.vence ? 'Vence ' + soloFecha(p.vence) : '', num(p.min) > 0 ? 'Mínimo ' + cant(p.min, p.u) : ''].filter(Boolean).join(' · ');
+        var editor = null, abrir = null;
+        if (p.id != null) {
+          if (pend[p.id]) abrir = h('div', { class: 'det' }, 'Cambio de precio pendiente');
+          else if (editando === p.id) {
+            var ci = h('input', { class: 'campo', type: 'text', inputmode: 'decimal', 'aria-label': 'Precio nuevo de ' + txt(p.n), value: borrador || String(num(p.precio)), oninput: function () { borrador = ci.value; } });
+            editor = h('div', { class: 'edit' }, ci, h('button', { type: 'button', class: 'primario', onclick: function () { pedirPrecio(p, ci.value, pintar); } }, 'Guardar'),
+              h('button', { type: 'button', class: 'enlace', onclick: function () { editando = null; borrador = ''; pintar(); } }, 'Cancelar'));
+            setTimeout(function () { try { ci.focus(); } catch (x) {} }, 0);
+          } else abrir = h('button', { type: 'button', class: 'enlace', onclick: function () { editando = p.id; borrador = ''; avisoPrecio = ''; pintar(); } }, 'Cambiar precio');
+        }
         L.appendChild(h('div', { class: 'it' }, fila(txt(p.n) || 'Sin nombre', det,
-          [h('div', { class: 'imp' }, cant(p.disp, p.u)), p.balde > 0 ? h('div', { class: 'det' }, baldes(p) + ' baldes') : null, p.balde > 0 && (typeof p.pedir === 'boolean' ? p.pedir : nBaldes(p) < 1) ? eti('avi', 'Pedir') : null, eti(e[0], e[1])], h('div', { class: 'det' }, 'Precio ' + plata(p.precio)))));
+          [h('div', { class: 'imp' }, cant(p.disp, p.u)), p.balde > 0 ? h('div', { class: 'det' }, baldes(p) + ' baldes') : null, p.balde > 0 && (typeof p.pedir === 'boolean' ? p.pedir : nBaldes(p) < 1) ? eti('avi', 'Pedir') : null, eti(e[0], e[1])], [h('div', { class: 'det' }, 'Precio ' + plata(p.precio)), abrir]), editor));
       });
       cuerpo.appendChild(L);
       if (l.length > tope) cuerpo.appendChild(h('p', { class: 'nota' }, 'Se muestran los primeros ' + tope + '. Usá el buscador para encontrar el resto.'));
@@ -645,7 +680,7 @@ nav button[aria-current="page"]{background:var(--activo);color:#fff}
       document.title = ((j.negocio && j.negocio.nombre) || 'Panel') + ' — StockProject';
       mostrar('app');
       if (primera) ir(seccion);
-      else if (!antes || antes.ultimaSync !== j.ultimaSync || inicioDia(recibido) !== inicioDia(Date.parse(antes.ahora))) { if (refrescar) refrescar(); else montar(false); }
+      else if (!antes || antes.ultimaSync !== j.ultimaSync || antes.ver !== j.ver || inicioDia(recibido) !== inicioDia(Date.parse(antes.ahora))) { if (refrescar) refrescar(); else montar(false); }
       pintarFrescura();
     }).catch(function () {
       errorRed = true;

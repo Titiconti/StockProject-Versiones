@@ -42,7 +42,7 @@ function proyeccion(db, ahora = Date.now()) {
   // Heladería: un gusto es un producto por peso con `balde` (kg por balde lleno). Baldes = todo lo que hay / kg por balde; "Pedir" si queda menos del mínimo de baldes (cfg.hel.pedir, 1 por defecto).
   const gusto = (p, t) => { if (!(p.unidad === 'kg' && p.balde > 0)) return {}; const b = r2(t / 1000 / p.balde); return { balde: r2(p.balde), baldes: b, pedir: b < ((cfg.hel && cfg.hel.pedir) || 1) }; };
   const stock = prods.filter(p => p.control !== 'variantes' && p.tipo !== 'tamano' && p.tipo !== 'armado').map(p => { const v = vend(p), t = tot(p), ex = (p.lots || []).filter(l => l.exp && l.exp >= hoy && l.qty > 0).map(l => l.exp).sort()[0] || '';
-    return { n: p.name, cod: p.code || '', cat: p.cat || '', precio: r2(p.price), disp: cant(p, v), u: peso(p) ? 'kg' : undefined, min: p.min || 0, ...gusto(p, t), vence: ex, estado: v <= 0 ? (t > 0 ? 'vencido' : 'sin') : p.min && v <= (peso(p) ? p.min * 1000 : p.min) ? 'bajo' : 'ok' }; });
+    return { ...(p.id != null ? { id: p.id } : {}), n: p.name, cod: p.code || '', cat: p.cat || '', precio: r2(p.price), disp: cant(p, v), u: peso(p) ? 'kg' : undefined, min: p.min || 0, ...gusto(p, t), vence: ex, estado: v <= 0 ? (t > 0 ? 'vencido' : 'sin') : p.min && v <= (peso(p) ? p.min * 1000 : p.min) ? 'bajo' : 'ok' }; });
   const cajas = (db.cajas || []).slice(-30).map(c => { const k = c.cierre && c.tot ? c.tot : calcCaja(db, c); return { usuario: c.user, caja: c.caja, abre: c.abre, cierre: c.cierre || null, ini: r2(c.ini), esperado: r2(k.esperado), contado: c.cierre ? r2(c.contado) : null, dif: c.cierre ? r2(c.dif) : null, vendido: r2(k.vendido), porMedio: k.porMedio || {} }; });
   const saldo = new Map(), sum = (id, n) => saldo.set(id, (saldo.get(id) || 0) + n);
   (db.sales || []).forEach(s => { if (s.cid != null && !s.void && s.pay === 'Cuenta corriente') sum(s.cid, s.total); });
@@ -71,9 +71,11 @@ function calcCaja(db, c) {
 
 // leer(): texto JSON actual · getCfg()/setCfg(patch): configuración local · proteger/desproteger: cifrado del sistema para la clave.
 // servidor: dirección del servidor del panel que trae el programa (defaults.json > nube). Sirve para el alta automática.
-function crear({ leer, getCfg, setCfg, servidor = '', enviar = (u, o) => fetch(u, { ...o, signal: AbortSignal.timeout(TIEMPO_ENVIO) }), ahora = () => Date.now(), proteger = s => s, desproteger = s => s, cada = 30000, programar = setInterval, cancelar = clearInterval, esperar = setTimeout, noEsperar = clearTimeout }) {
+function crear({ leer, getCfg, setCfg, servidor = '', enviar = (u, o) => fetch(u, { ...o, signal: AbortSignal.timeout(TIEMPO_ENVIO) }), ahora = () => Date.now(), proteger = s => s, desproteger = s => s, cada = 30000, programar = setInterval, cancelar = clearInterval, esperar = setTimeout, noEsperar = clearTimeout, aplicar = null }) {
   let timer = null, ocupado = false, rehacer = false, est = { ultima: null, error: '', intento: null }, ultEnvio = 0, ultFoto = 0, ultInicio = 0, espera = null;
   // Diferencias: acked = lo último que el servidor confirmó; enVuelo = envío sin confirmar (se repite igual); inst = identifica esta ejecución del programa.
+  // Cambios de precio pedidos desde el celular: aplicar(lista) los aplica en el programa y devuelve [{id, estado, motivo}] (null/[] = no pudo, quedan pendientes).
+  let cvVisto = null, consultando = false, timerC = null, actividad = 0, quiereConsulta = false;
   let acked = null, enVuelo = null, n = 0, fallos = 0, noAntes = 0, soloFoto = false; const inst = 'i' + crypto.randomBytes(8).toString('hex');
   const conf = () => (getCfg().nube || {});
   const token = () => { try { return conf().token ? desproteger(conf().token) : ''; } catch (e) { return ''; } };
@@ -156,6 +158,7 @@ function crear({ leer, getCfg, setCfg, servidor = '', enviar = (u, o) => fetch(u
         else if (r.status === 413) { est.error = 'Hay demasiados datos para enviar de una vez.'; fallo(); }
         else if (!r.ok) { est.error = 'El servidor respondió con un error (' + r.status + '). Se reintenta solo.'; fallo(); }
         else {
+          if (j && typeof j.cv === 'number' && j.cv !== cvVisto && (cvVisto !== null || j.cv > 0)) { cvVisto = j.cv; quiereConsulta = true; }   // el servidor avisa que hay novedades de precios
           est.error = ''; est.ultima = new Date(ahora()).toISOString(); acked = e.destino; enVuelo = null; fallos = 0; noAntes = 0; ultEnvio = ahora();
           if (e.tipo === 'foto') { ultFoto = ahora(); setCfg({ nube: { ...conf(), seq, ultima: est.ultima } }); }   // el seq solo importa para las fotos enteras
           // Si el envío confirmado era uno repetido y mientras tanto hubo más cambios, se mandan ya (sin esperar al próximo aviso).
@@ -164,7 +167,7 @@ function crear({ leer, getCfg, setCfg, servidor = '', enviar = (u, o) => fetch(u
         break;
       }
     } catch (e) { est.error = 'Sin conexión con el servidor. El programa sigue funcionando y se reintenta solo.'; fallo(); }
-    finally { ocupado = false; if (rehacer) { rehacer = false; avisar(); } }
+    finally { ocupado = false; if (rehacer) { rehacer = false; avisar(); } if (quiereConsulta) { quiereConsulta = false; consultar(); } }
     return estado();
   }
   // Espera 2, 4, 8 y 10 s entre reintentos (tope 10 s: al volver el servidor se recupera enseguida). Con el servidor caído el pedido ni llega a la base.
@@ -179,11 +182,38 @@ function crear({ leer, getCfg, setCfg, servidor = '', enviar = (u, o) => fetch(u
   function reintentarYa() { noAntes = 0; return sincronizar(); }
   function reiniciar() { acked = null; enVuelo = null; fallos = 0; noAntes = 0; soloFoto = false; }
   // Se llama cada vez que se guardan datos: manda en ~1 s (nunca más de un envío cada 3 s). No espera al ciclo de 30 s, que queda de respaldo.
+  // ---- Cambios de precio desde el celular ----
+  // Pregunta por los pendientes (1 comando de Redis en el servidor), los aplica con aplicar() y confirma. Si la confirmación no llega,
+  // el servidor los vuelve a mandar y aplicar() no los repite (cada pedido tiene su id).
+  async function consultar() {
+    const c = conf(), t = token(); if (!aplicar || consultando || !c.activo || !c.url || !t) return;
+    consultando = true;
+    try {
+      const r = await enviar(c.url + '/ingesta/pendientes', { method: 'GET', headers: { Authorization: 'Bearer ' + t } });
+      if (!r.ok || !r.json) return;
+      const j = await r.json(), lista = j && Array.isArray(j.pendientes) ? j.pendientes : []; if (!lista.length) return;
+      const res = await aplicar(lista); if (!Array.isArray(res) || !res.length) return;
+      await enviar(c.url + '/ingesta/ack', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t }, body: JSON.stringify({ resultados: res }) });
+      avisar();   // el precio nuevo también tiene que llegar a la foto del panel
+    } catch (e) { /* sin conexión: se vuelve a preguntar */ } finally { consultando = false; }
+  }
+  // Cada 60 s mientras el local trabaja (algún guardado en los últimos 30 min); más lento si está quieto (3 min) o de noche (10 min).
+  function esperaConsulta() {
+    const h = new Date(ahora()).getHours();
+    if (ahora() - actividad < 30 * 60000) return 60000;
+    return h < 6 ? 600000 : 180000;
+  }
+  function siguienteConsulta(ms) {
+    if (!aplicar || timerC) return;
+    timerC = esperar(async () => { timerC = null; await consultar(); siguienteConsulta(); }, ms == null ? esperaConsulta() : ms);
+    if (timerC && timerC.unref) timerC.unref();
+  }
   function avisar() {
+    actividad = ahora();
     if (!estado().configurado || !conf().activo) return;
     armar(Math.max(DEBOUNCE, ultInicio + ENTRE_ENVIOS - ahora()));
-  }  function iniciar() { if (timer || !(conf().activo || conf().pendiente)) return; timer = programar(() => { sincronizar(); }, cada); if (timer && timer.unref) timer.unref(); sincronizar(); }
-  function detener() { if (timer) { cancelar(timer); timer = null; } if (espera) { noEsperar(espera); espera = null; } }
-  return { estado, configurar, activar, quitar, sincronizar, avisar, reintentarYa, iniciar, detener, registrar, clave, cambiarClave };
+  }  function iniciar() { if (timer || !(conf().activo || conf().pendiente)) return; timer = programar(() => { sincronizar(); }, cada); if (timer && timer.unref) timer.unref(); sincronizar(); siguienteConsulta(5000); }
+  function detener() { if (timer) { cancelar(timer); timer = null; } if (espera) { noEsperar(espera); espera = null; } if (timerC) { noEsperar(timerC); timerC = null; } }
+  return { estado, configurar, activar, quitar, sincronizar, avisar, reintentarYa, consultar, iniciar, detener, registrar, clave, cambiarClave };
 }
 module.exports = crear; module.exports.proyeccion = proyeccion; module.exports.LATIDO = LATIDO; module.exports.errorClave = errorClave;
