@@ -16,8 +16,8 @@ html.anim header{background-image:linear-gradient(180deg,rgba(36,71,249,.22) 0,r
 html.anim .kpis .card,html.anim #v .p:not(:disabled){background-image:radial-gradient(220px circle at var(--fx-x,-999px) var(--fx-y,-999px),color-mix(in srgb,var(--ac) 10%,transparent),transparent 70%)}
 .fx-cu{position:relative;color:transparent!important}.fx-cu::after{content:attr(data-cu);position:absolute;left:0;top:0;white-space:nowrap;color:var(--fx-c,var(--tx))}
 #fxspark{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:160}
-#splash{background-image:radial-gradient(70% 60% at 50% 0,#1D3B6E 0,#12233D 60%),radial-gradient(rgba(255,255,255,.07) 1px,transparent 1.6px);background-size:auto,22px 22px}
-#splash .wm{background:linear-gradient(110deg,#fff 42%,#9FB4FF 50%,#fff 58%) 100% 0/250% 100% no-repeat;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:tmIn .7s var(--ease) 1.05s both,fxShine 1.2s cubic-bezier(.4,0,.2,1) 1.3s both}
+#splash{background-image:radial-gradient(70% 60% at 50% 0,var(--pre2) 0,var(--pre) 60%),radial-gradient(color-mix(in srgb,var(--pre-tx) 7%,transparent) 1px,transparent 1.6px);background-size:auto,22px 22px}
+#splash .wm{background:linear-gradient(110deg,var(--pre-tx) 42%,#6E8BFF 50%,var(--pre-tx) 58%) 100% 0/250% 100% no-repeat;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:tmIn .7s var(--ease) 1.05s both,fxShine 1.2s cubic-bezier(.4,0,.2,1) 1.3s both}
 @keyframes fxShine{from{background-position:100% 0}to{background-position:0 0}}
 @media print{#fxind,#fxspark{display:none!important}}
 </style>`);

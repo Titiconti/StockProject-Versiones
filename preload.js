@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('sp', {
   load: () => ipcRenderer.sendSync('load'),
   save: (d, base) => ipcRenderer.invoke('save', d, base),
   version: () => ipcRenderer.sendSync('version'),
+  tema: t => ipcRenderer.invoke('tema:set', t),
   defaults: () => ipcRenderer.sendSync('defaults'),
   info: () => ipcRenderer.invoke('b:info'),
   now: () => ipcRenderer.invoke('b:now'),

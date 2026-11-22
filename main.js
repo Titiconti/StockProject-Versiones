@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, ipcMain, dialog, shell, safeStorage } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, dialog, shell, safeStorage, nativeTheme } = require('electron');
 const crypto = require('crypto');
 const path = require('path'), fs = require('fs');
 if (!app.requestSingleInstanceLock()) app.quit();
@@ -17,9 +17,19 @@ const enlacePermitido = url => ENLACES.some(r => r.test(String(url || '')));
 let faltaClave = false;                               // datos cifrados y sin la clave de este equipo: se pide la clave de recuperación
 const pagina = () => path.join(__dirname, faltaClave ? 'clave.html' : usr.habilitado() && !quien() ? 'login.html' : 'index.html');
 
+// Tema elegido en Configuración > Apariencia (claro | oscuro | sistema). La página lo guarda en este equipo y lo avisa acá
+// para que la ventana ya nazca con el color del tema y el sistema (diálogos, barras) lo siga, sin parpadeo.
+const TEMAS = ['claro', 'oscuro', 'sistema'];
+const archivoTema = () => path.join(app.getPath('userData'), 'tema.json');
+function temaGuardado() { try { const t = JSON.parse(fs.readFileSync(archivoTema(), 'utf8')).tema; return TEMAS.includes(t) ? t : 'sistema'; } catch (e) { return 'sistema'; } }
+function aplicarTema(t) {
+  if (nativeTheme) nativeTheme.themeSource = t === 'claro' ? 'light' : t === 'oscuro' ? 'dark' : 'system';
+  return nativeTheme && nativeTheme.shouldUseDarkColors === false ? '#F4F6FA' : t === 'claro' ? '#F4F6FA' : '#12233D';
+}
+
 function crear() {
   Menu.setApplicationMenu(null);
-  win = new BrowserWindow({ width: 1280, height: 800, title: 'StockProject', autoHideMenuBar: true, show: false, backgroundColor: '#12233D',
+  win = new BrowserWindow({ width: 1280, height: 800, title: 'StockProject', autoHideMenuBar: true, show: false, backgroundColor: aplicarTema(temaGuardado()),
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, webviewTag: false } });
   win.once('ready-to-show', () => win.maximize());   // la ventana aparece (maximizada) recién con el primer cuadro pintado
   // Caja abierta al cerrar la ventana: la página frena el cierre y acá se pregunta. Al cambiar de página (ingresar, salir) no se pregunta.
@@ -79,6 +89,12 @@ app.whenReady().then(() => {
   const avisarNube = r => { if (r && r.ok) { try { nube.avisar(); } catch (e) {} } return r; };   // despierta la sincronización rápida al guardar
   ipcMain.handle('save', (e, s, base) => { try { if (usr.habilitado()) { const q = quien(); if (!q) return { ok: false, auth: true, err: 'La sesión venció: volvé a ingresar' }; if (!usr.puedeEscribir(q)) return { ok: false, err: 'Tu usuario es de solo consulta' }; if (!usr.puedePrecios(q) && usr.cambiaPrecios(store.load(), s)) return { ok: false, err: 'Solo el gerente o el administrador pueden cambiar precios' }; return avisarNube(store.put(s, base, (prev, o) => autorizar(prev, o, (m, a) => usr.tiene(q, m, a)))); } return avisarNube(store.put(s, base)) } catch (x) { return { ok: false, err: String((x && x.message) || x) } } });
   ipcMain.on('version', e => { e.returnValue = store.rev(); });
+  ipcMain.handle('tema:set', (e, t) => {
+    if (!TEMAS.includes(t)) return { ok: false };
+    try { fs.writeFileSync(archivoTema(), JSON.stringify({ tema: t })); } catch (x) { return { ok: false }; }
+    const fondo = aplicarTema(t); if (win && !win.isDestroyed() && win.setBackgroundColor) win.setBackgroundColor(fondo);
+    return { ok: true };
+  });
   ipcMain.on('defaults', e => { e.returnValue = defaults() });
   const sinInfo = { dir: '', last: null, warn: '' };
   ipcMain.handle('xlsx:leer', async (e, buf) => { try { return await require('./xlsx-lector').leerXlsx(buf) } catch (x) { return { err: 'No se pudo leer el .xlsx' } } });

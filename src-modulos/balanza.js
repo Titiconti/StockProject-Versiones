@@ -42,16 +42,16 @@ BZ.escaneo=code=>{code=String(code||'').trim();if(!BZ.esEtiqueta(code)||!db.cfg.
 {const k0=$('#q').onkeydown;$('#q').onkeydown=e=>{if(e.key==='Enter'&&BZ.escaneo(e.target.value)){e.target.value='';drawProds();return}return k0.call(e.target,e)}}
 
 // ---------- Configuración > Mi negocio ----------
-{const n=$('[data-sub="n"]');if(n){
-  n.insertAdjacentHTML('beforeend',`<details class="card" id="bz_d"><summary>Balanza: etiquetas con código de barras</summary>
-<p class="mu">Si tu balanza imprime etiquetas con código de barras (empiezan con 2), el lector arma la venta solo. Cada producto por peso lleva el "código de balanza" que usa la balanza (en Productos, Opciones del producto).</p>
+{const n=$('#cfg_bal');if(n){
+  n.insertAdjacentHTML('beforeend',`<div class="card" id="bz_d" data-kw="balanza etiqueta codigo de barras peso plantilla"><h3>Balanza: etiquetas con código de barras</h3>
+<p class="mu cfg-e">Si tu balanza imprime etiquetas con código de barras (empiezan con 2), el lector arma la venta solo. Cada producto por peso lleva el "código de balanza" que usa la balanza (en Productos, Opciones del producto).</p>
 <h4 style="margin:10px 0 4px">Asistente: aprender de una etiqueta real</h4>
 <div class="form"><div><label>Escaneá una etiqueta</label><input id="bz_et" inputmode="numeric" placeholder="13 dígitos"></div><div><label>N.º de producto en la balanza</label><input id="bz_pl" inputmode="numeric" placeholder="Ej.: 123"></div><div><label>Lo que dice la etiqueta</label><input id="bz_vl" inputmode="decimal" placeholder="4500 o 1,125"></div>
 <div><label>Eso es un</label><select id="bz_vt"><option value="importe">Importe ($)</option><option value="peso">Peso (kg)</option></select></div><div><button class="btn sec" id="bz_de">Deducir plantilla</button></div></div><div id="bz_cand"></div>
 <h4 style="margin:10px 0 4px">Plantilla (posiciones del 2 al 12; el 1 es el prefijo)</h4>
 <div class="form"><div><label>El valor es</label><select id="bz_t"><option value="importe">Importe ($)</option><option value="peso">Peso (kg)</option></select></div><div><label>Producto desde el dígito</label><input id="bz_ip" inputmode="numeric" placeholder="2"></div><div><label>Cantidad de dígitos del producto</label><input id="bz_np" inputmode="numeric" placeholder="6"></div><div><label>Valor desde el dígito</label><input id="bz_iv" inputmode="numeric" placeholder="8"></div><div><label>Cantidad de dígitos del valor</label><input id="bz_nv" inputmode="numeric" placeholder="5"></div><div><label>Decimales del valor</label><input id="bz_dc" inputmode="numeric" placeholder="0"></div></div>
 <div style="display:flex;gap:8px;margin:8px 0"><button class="btn" id="bz_gu">Guardar plantilla</button><button class="btn sec" id="bz_qu">Quitar</button></div>
-<div class="form"><div><label>Probar con una etiqueta</label><input id="bz_pr" inputmode="numeric" placeholder="Escaneá o escribí el código"></div></div><p id="bz_rs" class="mu"></p></details>`);
+<div class="form"><div><label>Probar con una etiqueta</label><input id="bz_pr" inputmode="numeric" placeholder="Escaneá o escribí el código"></div></div><p id="bz_rs" class="mu"></p></div>`);
   const F=['bz_ip','bz_np','bz_iv','bz_nv','bz_dc'],sin=()=>toast('Tu usuario no tiene permiso para esto');
   const pon=t=>{$('#bz_t').value=t.tipo;[t.iPlu+1,t.nPlu,t.iVal+1,t.nVal,t.dec].forEach((v,i)=>$('#'+F[i]).value=v)};
   const leer=()=>{const v=F.map(id=>PX.num($('#'+id).value));return{iPlu:v[0]-1,nPlu:v[1],iVal:v[2]-1,nVal:v[3],tipo:$('#bz_t').value,dec:v[4]}};

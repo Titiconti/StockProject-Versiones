@@ -18,7 +18,7 @@ const assert = require('assert'), { JSDOM, HTML, until, api } = require('./helpe
   await until(() => ev('FA.e') && ev('FA.e.listo'));
 
   // ---- asistente ----
-  A.tab('g'); $('#fa').open = true; A.ev($('#fa'), 'toggle'); assert(await until(() => /modo prueba/.test(A.txt('#fa_e'))), A.txt('#fa_e')); assert.strictEqual($('#fa_cuit').value, '20111111112'); assert($('#fa_alw').classList.contains('hide'), 'el IVA solo se pide al responsable inscripto');
+  A.tab('g'); A.click('#gp [data-s=f]'); assert(await until(() => /modo prueba/.test(A.txt('#fa_e'))), A.txt('#fa_e')); assert.strictEqual($('#fa_cuit').value, '20111111112'); assert($('#fa_alw').classList.contains('hide'), 'el IVA solo se pide al responsable inscripto');
   A.set('#fa_cond', 'ri'); assert(!$('#fa_alw').classList.contains('hide'));
   A.click('#fa_csr'); assert(await until(() => !$('#fa_csrb').classList.contains('hide')) && /REQUEST/.test($('#fa_csrt').value));
   $('#fa_crt').value = '-----BEGIN CERTIFICATE-----\nZZ\n-----END CERTIFICATE-----'; A.set('#fa_camb', 'produccion'); A.click('#fa_cg'); assert(await until(() => log.some(l => l[0] === 'cert' && l[2] === 'produccion')));

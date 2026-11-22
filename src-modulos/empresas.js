@@ -29,5 +29,4 @@ $('#g_m').onclick=async e=>{const b=e.target.closest('button,a');if(!b)return;co
   if(d.ers){const r=await sp.emp.renombrar(d.ers,$('#er_n').value);if(!r.ok)return toast(r.err);EM.ren=null;EM.render()}
   if(d.ec){if(!armed('ec'+d.ec))return;await sp.emp.cambiar(d.ec)}
   if(b.id==='co_g'){const r=await sp.emp.consolidado({desde:$('#co_d').value,hasta:$('#co_h').value,base:$('#co_b').value,estado:db.cfg.tasas});if(!r)return toast('Sin permiso para ver el consolidado');EM.cons=r;$('#co_r').innerHTML=EM.tablaCons(r);call('audit','empresa.consolidado',r.base)}};
-CF.extras.empresas=sub=>{if(sub==='m'&&!$('#g_m').dataset.r){$('#g_m').dataset.r=1;EM.render()}};
-document.querySelector('#gp').addEventListener('click',e=>{if(e.target.dataset&&e.target.dataset.s==='m')$('#g_m').dataset.r=''});
+CF.extras.empresas=(sub,nueva)=>{if(sub!=='m')return;if(nueva)$('#g_m').dataset.r='';if(!$('#g_m').dataset.r){$('#g_m').dataset.r=1;EM.render()}};

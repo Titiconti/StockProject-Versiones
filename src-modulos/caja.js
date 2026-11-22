@@ -99,6 +99,6 @@ CJ.drawHist=()=>{if($('#k').classList.contains('hide'))return;CJ.fix();const su=
 ['#kh_u','#kh_d','#kh_h','#kh_e'].forEach(s=>$(s).onchange=CJ.drawHist);
 MODS.push(()=>{CJ.fix();CJ.drawBar();CJ.drawHist()});
 // Configuración > Mi negocio: exigir caja abierta para cobrar.
-{const n=$('[data-sub="n"]');if(n){n.insertAdjacentHTML('beforeend',`<details class="card"><summary>Caja</summary><label class="opt"><input type="checkbox" id="cj_req"> Exigir una caja abierta para cobrar ventas</label><p class="mu" style="margin:4px 0 0">Recomendado: cada empleado abre su caja con el dinero inicial y la cierra contando el efectivo al terminar el turno.</p></details>`);
+{const n=$('#cfg_caja');if(n){n.insertAdjacentHTML('beforeend',`<div class="card" id="cfg_cajac" data-kw="caja abierta cobrar turno efectivo apertura cierre"><h3>Caja</h3><div class="aj"><div class="aj-t"><label for="cj_req">Exigir una caja abierta para cobrar ventas</label><p class="mu">Recomendado: cada empleado abre su caja con el dinero inicial y la cierra contando el efectivo al terminar el turno.</p></div><div class="aj-c"><input type="checkbox" id="cj_req"></div></div></div>`);
   $('#cj_req').onchange=()=>{if(!can('configuracion','editar')){$('#cj_req').checked=CJ.exige();return toast('Tu usuario no tiene permiso para esto')}db.cfg.cajaObligatoria=$('#cj_req').checked;save();draw();toast($('#cj_req').checked?'Se exige caja abierta para cobrar':'Ya no se exige caja abierta')};
   MODS.push(()=>{const c=$('#cj_req');if(c)c.checked=CJ.exige()})}}

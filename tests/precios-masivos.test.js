@@ -34,7 +34,7 @@ const assert = require('assert'), ExcelJS = require('exceljs'), { web } = requir
   ev(`AU.habilitado=false`);
 
   // pantalla: vista previa y confirmar
-  a.tab('g'); a.click('#gp [data-s=d]'); a.set('#pm_pct', '20'); a.set('#pm_alc', 'cat'); a.set('#pm_val', 'Limpieza'); a.click('#pm_v');
+  a.tab('g'); a.click('#gp [data-s=p]'); a.set('#pm_pct', '20'); a.set('#pm_alc', 'cat'); a.set('#pm_val', 'Limpieza'); a.click('#pm_v');
   assert(/1 productos cambiarían de precio/.test(a.txt('#pm_card')) && /Jabón/.test(a.txt('#pm_card')), a.txt('#pm_card'));
   assert.deepStrictEqual(precios(), p0, 'la vista previa de pantalla tampoco modifica'); a.click('#pm_ok');
   assert.strictEqual(J('db.prods[2].price'), 144.72); assert.strictEqual(J('db.prods[0].price'), p0[0]);
@@ -48,7 +48,7 @@ const assert = require('assert'), ExcelJS = require('exceljs'), { web } = requir
 
   // importación por el asistente con .xlsx: mismo mapeo y validación que el CSV
   ev('db.prods.length=0;db.nid=1;db.lid=1'); w.sp = { leerXlsx: async ab => leerXlsx(Buffer.from(ab)) };
-  a.tab('g'); a.click('#gp [data-s=d]'); a.click('#mg_n1');
+  a.tab('g'); a.click('#gp [data-s=p]'); a.click('#mg_n1');
   const file = { name: 'lista-proveedor.xlsx', size: buf.length, arrayBuffer: async () => buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.length) };
   Object.defineProperty($('#mg_f'), 'files', { value: [file] }); a.ev($('#mg_f'), 'change'); await new Promise(r => setTimeout(r, 300));
   assert(/Revisá a qué columna/.test(a.txt('#g_d')), a.txt('#g_d').slice(0, 300)); assert.strictEqual($('[data-mc=price]').value, '2');

@@ -111,6 +111,6 @@ RB.abrir=()=>{if($('#rbo'))return;const b=db.cfg.entrevistaBorrador,prev=db.cfg.
     $('#rb_si').onclick=()=>{leer();if(st.paso===0&&!RB.PERFILES[st.rubro])return toast('Elegí un rubro');if(st.paso===1){const e=RB.validar(st);if(e)return toast(e)}
       if(st.paso<3){st.paso++;guardar();return dib()}if(!can('configuracion','editar'))return toast('Tu usuario no tiene permiso para esto');const r=RB.aplicar(st);if(r.err)return toast(r.err);save();cerrar();draw();toast('Configuración aplicada: '+RB.PERFILES[st.rubro].n)}};
   dib()};
-{const n=$('[data-sub="n"] .card');if(n)n.insertAdjacentHTML('beforeend','<p id="rb_res" class="mu" style="margin:12px 0 6px"></p><button class="btn sec" id="rb_ab">Entrevista por rubro</button>');
+{const n=$('#g_neg');if(n)n.insertAdjacentHTML('beforeend','<p id="rb_res" class="mu" style="margin:12px 0 6px"></p><button class="btn sec" id="rb_ab">Entrevista por rubro</button>');
   $('#rb_ab').onclick=RB.abrir;
   MODS.push(()=>{const e=$('#rb_res');if(!e)return;const c=db.cfg.caps;e.textContent=db.cfg.rubro&&c?'Rubro: '+RB.PERFILES[db.cfg.rubro].n+' · '+(Object.keys(RB.CAPS).filter(k=>c[k]).map(k=>RB.CAPS[k]).join(', ')||'sin funciones adicionales'):db.cfg.entrevistaBorrador?'Tenés una entrevista por rubro sin terminar.':'Respondé la entrevista por rubro para activar venta por peso, variantes, números de serie o precios por cantidad según tu negocio.';$('#rb_ab').textContent=db.cfg.entrevistaBorrador?'Retomar la entrevista':db.cfg.rubro?'Repetir la entrevista por rubro':'Entrevista por rubro'})}
