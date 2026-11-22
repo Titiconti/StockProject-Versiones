@@ -58,7 +58,7 @@ const crearPC = require('../nube'), { proyeccion } = crearPC, { crear } = requir
   vender(); red = 'perdida'; reloj += 3000; let e = await PC.sincronizar(); assert(/Sin conexión/.test(e.error));
   assert.deepStrictEqual(ids(await datos('ana', ckA)), [1, 2, 3, 4], 'ya estaba aplicado');
   vender(); red = 'ok'; enviados.length = 0; reloj += 2500; e = await PC.sincronizar(); assert(!e.error, 'se recupera: ' + e.error);
-  assert.strictEqual(enviados.length, 1); assert.deepStrictEqual(enviados[0].body.ventas.map(v => v.id), [4], 'se repite EXACTAMENTE el envío sin confirmar (mismo n)');
+  assert.strictEqual(enviados.length, 2); assert.deepStrictEqual(enviados[0].body.ventas.map(v => v.id), [4], 'primero se repite EXACTAMENTE el envío sin confirmar (mismo n)'); assert.deepStrictEqual(enviados[1].body.ventas.map(v => v.id), [5], 'y enseguida, sin esperar, sale la venta nueva en el envío siguiente'); assert.strictEqual(enviados[1].body.n, enviados[0].body.n + 1);
   reloj += 3000; await PC.sincronizar(); assert.deepStrictEqual(ids(await datos('ana', ckA)), [1, 2, 3, 4, 5], 'la venta nueva sale en el envío siguiente, sin duplicar la anterior');
 
   // 6) CORTES DE INTERNET al azar durante 500 ventas: al volver, el servidor tiene exactamente lo mismo que la PC
@@ -74,11 +74,15 @@ const crearPC = require('../nube'), { proyeccion } = crearPC, { crear } = requir
   let tent = 0; const enviarCuenta = async (u, o) => { tent++; throw new TypeError('fetch failed'); };
   let cfg3 = {}; const PC3 = crearPC({ leer: () => JSON.stringify(db), getCfg: () => cfg3, setCfg: p => { cfg3 = { ...cfg3, ...p }; }, enviar: enviarCuenta, ahora: () => reloj, programar: () => 1, cancelar: () => {} }); PC3.configurar({ url: base, token: ana.token });
   const t0 = reloj; for (let s = 0; s <= 120; s++) { reloj = t0 + s * 1000; await PC3.sincronizar(); }
-  assert(tent <= 8, 'en 2 minutos de corte hace pocos intentos (' + tent + ')'); console.log('MEDIDO intentos en 2 min de corte:', tent);
+  assert(tent <= 16, 'en 2 minutos de corte hace pocos intentos (' + tent + ')'); console.log('MEDIDO intentos en 2 min de corte (espera 2, 4, 8 y 10 s):', tent);
+  // con el servidor caído ningún pedido llega a la base (no gasta cupo), y al volver la red reintenta YA
+  const cmd0 = SIM.comandos; let falla = true, intentos5 = 0, c5 = {}; const PC5 = crearPC({ leer: () => JSON.stringify(db), getCfg: () => c5, setCfg: p => { c5 = { ...c5, ...p }; }, enviar: async (u, o) => { intentos5++; if (falla) throw new TypeError('fetch failed'); return fetch(u, o); }, ahora: () => reloj, programar: () => 1, cancelar: () => {} });
+  PC5.configurar({ url: base, token: ana.token }); await PC5.sincronizar(); await PC5.sincronizar(); assert.strictEqual(intentos5, 1, 'durante la espera no insiste'); assert.strictEqual(SIM.comandos, cmd0, 'servidor caído: cero comandos en la base');
+  falla = false; const e5 = await PC5.reintentarYa(); assert(!e5.error && intentos5 === 2, 'vuelve la red: reintenta ya, sin esperar');
   reloj += 61000; await PC.sincronizar();
 
   // 8) debounce: muchos guardados seguidos = un solo envío, a ~1 s
-  timers.length = 0; PC.avisar(); PC.avisar(); PC.avisar(); assert.strictEqual(timers.length, 1, 'un solo temporizador'); assert(timers[0].ms >= 1000 && timers[0].ms <= 3000);
+  for (const t of timers.splice(0)) t.f(); await new Promise(r => setTimeout(r, 300)); timers.length = 0; PC.avisar(); PC.avisar(); PC.avisar(); assert.strictEqual(timers.length, 1, 'un solo temporizador'); assert(timers[0].ms >= 1000 && timers[0].ms <= 3000);
 
   // 9) COMPATIBILIDAD con programas viejos: foto entera sin inst/n
   const fotoVieja = { v: 1, generado: new Date(reloj).toISOString(), negocio: { nombre: 'Almacen Beto' }, ventas: [{ id: 1, total: 100 }], stock: [{ n: 'Pan', precio: 5, disp: 3, estado: 'ok' }] };

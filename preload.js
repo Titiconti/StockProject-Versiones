@@ -1,4 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
+// Volvió la conexión a Internet: el programa reintenta enviar al panel enseguida.
+window.addEventListener('online', () => ipcRenderer.send('nube:online'));
 contextBridge.exposeInMainWorld('sp', {
   load: () => ipcRenderer.sendSync('load'),
   save: (d, base) => ipcRenderer.invoke('save', d, base),

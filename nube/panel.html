@@ -605,7 +605,7 @@ nav button[aria-current="page"]{background:var(--activo);color:#fff}
   // celulares del mismo comercio) y los datos se bajan únicamente si cambió. Solo mientras la pestaña se ve; oculta = no pregunta nada.
   var verVista = null, viejoVisto = null, verTimer = null, ultCambio = Date.now();
   function esperaVer() {
-    if (errorRed) return 30000;
+    if (errorRed) return 5000;   // sin conexión: reintenta pronto (si no hay servidor, el pedido ni llega a la base)
     var quieto = Date.now() - ultCambio;
     return quieto < 5 * 60000 ? 2500 : quieto < 30 * 60000 ? 10000 : 30000;   // sin novedades, pregunta cada vez menos
   }

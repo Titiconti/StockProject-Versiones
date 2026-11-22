@@ -5,7 +5,7 @@
 'use strict';
 const crypto = require('crypto');
 // Envío por diferencias: al guardar (1 s) con un mínimo de 3 s entre envíos; latido cada 10 min; foto entera al arrancar y cada 6 h para reparar.
-const LATIDO = 10 * 60 * 1000, FOTO_CADA = 6 * 3600 * 1000, DEBOUNCE = 1000, ENTRE_ENVIOS = 3000, ESPERA_MAX = 60000;
+const LATIDO = 10 * 60 * 1000, FOTO_CADA = 6 * 3600 * 1000, DEBOUNCE = 1000, ENTRE_ENVIOS = 3000, ESPERA_MAX = 10000, TIEMPO_ENVIO = 20000;
 const DIR_VIEJA = 'https://stock-project-versiones.vercel.app';   // dirección del panel hasta la 5.6.0
 const r2 = n => Math.round((+n || 0) * 100) / 100;
 const dia = iso => { const d = new Date(iso); return Number.isNaN(+d) ? '' : new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
@@ -71,7 +71,7 @@ function calcCaja(db, c) {
 
 // leer(): texto JSON actual · getCfg()/setCfg(patch): configuración local · proteger/desproteger: cifrado del sistema para la clave.
 // servidor: dirección del servidor del panel que trae el programa (defaults.json > nube). Sirve para el alta automática.
-function crear({ leer, getCfg, setCfg, servidor = '', enviar = (u, o) => fetch(u, o), ahora = () => Date.now(), proteger = s => s, desproteger = s => s, cada = 30000, programar = setInterval, cancelar = clearInterval, esperar = setTimeout, noEsperar = clearTimeout }) {
+function crear({ leer, getCfg, setCfg, servidor = '', enviar = (u, o) => fetch(u, { ...o, signal: AbortSignal.timeout(TIEMPO_ENVIO) }), ahora = () => Date.now(), proteger = s => s, desproteger = s => s, cada = 30000, programar = setInterval, cancelar = clearInterval, esperar = setTimeout, noEsperar = clearTimeout }) {
   let timer = null, ocupado = false, rehacer = false, est = { ultima: null, error: '', intento: null }, ultEnvio = 0, ultFoto = 0, ultInicio = 0, espera = null;
   // Diferencias: acked = lo último que el servidor confirmó; enVuelo = envío sin confirmar (se repite igual); inst = identifica esta ejecución del programa.
   let acked = null, enVuelo = null, n = 0, fallos = 0, noAntes = 0, soloFoto = false; const inst = 'i' + crypto.randomBytes(8).toString('hex');
@@ -132,13 +132,13 @@ function crear({ leer, getCfg, setCfg, servidor = '', enviar = (u, o) => fetch(u
     if (conf().pendiente && !estado().configurado && !ocupado) { ocupado = true; try { const p = conf().pendiente; let k = ''; try { k = p.clave ? desproteger(p.clave) : ''; } catch (e) {} await registrar(p.nombre, k); } finally { ocupado = false; } }
     const c = conf(), t = token(); if (!c.activo || !c.url || !t) return estado();
     if (ocupado) { rehacer = true; return estado(); }
-    if (!forzar && ahora() < noAntes) return estado();   // espera creciente tras un fallo
+    if (!forzar && ahora() < noAntes) { armar(noAntes - ahora()); return estado(); }   // espera creciente tras un fallo: reintenta justo al vencer
     ocupado = true; est.intento = new Date(ahora()).toISOString(); ultInicio = ahora();
     try {
       let db; try { db = JSON.parse(leer() || 'null'); } catch (e) { db = null; }
       if (!db) { est.error = 'No se pudieron leer los datos locales'; return estado(); }
       const foto = proyeccion(db, ahora()), cur = partir(foto);
-      for (let vuelta = 0; vuelta < 2; vuelta++) {
+      for (let vuelta = 0; vuelta < 3; vuelta++) {
         // Un envío por diferencias que quedó sin confirmar se repite IGUAL (mismo n): si el servidor ya lo aplicó, lo reconoce y no lo duplica.
         if (enVuelo && enVuelo.tipo === 'foto') enVuelo = null;
         if (!enVuelo) {
@@ -151,13 +151,15 @@ function crear({ leer, getCfg, setCfg, servidor = '', enviar = (u, o) => fetch(u
         const r = await enviar(c.url + (e.tipo === 'foto' ? '/ingesta' : '/ingesta/ops'), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t }, body: JSON.stringify(e.tipo === 'foto' ? { seq, foto, inst, n: e.n } : e.cuerpo) });
         let j = null; try { j = r.json ? await r.json() : null; } catch (x) {}
         // El servidor pide la foto entera (instalación nueva, hueco, estado perdido) o no conoce las diferencias (versión vieja del servidor).
-        if (e.tipo === 'dif' && (r.status === 409 || r.status === 404 || r.status === 405 || r.status === 413 || (j && j.pedirFoto))) { if (r.status === 404 || r.status === 405) soloFoto = true; acked = null; enVuelo = null; continue; }
+        if (e.tipo === 'dif' && vuelta < 2 && (r.status === 409 || r.status === 404 || r.status === 405 || r.status === 413 || (j && j.pedirFoto))) { if (r.status === 404 || r.status === 405) soloFoto = true; acked = null; enVuelo = null; continue; }
         if (r.status === 401) { est.error = 'El servidor no reconoce la clave de esta instalación. Pedí una nueva a soporte.'; fallo(); }
         else if (r.status === 413) { est.error = 'Hay demasiados datos para enviar de una vez.'; fallo(); }
         else if (!r.ok) { est.error = 'El servidor respondió con un error (' + r.status + '). Se reintenta solo.'; fallo(); }
         else {
           est.error = ''; est.ultima = new Date(ahora()).toISOString(); acked = e.destino; enVuelo = null; fallos = 0; noAntes = 0; ultEnvio = ahora();
           if (e.tipo === 'foto') { ultFoto = ahora(); setCfg({ nube: { ...conf(), seq, ultima: est.ultima } }); }   // el seq solo importa para las fotos enteras
+          // Si el envío confirmado era uno repetido y mientras tanto hubo más cambios, se mandan ya (sin esperar al próximo aviso).
+          if (e.destino !== cur && vuelta < 2 && Object.keys(diferencias(acked, cur)).length) { forzar = false; continue; }
         }
         break;
       }
@@ -165,16 +167,23 @@ function crear({ leer, getCfg, setCfg, servidor = '', enviar = (u, o) => fetch(u
     finally { ocupado = false; if (rehacer) { rehacer = false; avisar(); } }
     return estado();
   }
-  // Espera 2, 4, 8, 16… hasta 60 s entre reintentos: un corte largo no gasta el cupo del servidor.
-  function fallo() { fallos++; noAntes = ahora() + Math.min(ESPERA_MAX, 2000 * 2 ** (fallos - 1)); }
+  // Espera 2, 4, 8 y 10 s entre reintentos (tope 10 s: al volver el servidor se recupera enseguida). Con el servidor caído el pedido ni llega a la base.
+  function fallo() { fallos++; const d = Math.min(ESPERA_MAX, 2000 * 2 ** (fallos - 1)); noAntes = ahora() + d; armar(d); }
+  // Un solo temporizador de envío a la vez (el de guardar, el de reintento y el de volver la red comparten este).
+  function armar(ms) {
+    if (espera) return;
+    espera = esperar(() => { espera = null; sincronizar(); }, ms);
+    if (espera && espera.unref) espera.unref();
+  }
+  // Volvió la red (evento "online" de la ventana): reintenta ya, sin esperar la espera creciente.
+  function reintentarYa() { noAntes = 0; return sincronizar(); }
   function reiniciar() { acked = null; enVuelo = null; fallos = 0; noAntes = 0; soloFoto = false; }
   // Se llama cada vez que se guardan datos: manda en ~1 s (nunca más de un envío cada 3 s). No espera al ciclo de 30 s, que queda de respaldo.
   function avisar() {
-    if (espera || !estado().configurado || !conf().activo) return;
-    espera = esperar(() => { espera = null; sincronizar(); }, Math.max(DEBOUNCE, ultInicio + ENTRE_ENVIOS - ahora()));
-    if (espera && espera.unref) espera.unref();
+    if (!estado().configurado || !conf().activo) return;
+    armar(Math.max(DEBOUNCE, ultInicio + ENTRE_ENVIOS - ahora()));
   }  function iniciar() { if (timer || !(conf().activo || conf().pendiente)) return; timer = programar(() => { sincronizar(); }, cada); if (timer && timer.unref) timer.unref(); sincronizar(); }
   function detener() { if (timer) { cancelar(timer); timer = null; } if (espera) { noEsperar(espera); espera = null; } }
-  return { estado, configurar, activar, quitar, sincronizar, avisar, iniciar, detener, registrar, clave, cambiarClave };
+  return { estado, configurar, activar, quitar, sincronizar, avisar, reintentarYa, iniciar, detener, registrar, clave, cambiarClave };
 }
 module.exports = crear; module.exports.proyeccion = proyeccion; module.exports.LATIDO = LATIDO; module.exports.errorClave = errorClave;

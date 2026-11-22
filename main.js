@@ -187,6 +187,7 @@ app.whenReady().then(() => {
     proteger: t => safeStorage.isEncryptionAvailable() ? 'ss:' + safeStorage.encryptString(t).toString('base64') : t,
     desproteger: t => String(t).startsWith('ss:') ? safeStorage.decryptString(Buffer.from(String(t).slice(3), 'base64')) : t });
   ipcMain.handle('nube:estado', () => nube.estado());
+  ipcMain.on('nube:online', () => { try { nube.reintentarYa(); } catch (e) {} });
   ipcMain.handle('nube:call', async (e, n, a) => {
     if (!permite('acceso_remoto', 'editar')) return { ok: false, err: 'Tu usuario no tiene permiso para cambiar el acceso remoto' };
     const f = { configurar: nube.configurar, activar: nube.activar, quitar: nube.quitar, registrar: a => a && typeof a === 'object' ? nube.registrar(a.nombre, a.clave) : nube.registrar(a), cambiarClave: nube.cambiarClave, clave: async () => ({ ok: true, clave: nube.clave() }), ahora: () => nube.sincronizar(true) }[n]; if (!f) return { ok: false };
