@@ -1,7 +1,6 @@
-// La landing (nube/index.html, la sirve Vercel como archivo estático en "/"): todo lo que enlaza existe,
-// no quedan textos de plantilla y la demo de ventas calcula bien el total, el vuelto y el stock.
+// La landing (nube/index.html, la sirve Vercel como archivo estático en "/"): todo lo que enlaza existe, sin terceros ni cookies,
+// con páginas legales, prueba social rotulada y sin textos de plantilla.
 const assert = require('assert'), fs = require('fs'), path = require('path');
-const { JSDOM } = require('jsdom');
 const NUBE = path.join(__dirname, '..', 'nube');
 const html = fs.readFileSync(path.join(NUBE, 'index.html'), 'utf8');
 
@@ -16,29 +15,36 @@ assert(!/\[[A-Za-z][^\]]*\]/.test(html.replace(/<script[\s\S]*?<\/script>/g, '')
 assert(!/href="#"/.test(html), 'ningún enlace a "#" solo');
 assert(/<meta name="sp-whatsapp"/.test(html) && /<meta name="sp-mail"/.test(html), 'el contacto se configura en un solo lugar');
 
-// 3) la demo: se agrega, se cobra con vuelto y se descuenta el stock (en memoria)
-(async () => {
-  const dom = new JSDOM(html, { url: 'http://127.0.0.1/' });
-  global.document = dom.window.document;
-  const src = fs.readFileSync(path.join(NUBE, 'landing', 'demo.js'), 'utf8').replace(/^export /m, '');
-  new Function(src)();
-  const d = document.querySelector('[data-demo]'), $ = s => d.querySelector(s);
-  const prod = n => [...$('[data-d-grilla]').children].find(b => b.textContent.includes(n));
-  prod('Yerba Playadito').click(); prod('Leche La Serenísima').click(); prod('Leche La Serenísima').click();
-  assert.strictEqual($('[data-d-total]').textContent.replace(/\s/g, ' '), '$ 10.200,00', 'total de la venta');
-  const rec = $('[data-d-recibido]'); rec.value = '15000'; rec.dispatchEvent(new dom.window.Event('input'));
-  assert.strictEqual($('[data-d-vuelto]').textContent, '$ 4.800,00', 'vuelto');
-  $('[data-d-cobrar]').click();
-  assert($('[data-d-aviso]').textContent.startsWith('Venta cobrada'), 'cobra');
-  assert.strictEqual($('[data-d-vendido]').textContent, '$ 10.200,00', 'suma a la caja');
-  assert(prod('Yerba Playadito').textContent.includes('Disponible: 17'), 'descuenta el stock');
-  // sin plata suficiente no cobra
-  prod('Café La Virginia').click(); rec.value = '100'; rec.dispatchEvent(new dom.window.Event('input'));
-  $('[data-d-cobrar]').click();
-  assert($('[data-d-aviso]').textContent.startsWith('Falta plata'), 'avisa que falta plata');
-  // no deja vender más de lo que hay
-  const pan = prod('Pan lactal'); for (let i = 0; i < 8; i++) prod('Pan lactal').click();
-  assert(prod('Pan lactal').disabled, 'sin stock no se puede agregar');
-  assert(pan);
-  console.log('landing OK');
-})().catch(e => { console.error(e); process.exit(1); });
+// 3) sin terceros ni cookies: ningún recurso externo (solo enlaces de salida a WhatsApp), ni almacenamiento en el navegador
+const paginas = ['index.html', 'aviso-legal.html', 'privacidad.html'];
+const js = fs.readdirSync(path.join(NUBE, 'landing')).filter(f => f.endsWith('.js')).map(f => fs.readFileSync(path.join(NUBE, 'landing', f), 'utf8')).join('\n');
+for (const p of paginas) {
+  const h = fs.readFileSync(path.join(NUBE, p), 'utf8');
+  assert(!/\bsrc="https?:\/\//.test(h) && !/<link\b[^>]*\bhref="https?:\/\/(?!stockprojectapp)/.test(h), p + ' no pide nada a otro sitio (los enlaces <a> de salida, como los créditos, sí pueden ser externos)');
+  assert(!/googleapis|gstatic|cdnjs|unpkg|jsdelivr/.test(h), p + ' sin CDN ni Google Fonts');
+}
+const sinMov = fs.readdirSync(path.join(NUBE, 'landing')).filter(f => f.endsWith('.js') && f !== 'movimiento.js').map(f => fs.readFileSync(path.join(NUBE, 'landing', f), 'utf8')).join('\n');
+assert(!/localStorage|sessionStorage|document\.cookie|gtag|fbq|analytics/i.test(sinMov + html), 'sin cookies ni analítica');
+const mov = fs.readFileSync(path.join(NUBE, 'landing', 'movimiento.js'), 'utf8');
+assert(!/document\.cookie/.test(mov) && (mov.match(/localStorage\.\w+Item\('?[^)]*\)/g) || []).length > 0 && /try \{/.test(mov), 'solo recuerda la preferencia de movimiento, con try/catch');
+const priv0 = fs.readFileSync(path.join(NUBE, 'privacidad.html'), 'utf8');
+assert(priv0.includes('Reducir movimiento') && /no en una cookie/.test(priv0), 'la privacidad declara esa preferencia');
+const css = ['landing.css', path.join('fonts', 'fonts.css')].map(f => fs.readFileSync(path.join(NUBE, 'landing', f), 'utf8')).join('\n');
+assert(!/https?:\/\//.test(css), 'los CSS propios no piden nada afuera');
+assert(!html.includes('data-demo'), 'la demo de ventas ya no está');
+
+// 4) páginas legales enlazadas en el pie, con el responsable y sin condición fiscal ni textos a completar
+assert(/href="aviso-legal\.html"/.test(html) && /href="privacidad\.html"/.test(html), 'el pie enlaza las páginas legales');
+for (const p of ['aviso-legal.html', 'privacidad.html']) {
+  const h = fs.readFileSync(path.join(NUBE, p), 'utf8');
+  assert(h.includes('Tiziano Barbaglia Conti') && h.includes('20-46654273-4') && h.includes('Ituzaingó 4220'), p + ' nombra al responsable');
+  assert(!/CUIT|CONDICIÓN FISCAL|completar/i.test(h), p + ' sin condición fiscal ni textos a completar');
+}
+const priv = fs.readFileSync(path.join(NUBE, 'privacidad.html'), 'utf8');
+for (const x of ['25.326', 'RGPD', 'Vercel', 'Upstash', 'menores', 'supresión']) assert(priv.includes(x), 'la privacidad menciona ' + x);
+assert(/Ejemplo/.test(html) && /no es un cliente real/.test(html), 'el comercio de ejemplo está rotulado');
+assert(/Protenay/.test(html) && !/<blockquote/.test(html), 'Darío figura sin citas inventadas');
+assert(/Meta Platforms/.test(html) && /Microsoft/.test(html), 'aviso de marcas en el pie');
+assert(/sp-quieto/.test(js) && /data-mov/.test(html), 'hay un botón para reducir el movimiento');
+assert(/data-anatomia/.test(html) && !/prefers-reduced-motion/.test(js), 'la figura del hero y los efectos no dependen de la opción del sistema');
+console.log('landing OK');

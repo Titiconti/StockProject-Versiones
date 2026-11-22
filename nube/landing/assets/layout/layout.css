@@ -110,11 +110,7 @@ main > .section .section-head { margin-bottom: var(--ly-head-gap); }
 .ly-float--tr { left: auto; bottom: auto; right: var(--s-5); top: var(--s-5); }
 .ly-float__row { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); font-size: var(--t-small); color: var(--muted); }
 .ly-float__title { font-weight: 500; font-size: var(--t-body); }
-.ly-live { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t-label); color: var(--ink); }
-.ly-live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent) 50%, transparent); animation: ly-pulse 2.4s ease-out infinite; }
-@keyframes ly-pulse { 70% { box-shadow: 0 0 0 7px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
 /* kind other (a cafe, a shop, a studio) and a place: nothing moves by itself (MO-07) */
-:root:is([data-type="place"], :has(meta[name="site-kind"][content="other"])) .ly-live::before { animation: none; }
 
 /* 1. hero--split: text on span-5, the picture on span-6 start-7, ending on the right line (never out
       to the viewport edge: the page's two edges stay equal), as tall as the screen less the hero's
@@ -251,9 +247,7 @@ html:is([data-buttons="arrow"], [data-buttons="block"]) .hero--photo[data-box="n
 .hero--product .hero__stage { margin-top: var(--s-7); }
 .hero__stage {
   position: relative; overflow: hidden; border-radius: var(--r-lg); min-height: clamp(260px, 40svh, 400px); flex: 1 1 auto;
-  background:
-    radial-gradient(60% 70% at 50% 42%, color-mix(in oklab, var(--ground-surface, #e9e0d2) 90%, white), transparent 72%),
-    linear-gradient(to bottom, var(--ground-bg, #d9ccb7) 0 72%, color-mix(in oklab, var(--ground-bg, #d9ccb7) 86%, black) 100%);
+  background: var(--ground-bg, #e7eaf0);
 }
 .hero__stage > img { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; object-fit: cover; object-position: var(--ly-pos, 50% 50%); }
 .hero__stage > img.is-cutout { object-fit: contain; padding: 5% 0 4%; }
@@ -539,7 +533,6 @@ h1.ly-locked { white-space: nowrap; text-wrap: nowrap; }
 /* ---------------------------------------------------------------- no entrance
    the hero is set on its first frame on every kind: no entrance fade, rise or opening (MO-62) */
 @media (prefers-reduced-motion: reduce) {
-  .ly-live::before { animation: none; }
   .ly-word > span, .ly-collage__set, .ly-collage.is-cycling > .ly-collage__set, .ly-letters .ly-l { transition: none; }
 }
 

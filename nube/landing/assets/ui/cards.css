@@ -66,10 +66,7 @@
 .panel:not([data-fx], .panel--device) { background: var(--ground-bg, #d9ccb7); }
 :root:has(meta[name="site-kind"]:is([content="tech"], [content="software"], [content="gaming"])) .panel:not([data-fx], .panel--device) {
   background-color: var(--ground-bg, #d9ccb7);
-  background-image:
-    radial-gradient(70% 90% at 12% 0%, color-mix(in oklab, var(--ground-surface, #e9e0d2) 92%, white), transparent 70%),
-    radial-gradient(60% 80% at 100% 100%, color-mix(in oklab, var(--ground-accent, #a8794a) 34%, var(--ground-bg, #d9ccb7)), transparent 72%),
-    radial-gradient(50% 60% at 85% 10%, color-mix(in oklab, var(--ground-surface, #e9e0d2) 60%, transparent), transparent 70%);
+  background-image: none;
 }
 .card > .panel { margin-top: 32px; margin-bottom: calc(-1 * var(--c-pad) - 1px); }
 .card > .panel--device { margin-top: 24px; }
@@ -83,8 +80,7 @@
 /* the vignette that calms the ground where the fragment sits (--vx, --vy: its centre) */
 .panel::before {
   content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none; width: auto; padding: 0;
-  background: radial-gradient(ellipse 70% 62% at var(--vx, 50%) var(--vy, 62%),
-    color-mix(in oklab, var(--calm, var(--card)) var(--calm-k, 34%), transparent), transparent 72%);
+  background: none;
 }
 /* inset on all sides by --c-gap; nested radius */
 .card > .panel--inset {

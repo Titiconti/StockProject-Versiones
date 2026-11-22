@@ -149,13 +149,13 @@ const gz = t => 'gz:' + zlib.gzipSync(Buffer.from(t, 'utf8')).toString('base64')
   assert.strictEqual(hl['x-frame-options'], 'DENY'); assert.strictEqual(hl['x-content-type-options'], 'nosniff'); assert.strictEqual(hl['referrer-policy'], 'strict-origin-when-cross-origin');
   const csp = hl['content-security-policy'], dir = n => (csp.split(';').map(s => s.trim()).find(s => s.startsWith(n + ' ')) || '');
   assert(/^script-src 'self'$/.test(dir('script-src')), 'scripts solo del sitio'); assert(dir('frame-ancestors') === "frame-ancestors 'none'");
-  assert(dir('style-src').includes('https://fonts.googleapis.com') && dir('font-src').includes('https://fonts.gstatic.com'));
-  assert(headersPara('/landing/demo.js')['content-security-policy'], 'también para los archivos');
+  assert(!/https?:/.test(dir('style-src') + dir('font-src') + dir('script-src') + dir('connect-src')), 'la CSP no permite ningún otro sitio'); assert(dir('font-src') === "font-src 'self'" && dir('media-src').includes('blob:'));
+  assert(headersPara('/landing/efectos.js')['content-security-policy'], 'también para los archivos');
   assert(!headersPara('/c/prueba')['content-security-policy'] && !headersPara('/c/prueba/api/datos')['content-security-policy'], 'el panel usa la CSP de servidor.js (no se suman dos)');
   assert.strictEqual(headersPara('/c/prueba')['x-frame-options'], 'DENY');
   const bloqueo = V.redirects.find(x => x.destination === '/no-existe'), bloqueadas = rx(bloqueo.source);
   for (const f of ['/servidor.js', '/almacen.js', '/Caddyfile', '/docker-compose.yml', '/backup.sh', '/Dockerfile', '/README.md', '/package.json', '/.env.ejemplo', '/api/index.js', '/vercel.json']) assert(bloqueadas.test(f), 'bloqueado ' + f);
-  for (const f of ['/', '/landing/demo.js', '/ingesta', '/registro', '/clave-instalacion', '/c/prueba', '/c/prueba/api/login', '/salud']) assert(!bloqueadas.test(f), 'no bloqueado ' + f);
+  for (const f of ['/', '/landing/efectos.js', '/aviso-legal.html', '/privacidad.html', '/ingesta', '/registro', '/clave-instalacion', '/c/prueba', '/c/prueba/api/login', '/salud']) assert(!bloqueadas.test(f), 'no bloqueado ' + f);
   assert.strictEqual(V.redirects.indexOf(bloqueo), 0, 'el bloqueo va antes que la mudanza de dirección');
   assert.strictEqual(V.functions['api/index.js'].includeFiles, '{panel.html,servidor.js,almacen.js}', 'la función sigue llevando sus archivos');
   const vieja = V.redirects.find(x => x.source.includes('ingesta'));
