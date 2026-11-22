@@ -183,20 +183,17 @@ app.whenReady().then(() => {
     usr.audit(quien(), 'respaldo.restaurar_protegido'); win.reload(); return { ok: true };
   });
   // Panel para el celular desde cualquier lugar: envío de datos de solo lectura al servidor central (nube.js).
-  // Cambios de precio pedidos desde el celular: los datos viven en la ventana (renderer), así que se le pasa el pedido y ella los aplica
-  // (con sus permisos y su historial) y contesta. Sin ventana de datos (pantalla de ingreso, sin respuesta en 10 s) quedan pendientes.
-  const esperaPrecios = new Map(); let ridPrecios = 0;
-  const aplicarPrecios = lista => new Promise(res => {
-    if (!win || win.isDestroyed() || win.webContents.isLoading()) return res(null);
-    const rid = ++ridPrecios, t = setTimeout(() => { esperaPrecios.delete(rid); res(null); }, 10000);
-    esperaPrecios.set(rid, r => { clearTimeout(t); res(r); }); win.webContents.send('precios:aplicar', rid, lista);
-  });
-  ipcMain.on('precios:resultado', (e, rid, r) => {
-    const f = esperaPrecios.get(rid); if (!f) return; esperaPrecios.delete(rid);
-    const res = Array.isArray(r) ? r.filter(x => x && typeof x.id === 'string' && ['aplicado', 'rechazado'].includes(x.estado)) : null;
-    (res || []).forEach(x => usr.audit({ id: null, user: 'dueño desde el celular' }, 'precio.celular', x.id + ': ' + x.estado + (x.motivo ? ' (' + x.motivo + ')' : '')));
-    f(res);
-  });
+  // Cambios de precio pedidos por el dueño desde el celular: nube.js trae el pedido autenticado con el token de esta instalación y
+  // se aplica ACÁ, en el proceso principal, con la autoridad del dueño (no la del usuario que tenga la sesión abierta en la PC). La
+  // ventana no decide nada ni puede crear pedidos (no hay ningún canal de la ventana hacia acá): solo recibe el aviso para refrescar.
+  const aplicadorPrecios = require('./precios-remoto')({ leer: () => store.snapshot(), guardar: (s, base) => store.put(s, base), rev: () => store.rev() });
+  const aplicarPrecios = lista => {
+    let r; try { r = aplicadorPrecios(lista); } catch (x) { r = null; }
+    if (!r) return null;
+    r.resultados.forEach(x => usr.audit({ id: null, user: 'dueño desde el celular' }, 'precio.celular', x.id + ': ' + x.estado + (x.motivo ? ' (' + x.motivo + ')' : '')));
+    if (r.cambios.length && win && !win.isDestroyed()) win.webContents.send('precios:cambiados', { cambios: r.cambios, rev: r.rev, ajustes: r.ajustes, ajid: r.ajid, preciosCel: r.preciosCel });
+    return r.resultados;
+  };
   const nube = require('./nube')({ aplicar: aplicarPrecios, leer: () => store.snapshot(), getCfg: () => principal.getConfig(), setCfg: p => principal.setConfig(p), servidor: defaults().nube || '',
     proteger: t => safeStorage.isEncryptionAvailable() ? 'ss:' + safeStorage.encryptString(t).toString('base64') : t,
     desproteger: t => String(t).startsWith('ss:') ? safeStorage.decryptString(Buffer.from(String(t).slice(3), 'base64')) : t });

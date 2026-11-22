@@ -1931,23 +1931,17 @@ if(NB.ok()){const n=$('[data-sub="n"]');n.insertAdjacentHTML('beforeend',`<detai
   $('#nb_kf').onsubmit=async ev=>{ev.preventDefault();const a=$('#nb_k1').value,b=$('#nb_k2').value,er=NB.errClave(a,(db.shop&&db.shop.n)||'');if(er){$('#nb_k1').focus();return toast(er)}if(a!==b){$('#nb_k2').focus();return toast('Las dos claves no coinciden')}
     $('#nb_kg').disabled=true;try{const r=await sp.nube.call('cambiarClave',a);if(r&&r.ok){kForm(false);toast('Listo: la clave del panel cambió')}else toast(r&&r.err||'No se pudo cambiar la clave')}finally{$('#nb_kg').disabled=false}};
   $('#nb').addEventListener('toggle',()=>NB.draw());MODS.push(NB.draw)}
-// ---- Cambios de precio pedidos desde el celular (los manda el programa principal, ver nube.js) ----
-// Cada pedido trae id, producto, precio nuevo y el precio que vio el dueño. Se aplica UNA sola vez (db.preciosCel recuerda los ya
-// resueltos), solo si el precio de acá sigue siendo el que vio el dueño; si cambió acá, se rechaza y el panel avisa.
-// Respeta los permisos: si quien tiene la sesión no puede editar productos, no se toca nada y el pedido queda pendiente.
+// ---- Cambios de precio pedidos por el dueño desde el celular ----
+// Los aplica el proceso principal (ver precios-remoto.js) y acá solo se refleja lo hecho, sin pisar lo que el usuario está tocando:
+// se actualiza el precio en memoria, el historial y la versión, y se avisa con un cartelito. No se redibuja si hay una ventana abierta.
 const PCEL={};
-PCEL.aplicar=lista=>{if(!Array.isArray(lista)||(!can('productos','editar')))return[];
-  db.preciosCel=db.preciosCel||[];const res=[];let hubo=false;
-  lista.forEach(c=>{if(!c||typeof c.id!=='string')return;const ya=db.preciosCel.find(x=>x.id===c.id);if(ya){res.push({id:c.id,estado:ya.estado,motivo:ya.motivo});return}
-    const p=db.prods.find(x=>x.id===c.pid);let r;
-    if(!p)r={estado:'rechazado',motivo:'El producto ya no existe en el local'};
-    else if(typeof c.precio!=='number'||!isFinite(c.precio)||!(c.precio>0)||c.precio>1e7)r={estado:'rechazado',motivo:'Precio inválido'};
-    else if(typeof c.visto!=='number'||Math.abs(p.price-c.visto)>0.004)r={estado:'rechazado',motivo:'El precio cambió en el local, revisalo'};
-    else{const antes=p.price;p.price=c.precio;ajuste({tipo:'producto.precio',pid:p.id,user:'dueño desde el celular',txt:`${p.name}: precio ${fmt(antes)} → ${fmt(c.precio)} (dueño desde el celular)`});r={estado:'aplicado',motivo:''}}
-    db.preciosCel.push({id:c.id,pid:c.pid,estado:r.estado,motivo:r.motivo,date:new Date().toISOString()});res.push({id:c.id,...r});hubo=true});
-  if(db.preciosCel.length>300)db.preciosCel.splice(0,db.preciosCel.length-300);
-  if(hubo)save();return res};
-if(ED&&sp.precios)sp.precios.alAplicar(PCEL.aplicar);
+PCEL.refrescar=info=>{if(!info||!Array.isArray(info.cambios)||!info.cambios.length)return;
+  info.cambios.forEach(c=>{const p=db.prods.find(x=>x.id===c.pid);if(p)p.price=c.precio});
+  if(Array.isArray(info.ajustes)){db.ajustes=info.ajustes;db.ajid=info.ajid}if(Array.isArray(info.preciosCel))db.preciosCel=info.preciosCel;
+  if(typeof info.rev==='number'){rev=info.rev;db.rev=info.rev}
+  const c0=info.cambios[0];toast('El dueño cambió el precio de '+c0.nombre+' desde el celular'+(info.cambios.length>1?' (y '+(info.cambios.length-1)+' más)':''));
+  if(!document.querySelector('.ov'))draw()};
+if(ED&&sp.precios)sp.precios.alCambiar(PCEL.refrescar);
 </script>
 <script>
 // ===== Interfaz simple: lo que casi nadie usa queda guardado detrás de un solo interruptor =====
