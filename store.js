@@ -60,12 +60,15 @@ module.exports = function ({ dataFile, configFile, docsDir, home, defaults = {},
     return s;
   }
   // Guarda solo si quien guarda partió de la versión actual (si no, otro dispositivo cambió los datos antes).
-  function put(str, base) {
+  // `autorizar(anterior, nuevo)` (opcional): controla los permisos del usuario por colección; devuelve un mensaje si no puede.
+  function put(str, base, autorizar) {
     if (ilegible) return { ok: false, err: 'Los datos están cifrados y la clave no los abre: no se guarda nada' };
     if (base !== rev) return { ok: false, conflict: true, rev };
     let o; try { o = JSON.parse(str) } catch (e) { return { ok: false, err: 'datos inválidos' } }
     if (!o || !Array.isArray(o.prods)) return { ok: false, err: 'datos inválidos' };
-    { let prev = null; try { prev = JSON.parse(snapshot() || 'null'); } catch (e) {} const err = validar(prev, o); if (err) return { ok: false, err }; }   // reglas de negocio controladas en el proceso principal
+    { let prev = null; try { prev = JSON.parse(snapshot() || 'null'); } catch (e) {} const err = validar(prev, o); if (err) return { ok: false, err };   // reglas de negocio controladas en el proceso principal
+      const sin = autorizar && autorizar(prev, o); if (sin) return { ok: false, permiso: true, err: sin };
+      if (prev && prev.usuariosActivos) o.usuariosActivos = true; }   // la marca de "usuarios activados" no la borra un guardado
     rev++; o.rev = rev;
     const out = JSON.stringify(o); write(out);
     if (hook) { try { hook(out) } catch (e) {} }
@@ -107,6 +110,13 @@ module.exports = function ({ dataFile, configFile, docsDir, home, defaults = {},
   const getConfig = () => cfg();
   function setConfig(patch) { fs.mkdirSync(path.dirname(configFile), { recursive: true }); fs.writeFileSync(configFile, JSON.stringify({ ...cfg(), ...patch })); }
   function setKey(k) { const s = snapshot(); key = k ? Buffer.from(k) : null; if (s) write(s); }   // se lee con la clave vieja y se reescribe con la nueva
+  // Prueba una clave sin reescribir nada: abre el archivo cifrado con ella (o, si no está cifrado, alcanza con poder leerlo).
+  function probarClave(k) {
+    try { const t = crudo(dataFile); if (!t.startsWith(MAGIC)) return !!JSON.parse(t).prods; return !!JSON.parse(abrir(Buffer.from(k), Buffer.from(t.slice(MAGIC.length), 'base64'))).prods; } catch (e) { return false; }
+  }
+  // Marca dentro de los datos (cifrada si el cifrado está activo) de que el programa usa inicio de sesión (E4). No cambia la versión.
+  const marcaUsuarios = () => { try { return !!JSON.parse(texto(dataFile)).usuariosActivos; } catch (e) { return false; } };
+  function marcarUsuarios() { try { const o = JSON.parse(texto(dataFile)); if (!o || !o.prods || o.usuariosActivos) return; o.usuariosActivos = true; write(JSON.stringify(o)); } catch (e) {} }
   const tam = () => { try { return fs.statSync(dataFile).size } catch (e) { return 0 } };
-  return { tam, onPut: f => { hook = f }, setKey, cifrado, snapshotProtegido, esProtegido, load, write, put, rev: () => rev, snapshot, backup, info, setDir, restoreFrom, getConfig, setConfig };
+  return { probarClave, marcaUsuarios, marcarUsuarios, tam, onPut: f => { hook = f }, setKey, cifrado, snapshotProtegido, esProtegido, load, write, put, rev: () => rev, snapshot, backup, info, setDir, restoreFrom, getConfig, setConfig };
 };

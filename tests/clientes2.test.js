@@ -26,7 +26,7 @@ const assert = require('assert'), { web } = require('./helpers.js');
   assert(!J(`CL.crearPlan(${A},{monto:0,n:3,primer:'${hoy}'})`).ok);
   const ics = ev(`CL.ics(cl$(${A}))`); assert((ics.match(/BEGIN:VEVENT/g) || []).length === 2 && /TRIGGER:-P1D/.test(ics)); assert(/FN:Ana/.test(ev(`CL.vcf([cl$(${A})])`)));
   // fidelización: puntos, canje y nivel
-  ev('db.cfg.fidel=undefined;const f=CL.fid();f.on=true;f.minCanje=10;f.pesosPorPunto=100;'); const pts = seg(B).puntos; assert.strictEqual(pts, 5);
+  ev('db.cfg.fidel=undefined;const f=db.cfg.fidel=CL.fid();f.on=true;f.minCanje=10;f.pesosPorPunto=100;'); const pts = seg(B).puntos; assert.strictEqual(pts, 5);
   assert(!J(`CL.canjear(${B},3)`).ok, 'bajo el mínimo'); ev('CL.fid().minCanje=2'); assert(!J(`CL.canjear(${B},9)`).ok, 'más de los que tiene'); assert(J(`CL.canjear(${B},4)`).ok);
   assert.strictEqual(seg(B).puntos, 1); assert.strictEqual(ev(`debtOf(${B})`), -4, 'queda saldo a favor'); assert.strictEqual(seg(A).nivel.n, 'Bronce'); venta(A, 2, 40000); assert.strictEqual(seg(A).nivel.n, 'Plata', '610 puntos acumulados'); assert.strictEqual(seg(A).nivel.desc, 3);
   // límite de crédito en Ventas
