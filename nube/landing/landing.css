@@ -147,27 +147,28 @@ html.fx [data-revela].is-visivel { opacity: 1; transform: none; }
 .importar { --hm: 1; }
 
 /* números grandes sobre tinta: entran desenfocados en horizontal (efectos.js) */
-.numeros { background: #12233d; color: #f4f6fa; padding: clamp(72px, 14vh, 160px) 0; overflow: hidden; }
+/* la franja crece con su contenido: sin altura fija (el kit fija main > section a 100svh) y con aire abajo */
+main > section.numeros { height: auto !important; min-height: 0 !important; background: #12233d; color: #f4f6fa; padding-block: clamp(72px, 14vh, 160px) !important; overflow: hidden; }
 .numeros .wrap { display: grid; gap: clamp(40px, 8vh, 96px); }
-.numero { grid-column: 1 / -1; display: grid; gap: var(--s-4); max-width: 60ch; }
-.numero--b { justify-self: end; text-align: right; }
+.numero { grid-column: 1 / -1; display: grid; gap: var(--s-4); width: min(100%, 38rem); text-align: left; }
+.numero--b { justify-self: end; }
 .numero__valor { margin: 0; font: 600 clamp(88px, 16vw, 260px)/.86 var(--font-display); letter-spacing: -0.05em; font-variant-numeric: tabular-nums; }
-.numero__leyenda { margin: 0; color: #f4f6fa; font-size: 18px; max-width: 34ch; }
+.numero__leyenda { margin: 0; color: #f4f6fa; font-size: 18px; max-width: 34ch; text-wrap: pretty; }
 .numero--b .numero__leyenda { justify-self: end; }
 @media (max-width: 767px) { .numero__valor { font-size: clamp(72px, 24vw, 120px); } }
 
 
 /* botón "Reducir movimiento" */
-.mov { font: inherit; font-size: 14px; color: inherit; background: transparent; border: 1px solid currentColor; border-radius: 99px; padding: 8px 14px; cursor: pointer; opacity: .85; }
+.mov { white-space: nowrap; min-height: 44px; font: inherit; font-size: 14px; color: inherit; background: transparent; border: 1px solid currentColor; border-radius: 99px; padding: 8px 14px; cursor: pointer; opacity: .85; }
 .mov:hover { opacity: 1; }
 .mov[aria-pressed="true"] { background: #12233d; color: #f4f6fa; border-color: #12233d; opacity: 1; }
 .pie .mov[aria-pressed="true"] { background: #f4f6fa; color: #12233d; border-color: #f4f6fa; }
 .nav__actions .mov { margin-right: 8px; }
-@media (max-width: 1023px) { .nav__actions .mov { display: none; } }
+@media (max-width: 1179px) { .nav__actions .mov { display: none; } }
 
 /* hero con la figura del mostrador (estructura del hero de Norte: palabra gigante detrás, objeto al centro, un dato a cada lado, botón al centro) */
-.hero { position: relative; min-height: 100svh; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, min(720px, 50vw)) minmax(0, 1fr); grid-template-areas: "izq fig der" "izq acc der"; align-items: center; column-gap: var(--s-6); padding: calc(var(--nav) + 24px) clamp(20px, 5.6vw, 80px) 40px; overflow: hidden; padding-inline: clamp(20px, 5.6vw, 80px) !important; }
-.hero__palabra { position: absolute; left: 0; right: 0; top: calc(var(--nav) + 4svh); margin: 0; text-align: center; font: 700 clamp(160px, 27vw, 460px)/.8 var(--font-display); letter-spacing: -0.06em; color: transparent; -webkit-text-stroke: 2px #cdd5e3; user-select: none; pointer-events: none; }
+.hero { position: relative; min-height: 100svh; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, min(720px, 50vw)) minmax(0, 1fr); grid-template-areas: "izq fig der" "izq acc der"; align-items: center; column-gap: var(--s-6); padding: calc(var(--nav) + 24px) clamp(20px, 5.6vw, 80px) 40px; overflow: hidden; padding-inline: max(clamp(20px, 5.6vw, 80px), (100vw - 1500px) / 2) !important; }
+.hero__palabra { position: absolute; left: 0; right: 0; top: calc(var(--nav) + 4svh); margin: 0; text-align: center; font: 700 clamp(48px, 16.4vw, 246px)/.8 var(--font-display); letter-spacing: -0.05em; white-space: nowrap; color: transparent; -webkit-text-stroke: 2px #cdd5e3; user-select: none; pointer-events: none; }
 .hero__izq { grid-area: izq; align-self: end; position: relative; max-width: 30ch; }
 .hero__der { grid-area: der; align-self: end; justify-self: end; text-align: right; position: relative; max-width: 26ch; }
 .hero__izq h1 { margin: 0 0 var(--s-4); font-size: clamp(26px, 2.5vw, 40px); line-height: 1.08; letter-spacing: -0.03em; font-weight: 600; text-wrap: balance; }
@@ -177,7 +178,7 @@ html.fx [data-revela].is-visivel { opacity: 1; transform: none; }
 @media (max-width: 1023px) {
   .hero { grid-template-columns: minmax(0, 1fr); grid-template-areas: "izq" "fig" "acc" "der"; row-gap: var(--s-5); text-align: left; }
   .hero__der { justify-self: start; text-align: left; }
-  .hero__palabra { font-size: 31vw; top: calc(var(--nav) + 16svh); }
+  .hero__palabra { position: relative; grid-area: fig; align-self: start; top: auto; left: auto; right: auto; font-size: 16.4vw; margin: 0 calc(-1 * clamp(20px, 5.6vw, 80px)); max-width: none; }
   .hero__izq { max-width: 40ch; }
 }
 /* contraste del botón principal al pasar el mouse y aire interior en las secciones con fondo */
@@ -187,3 +188,4 @@ main > section:not(.sv):not(.hero) { padding-inline: 12px; }
 #funciones [data-blur-progresivo] > .blur-prog { inset: 72% 0 0 0; }
 .hero__rubro { margin-top: var(--s-3) !important; }
 .hero__rubro .xfade { font-weight: 600; color: #12233d; }
+.pie .mov { white-space: normal; text-align: left; max-width: 100%; }
