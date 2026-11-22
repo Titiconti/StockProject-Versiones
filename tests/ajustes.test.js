@@ -70,6 +70,15 @@ function remoto(auth) {
   assert(bloqueados.length > 20 && bloqueados.every(e => e.disabled), 'solo lectura: nada se puede cambiar'); soloVer.click('#gp [data-s=a]');
   assert(soloVer.d.querySelector('input[name=cf_tema]').disabled === false, 'la apariencia sí se puede elegir');
   assert(soloVer.d.querySelector('#bn').disabled === false || soloVer.d.querySelector('#bn').dataset.ro === undefined, 'los respaldos siguen sus propios permisos');
-  assert.deepStrictEqual([a.errs, gerente.errs, soloVer.errs], [[], [], []]);
+  // ---- Respaldo sin Configuración: sigue llegando a lo mismo que antes (Reportes > Herramientas) ----
+  const soloResp = remoto(estado('gerente', { ...mat('gerente'), configuracion: [], respaldo: ['ver', 'crear'] })); assert(!soloResp.$('nav button[data-t=g]').classList.contains('hide'), 'con permiso de respaldo se ofrece Configuración');
+  soloResp.tab('g'); assert.deepStrictEqual([...soloResp.d.querySelectorAll('#gp button:not(.hide)')].map(b => b.dataset.s), ['r'], 'solo ve Respaldos');
+  assert(soloResp.$('#sg_ed').classList.contains('hide') && soloResp.$('#cfg_priv').classList.contains('hide') && soloResp.$('#cfg_ro').classList.contains('hide'), 'no ve cifrado ni privacidad ni aviso');
+  const intento = (r, id) => { r.$('#toast').textContent = ''; r.d.querySelector('#' + id).dispatchEvent(new r.w.MouseEvent('click', { bubbles: true })); return /no tiene permiso/.test(r.$('#toast').textContent); };
+  assert(!intento(soloResp, 'bn') && !intento(soloResp, 'bx'), 'puede respaldar y descargar'); assert(intento(soloResp, 'bc') && intento(soloResp, 'br'), 'no puede cambiar carpeta ni restaurar (sus permisos)');
+  const sinNada = remoto(estado('gerente', { ...mat('gerente'), configuracion: [], respaldo: [] })); assert(sinNada.$('nav button[data-t=g]').classList.contains('hide'), 'sin ninguno de los dos permisos no ve Configuración');
+  const matriz = { ver: ['bx'], crear: ['bn'], editar: ['bc'], eliminar: ['br'] };
+  for (const [acc, ids] of Object.entries(matriz)) { const r = remoto(estado('gerente', { ...mat('gerente'), configuracion: ['ver'], respaldo: [acc] })); r.tab('g'); r.click('#gp [data-s=r]'); ['bx', 'bn', 'bc', 'br'].forEach(id => assert.strictEqual(intento(r, id), !ids.includes(id), `respaldo:${acc} -> #${id}`)); }
+  assert.deepStrictEqual([a.errs, gerente.errs, soloVer.errs, soloResp.errs], [[], [], [], []]);
   console.log('ajustes OK (' + total + ' ajustes ubicados)'); process.exit(0);
 })().catch(e => { console.error(e); process.exit(1); });

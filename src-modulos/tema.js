@@ -26,7 +26,7 @@ header{background:var(--ink);border:0;color:#fff;box-shadow:0 1px 0 rgba(255,255
 .logo{display:inline-flex;align-items:center;gap:10px;color:#fff;font-size:17px;font-weight:400;letter-spacing:-.01em}.wm{font-family:"Chivo","Segoe UI",sans-serif;letter-spacing:-.03em}.wm b{font-weight:700}
 nav button,#masb{color:rgba(255,255,255,.74);font-weight:500;border-radius:10px;display:inline-flex;align-items:center;gap:10px;transition:background .15s,color .15s}
 nav button::before{content:"";flex:none;width:18px;height:18px;background:currentColor;-webkit-mask:var(--i) center/contain no-repeat;mask:var(--i) center/contain no-repeat;opacity:.9}
-nav button:hover,#masb:hover{background:rgba(255,255,255,.08);color:#fff}nav button.on,#masb.on{background:rgba(255,255,255,.13);color:#fff;box-shadow:inset 3px 0 0 var(--ok)}
+nav button:hover,#masb:hover{background:rgba(255,255,255,.08);color:#fff}nav button.on,#masb.on{background:rgba(255,255,255,.16);color:#fff}
 #masmenu{background:var(--ink2);border-color:rgba(255,255,255,.12)}
 #ses .mu{color:rgba(255,255,255,.7)}header .btn.sec{background:rgba(255,255,255,.08);color:#fff;border-color:rgba(255,255,255,.16)}
 main{max-width:1320px;padding:18px 20px 40px}
@@ -88,7 +88,7 @@ html.anim #pht{animation:tmIn .3s var(--ease)}html.anim #cart .row{animation:tmI
 #gp{display:flex;flex-direction:column;gap:2px;margin:0}
 #gp button{text-align:left;border:0;background:none;color:var(--mu);padding:9px 12px;border-radius:10px;font:inherit;font-weight:500;cursor:pointer;transition:background .15s,color .15s}
 #gp button:hover{background:color-mix(in srgb,var(--ac) 9%,transparent);color:var(--tx)}
-#gp button.on{background:color-mix(in srgb,var(--ac) 15%,transparent);color:var(--tx);font-weight:600;box-shadow:inset 3px 0 0 var(--ac)}
+#gp button.on{background:color-mix(in srgb,var(--ac) 15%,transparent);color:var(--tx);font-weight:600}
 #gp button:focus-visible,.cfg-r:focus-visible,.cfg-q input:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
 .cfg-pane>h2,.cfg-rt{margin:0 0 4px;font:700 22px/1.2 "Chivo","Segoe UI",system-ui,sans-serif;letter-spacing:-.02em}
 .cfg-i{margin:0 0 16px;font-size:14px}.cfg-e{margin:-2px 0 12px;font-size:13.5px}.cfg-gt{margin:22px 0 8px;font-size:16px}
@@ -104,6 +104,10 @@ html.anim #pht{animation:tmIn .3s var(--ease)}html.anim #cart .row{animation:tmI
 .cfg-r{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;padding:12px 14px;border:1px solid var(--bd);border-radius:12px;background:var(--card);color:var(--tx);font:inherit;cursor:pointer}.cfg-r:hover{border-color:var(--ac)}.cfg-r .mu{font-size:13px}
 .cfg-flash{animation:cfgFlash 1.6s ease-out}@keyframes cfgFlash{0%,35%{box-shadow:0 0 0 3px var(--ac)}100%{box-shadow:var(--sh)}}
 #sg_ed .grid{grid-template-columns:1fr}
+::placeholder{color:var(--mu);opacity:1}
+.tag{color:color-mix(in srgb,var(--ok) 78%,var(--tx))}.tag.low{color:color-mix(in srgb,var(--warn) 78%,var(--tx))}.tag.out{color:color-mix(in srgb,var(--bad) 78%,var(--tx))}.p em{color:color-mix(in srgb,var(--ac) 85%,var(--tx))}
+#cf_av .opt,#g_tabs .opt,#g_ws .opt{border:0;padding:5px 2px;margin:0}
+.cfg-det{margin-top:10px;border-top:1px solid var(--bd);padding-top:10px}.cfg-det>summary{font-size:14.5px}
 @media(max-width:899px){.cfg{grid-template-columns:1fr;gap:14px}.cfg-nav{position:static}#gp{flex-direction:row;flex-wrap:wrap}}
 @media print{#splash,#ph,#sello,#barrido{display:none!important}}
 `;

@@ -661,7 +661,7 @@ const MODT={v:'ventas',i:'inventario',p:'productos',o:'pedidos',c:'clientes',e:'
 // Qué permiso exige cada botón que modifica datos (el servidor y el programa de escritorio vuelven a controlar el guardado).
 const GATE=[['#cobrar','ventas','crear'],['[data-v]','ventas','eliminar'],['[data-c]','ventas','eliminar'],['#fg',()=>editId?['productos','editar']:['productos','crear']],['#inv [data-d]','productos','eliminar'],['#lg','inventario','editar'],['#lb button','inventario','eliminar'],['#cg',()=>cEd?['clientes','editar']:['clientes','crear']],['#cli [data-d]','clientes','eliminar'],['#cpay','clientes','editar'],['#cdet [data-p]','clientes','eliminar'],['#cdet [data-g]','clientes','eliminar'],['#cpall','clientes','editar'],['#eg','escuela','crear'],['#og','pedidos','crear'],['#ol button','pedidos','editar'],['#bn','respaldo','crear'],['#bc','respaldo','editar'],['#br','respaldo','eliminar'],['#bx','respaldo','ver'],];
 let relevante=()=>true;
-const navVis=t=>t==='h'?relevante(t):can(MODT[t],'ver')&&relevante(t);
+const navVis=t=>t==='h'?relevante(t):t==='g'?(can('configuracion','ver')||can('respaldo','ver'))&&relevante(t):can(MODT[t],'ver')&&relevante(t);   // Configuración también se abre con solo el permiso de respaldo (ve nada más que los respaldos)
 function navRefresh(){$$('nav button').forEach(b=>{const t=b.dataset.t;if(t==='u'){b.classList.toggle('hide',!(AU.habilitado||EDA));b.textContent=can('usuarios','ver')&&AU.habilitado?'Usuarios':AU.habilitado?'Mi cuenta':'Usuarios'}else b.classList.toggle('hide',!navVis(t))});masRefresh()}
 function initAuth(){
   if(KIND==='local')return;
@@ -882,9 +882,9 @@ CF.activa=leg=>CF.sub===leg||(CF.LEG[CF.sub]||[]).includes(leg);
 CF.norm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
 CF.hayUsuarios=()=>{const b=$('nav button[data-t=u]');return !!b&&!b.classList.contains('hide')};
 // Secciones que el usuario actual puede ver: sin tarjetas (p. ej. Mercado Pago o ARCA fuera del programa instalado) no hay nada que mostrar.
-CF.visibles=()=>CF.SECS.filter(s=>s==='u'?CF.hayUsuarios():!!$(`[data-sub="${s}"] .card, [data-sub="${s}"] [data-libre]`));
+CF.visibles=()=>!can('configuracion','ver')?['r']:CF.SECS.filter(s=>s==='u'?CF.hayUsuarios():!!$(`[data-sub="${s}"] .card, [data-sub="${s}"] [data-libre]`));
 // Sin permiso para editar la configuración se ve todo pero no se cambia nada (la apariencia es personal y siempre se puede elegir).
-CF.permisos=()=>{const ro=!can('configuracion','editar');$('#cfg_ro').classList.toggle('hide',!ro);
+CF.permisos=()=>{const ro=!can('configuracion','editar');$('#cfg_ro').classList.toggle('hide',!ro||!can('configuracion','ver'));
   $$('#g .cfg-pane').forEach(p=>{if(p.dataset.sub==='a')return;p.querySelectorAll('input,select,textarea,button').forEach(el=>{if(el.closest('[data-libre]'))return;if(ro){if(!el.disabled){el.disabled=true;el.dataset.ro='1'}}else if(el.dataset.ro){el.disabled=false;delete el.dataset.ro}})})};
 // Preferencias de este equipo (tema, animaciones, atajos, avisos): las mismas de la campana, se reflejan acá.
 CF.sincPrefs=()=>{if(typeof AV==='undefined')return;const P=AV.prefs();$$('input[name=cf_tema]').forEach(r=>r.checked=r.value===AV.temaActual());
@@ -903,11 +903,11 @@ CF.drawCfg=()=>{if($('#g').classList.contains('hide'))return;
   if(document.activeElement!==$('#g_gc'))$('#g_gc').value=CF.gastosCats().join(', ');
   if(nueva)$('#g_mb').value=(db.cfg.motivosBaja||[]).join(', ');
   if(CF.sub==='u'){const u=AU.usuario;$('#cfg_usr_e').innerHTML=AU.habilitado?`Los usuarios están activados.${u?` Ingresaste como <b>${esc(u.nombre||u.usuario||'')}</b> (${esc((typeof ROLN!=='undefined'&&ROLN[u.rol])||u.rol||'')}).`:''}`:'Todavía no activaste usuarios: cualquiera que abra el programa ve y modifica todo.'}
-  CF.sincPrefs();if(CF.sub==='r')CF.drawSeg();
+  CF.sincPrefs();if(CF.sub==='r')CF.drawSeg();if(!can('configuracion','ver'))$('#cfg_ro').classList.add('hide');
   [...new Set([CF.sub,...(CF.LEG[CF.sub]||[])])].forEach(l=>Object.values(CF.extras).forEach(f=>{try{f(l,nueva)}catch(x){console.error(x)}}));
   CF.permisos();if(q)CF.buscar(q);
   if(nueva&&!CF._busc)window.scrollTo(0,0);CF._busc=false};
-CF.drawSeg=async()=>{const hay=EDA&&sp.seg;$('#sg_ed').classList.toggle('hide',!hay);$('#sg_pel').classList.toggle('hide',!hay);if(!hay)return;const s=await sp.seg.estado();
+CF.drawSeg=async()=>{const sinCfg=!can('configuracion','ver');$('#cfg_priv').classList.toggle('hide',sinCfg);const hay=EDA&&sp.seg&&!sinCfg;$('#sg_ed').classList.toggle('hide',!hay);$('#sg_pel').classList.toggle('hide',!hay);if(!hay)return;const s=await sp.seg.estado();
   $('#sg_c').innerHTML=s.disponible?(s.activo?'<span class="tag">Activado</span> Tus datos y respaldos se guardan cifrados (AES-256).':'<span class="tag out">Desactivado</span> Los datos se guardan sin cifrar en este equipo.'):'Windows no ofrece protección de claves en este equipo; el cifrado no está disponible.';
   $('#sg_on').classList.toggle('hide',!s.disponible||s.activo);$('#sg_off').classList.toggle('hide',!s.activo);$('#sg_off').closest('.aj').classList.toggle('hide',!s.activo);};
 // ---- Buscador de ajustes: busca en el título, la explicación y palabras clave de cada tarjeta, sin distinguir tildes ni mayúsculas ----
@@ -2059,13 +2059,13 @@ BZ.escaneo=code=>{code=String(code||'').trim();if(!BZ.esEtiqueta(code)||!db.cfg.
 {const n=$('#cfg_bal');if(n){
   n.insertAdjacentHTML('beforeend',`<div class="card" id="bz_d" data-kw="balanza etiqueta codigo de barras peso plantilla"><h3>Balanza: etiquetas con código de barras</h3>
 <p class="mu cfg-e">Si tu balanza imprime etiquetas con código de barras (empiezan con 2), el lector arma la venta solo. Cada producto por peso lleva el "código de balanza" que usa la balanza (en Productos, Opciones del producto).</p>
-<h4 style="margin:10px 0 4px">Asistente: aprender de una etiqueta real</h4>
+<details class="cfg-det"><summary>Configurar la balanza</summary><h4 style="margin:10px 0 4px">Asistente: aprender de una etiqueta real</h4>
 <div class="form"><div><label>Escaneá una etiqueta</label><input id="bz_et" inputmode="numeric" placeholder="13 dígitos"></div><div><label>N.º de producto en la balanza</label><input id="bz_pl" inputmode="numeric" placeholder="Ej.: 123"></div><div><label>Lo que dice la etiqueta</label><input id="bz_vl" inputmode="decimal" placeholder="4500 o 1,125"></div>
 <div><label>Eso es un</label><select id="bz_vt"><option value="importe">Importe ($)</option><option value="peso">Peso (kg)</option></select></div><div><button class="btn sec" id="bz_de">Deducir plantilla</button></div></div><div id="bz_cand"></div>
 <h4 style="margin:10px 0 4px">Plantilla (posiciones del 2 al 12; el 1 es el prefijo)</h4>
 <div class="form"><div><label>El valor es</label><select id="bz_t"><option value="importe">Importe ($)</option><option value="peso">Peso (kg)</option></select></div><div><label>Producto desde el dígito</label><input id="bz_ip" inputmode="numeric" placeholder="2"></div><div><label>Cantidad de dígitos del producto</label><input id="bz_np" inputmode="numeric" placeholder="6"></div><div><label>Valor desde el dígito</label><input id="bz_iv" inputmode="numeric" placeholder="8"></div><div><label>Cantidad de dígitos del valor</label><input id="bz_nv" inputmode="numeric" placeholder="5"></div><div><label>Decimales del valor</label><input id="bz_dc" inputmode="numeric" placeholder="0"></div></div>
 <div style="display:flex;gap:8px;margin:8px 0"><button class="btn" id="bz_gu">Guardar plantilla</button><button class="btn sec" id="bz_qu">Quitar</button></div>
-<div class="form"><div><label>Probar con una etiqueta</label><input id="bz_pr" inputmode="numeric" placeholder="Escaneá o escribí el código"></div></div><p id="bz_rs" class="mu"></p></div>`);
+<div class="form"><div><label>Probar con una etiqueta</label><input id="bz_pr" inputmode="numeric" placeholder="Escaneá o escribí el código"></div></div><p id="bz_rs" class="mu"></p></details></div>`);
   const F=['bz_ip','bz_np','bz_iv','bz_nv','bz_dc'],sin=()=>toast('Tu usuario no tiene permiso para esto');
   const pon=t=>{$('#bz_t').value=t.tipo;[t.iPlu+1,t.nPlu,t.iVal+1,t.nVal,t.dec].forEach((v,i)=>$('#'+F[i]).value=v)};
   const leer=()=>{const v=F.map(id=>PX.num($('#'+id).value));return{iPlu:v[0]-1,nPlu:v[1],iVal:v[2]-1,nVal:v[3],tipo:$('#bz_t').value,dec:v[4]}};
@@ -2245,7 +2245,7 @@ AV.tutorial=()=>{if($('#avtu'))return;document.body.insertAdjacentHTML('beforeen
   const ok=()=>{const o=$('#avtu');if(o)o.remove();AV.set(p=>{p.tutorial=true})};$('#avtu_ok').onclick=ok;$('#avtu').addEventListener('keydown',e=>{if(e.key==='Escape'||e.key==='Enter'){e.preventDefault();e.stopPropagation();ok()}});$('#avtu_ok').focus()};
 AV.primeraVez=()=>{if(KIND==='local'||$('#v').classList.contains('hide')||AV.prefs().tutorial||$('#tour')||$('#cjov'))return;AV.tutorial()};
 // ---------- aplicar preferencias, indicador de guardado y transiciones ----------
-document.head.insertAdjacentHTML('beforeend',`<style id="avcss">#avn{position:absolute;top:-6px;right:-6px;background:var(--bad);color:#fff;border-radius:99px;font-size:11px;min-width:18px;padding:1px 5px;line-height:16px}#avn.hide{display:none}
+document.head.insertAdjacentHTML('beforeend',`<style id="avcss">#avn{position:absolute;top:-6px;right:-6px;background:var(--bad);color:var(--act);border-radius:99px;font-size:11px;min-width:18px;padding:1px 5px;line-height:16px}#avn.hide{display:none}
 #avp{position:absolute;right:0;top:calc(100% + 6px);width:min(360px,92vw);max-height:70vh;overflow:auto;background:var(--card);border:1px solid var(--bd);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.18);padding:12px;z-index:45}#avp.hide{display:none}
 html.anim main>section:not(.hide){animation:spIn .16s ease-out}html.anim .p:active:not(:disabled){transform:scale(.97)}html.anim .btn{transition:transform .08s,opacity .15s}html.anim .btn:active:not(:disabled){transform:scale(.97)}
 @keyframes spIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}@keyframes spPop{from{opacity:0;transform:scale(.98)}to{opacity:1;transform:none}}</style>`);
@@ -2539,7 +2539,7 @@ header{background:var(--ink);border:0;color:#fff;box-shadow:0 1px 0 rgba(255,255
 .logo{display:inline-flex;align-items:center;gap:10px;color:#fff;font-size:17px;font-weight:400;letter-spacing:-.01em}.wm{font-family:"Chivo","Segoe UI",sans-serif;letter-spacing:-.03em}.wm b{font-weight:700}
 nav button,#masb{color:rgba(255,255,255,.74);font-weight:500;border-radius:10px;display:inline-flex;align-items:center;gap:10px;transition:background .15s,color .15s}
 nav button::before{content:"";flex:none;width:18px;height:18px;background:currentColor;-webkit-mask:var(--i) center/contain no-repeat;mask:var(--i) center/contain no-repeat;opacity:.9}
-nav button:hover,#masb:hover{background:rgba(255,255,255,.08);color:#fff}nav button.on,#masb.on{background:rgba(255,255,255,.13);color:#fff;box-shadow:inset 3px 0 0 var(--ok)}
+nav button:hover,#masb:hover{background:rgba(255,255,255,.08);color:#fff}nav button.on,#masb.on{background:rgba(255,255,255,.16);color:#fff}
 #masmenu{background:var(--ink2);border-color:rgba(255,255,255,.12)}
 #ses .mu{color:rgba(255,255,255,.7)}header .btn.sec{background:rgba(255,255,255,.08);color:#fff;border-color:rgba(255,255,255,.16)}
 main{max-width:1320px;padding:18px 20px 40px}
@@ -2601,7 +2601,7 @@ html.anim #pht{animation:tmIn .3s var(--ease)}html.anim #cart .row{animation:tmI
 #gp{display:flex;flex-direction:column;gap:2px;margin:0}
 #gp button{text-align:left;border:0;background:none;color:var(--mu);padding:9px 12px;border-radius:10px;font:inherit;font-weight:500;cursor:pointer;transition:background .15s,color .15s}
 #gp button:hover{background:color-mix(in srgb,var(--ac) 9%,transparent);color:var(--tx)}
-#gp button.on{background:color-mix(in srgb,var(--ac) 15%,transparent);color:var(--tx);font-weight:600;box-shadow:inset 3px 0 0 var(--ac)}
+#gp button.on{background:color-mix(in srgb,var(--ac) 15%,transparent);color:var(--tx);font-weight:600}
 #gp button:focus-visible,.cfg-r:focus-visible,.cfg-q input:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
 .cfg-pane>h2,.cfg-rt{margin:0 0 4px;font:700 22px/1.2 "Chivo","Segoe UI",system-ui,sans-serif;letter-spacing:-.02em}
 .cfg-i{margin:0 0 16px;font-size:14px}.cfg-e{margin:-2px 0 12px;font-size:13.5px}.cfg-gt{margin:22px 0 8px;font-size:16px}
@@ -2617,6 +2617,10 @@ html.anim #pht{animation:tmIn .3s var(--ease)}html.anim #cart .row{animation:tmI
 .cfg-r{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;padding:12px 14px;border:1px solid var(--bd);border-radius:12px;background:var(--card);color:var(--tx);font:inherit;cursor:pointer}.cfg-r:hover{border-color:var(--ac)}.cfg-r .mu{font-size:13px}
 .cfg-flash{animation:cfgFlash 1.6s ease-out}@keyframes cfgFlash{0%,35%{box-shadow:0 0 0 3px var(--ac)}100%{box-shadow:var(--sh)}}
 #sg_ed .grid{grid-template-columns:1fr}
+::placeholder{color:var(--mu);opacity:1}
+.tag{color:color-mix(in srgb,var(--ok) 78%,var(--tx))}.tag.low{color:color-mix(in srgb,var(--warn) 78%,var(--tx))}.tag.out{color:color-mix(in srgb,var(--bad) 78%,var(--tx))}.p em{color:color-mix(in srgb,var(--ac) 85%,var(--tx))}
+#cf_av .opt,#g_tabs .opt,#g_ws .opt{border:0;padding:5px 2px;margin:0}
+.cfg-det{margin-top:10px;border-top:1px solid var(--bd);padding-top:10px}.cfg-det>summary{font-size:14.5px}
 @media(max-width:899px){.cfg{grid-template-columns:1fr;gap:14px}.cfg-nav{position:static}#gp{flex-direction:row;flex-wrap:wrap}}
 @media print{#splash,#ph,#sello,#barrido{display:none!important}}
 `;
@@ -2666,14 +2670,14 @@ FX.on=()=>document.documentElement.classList.contains('anim');
 // Los efectos de lienzo solo se arman si el equipo puede dibujar (en el navegador simulado de las pruebas no se puede).
 FX.lienzo=(()=>{try{const c=document.createElement('canvas');return typeof c.getContext==='function'&&typeof CanvasRenderingContext2D!=='undefined'&&!!c.getContext('2d')}catch(e){return false}})();
 document.head.insertAdjacentHTML('beforeend',`<style id="fxcss">
-header nav{position:relative}header nav>button,header nav #masb{position:relative;z-index:1}#fxind{position:absolute;left:0;top:0;z-index:0;border-radius:10px;background:rgba(255,255,255,.13);box-shadow:inset 3px 0 0 var(--ok);pointer-events:none;opacity:0;display:none}
+header nav{position:relative}header nav>button,header nav #masb{position:relative;z-index:1}#fxind{position:absolute;left:0;top:0;z-index:0;border-radius:10px;background:rgba(255,255,255,.13);pointer-events:none;opacity:0;display:none}
 html.anim #fxind{display:block;transition:transform .38s cubic-bezier(.22,1,.36,1),width .38s cubic-bezier(.22,1,.36,1),height .38s cubic-bezier(.22,1,.36,1),opacity .2s}html.anim header nav.fx-ind>button.on,html.anim header nav.fx-ind #masb.on{background:transparent;box-shadow:none}
 html.anim header{background-image:linear-gradient(180deg,rgba(36,71,249,.22) 0,rgba(36,71,249,0) 260px)}
-html.anim .kpis .card,html.anim #v .p:not(:disabled){background-image:radial-gradient(220px circle at var(--fx-x,-999px) var(--fx-y,-999px),color-mix(in srgb,var(--ac) 10%,transparent),transparent 70%)}
+html.anim .kpis .card,html.anim #v .p:not(:disabled){background-image:radial-gradient(220px circle at var(--fx-x,-999px) var(--fx-y,-999px),color-mix(in srgb,var(--ac) 6%,transparent),transparent 70%)}
 .fx-cu{position:relative;color:transparent!important}.fx-cu::after{content:attr(data-cu);position:absolute;left:0;top:0;white-space:nowrap;color:var(--fx-c,var(--tx))}
 #fxspark{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:160}
 #splash{background-image:radial-gradient(70% 60% at 50% 0,var(--pre2) 0,var(--pre) 60%),radial-gradient(color-mix(in srgb,var(--pre-tx) 7%,transparent) 1px,transparent 1.6px);background-size:auto,22px 22px}
-#splash .wm{background:linear-gradient(110deg,var(--pre-tx) 42%,#6E8BFF 50%,var(--pre-tx) 58%) 100% 0/250% 100% no-repeat;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:tmIn .7s var(--ease) 1.05s both,fxShine 1.2s cubic-bezier(.4,0,.2,1) 1.3s both}
+#splash .wm{color:var(--pre-tx)}
 @keyframes fxShine{from{background-position:100% 0}to{background-position:0 0}}
 @media print{#fxind,#fxspark{display:none!important}}
 </style>`);

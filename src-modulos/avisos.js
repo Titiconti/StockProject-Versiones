@@ -43,7 +43,7 @@ AV.tutorial=()=>{if($('#avtu'))return;document.body.insertAdjacentHTML('beforeen
   const ok=()=>{const o=$('#avtu');if(o)o.remove();AV.set(p=>{p.tutorial=true})};$('#avtu_ok').onclick=ok;$('#avtu').addEventListener('keydown',e=>{if(e.key==='Escape'||e.key==='Enter'){e.preventDefault();e.stopPropagation();ok()}});$('#avtu_ok').focus()};
 AV.primeraVez=()=>{if(KIND==='local'||$('#v').classList.contains('hide')||AV.prefs().tutorial||$('#tour')||$('#cjov'))return;AV.tutorial()};
 // ---------- aplicar preferencias, indicador de guardado y transiciones ----------
-document.head.insertAdjacentHTML('beforeend',`<style id="avcss">#avn{position:absolute;top:-6px;right:-6px;background:var(--bad);color:#fff;border-radius:99px;font-size:11px;min-width:18px;padding:1px 5px;line-height:16px}#avn.hide{display:none}
+document.head.insertAdjacentHTML('beforeend',`<style id="avcss">#avn{position:absolute;top:-6px;right:-6px;background:var(--bad);color:var(--act);border-radius:99px;font-size:11px;min-width:18px;padding:1px 5px;line-height:16px}#avn.hide{display:none}
 #avp{position:absolute;right:0;top:calc(100% + 6px);width:min(360px,92vw);max-height:70vh;overflow:auto;background:var(--card);border:1px solid var(--bd);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.18);padding:12px;z-index:45}#avp.hide{display:none}
 html.anim main>section:not(.hide){animation:spIn .16s ease-out}html.anim .p:active:not(:disabled){transform:scale(.97)}html.anim .btn{transition:transform .08s,opacity .15s}html.anim .btn:active:not(:disabled){transform:scale(.97)}
 @keyframes spIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}@keyframes spPop{from{opacity:0;transform:scale(.98)}to{opacity:1;transform:none}}</style>`);

@@ -111,9 +111,9 @@ CF.activa=leg=>CF.sub===leg||(CF.LEG[CF.sub]||[]).includes(leg);
 CF.norm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
 CF.hayUsuarios=()=>{const b=$('nav button[data-t=u]');return !!b&&!b.classList.contains('hide')};
 // Secciones que el usuario actual puede ver: sin tarjetas (p. ej. Mercado Pago o ARCA fuera del programa instalado) no hay nada que mostrar.
-CF.visibles=()=>CF.SECS.filter(s=>s==='u'?CF.hayUsuarios():!!$(`[data-sub="${s}"] .card, [data-sub="${s}"] [data-libre]`));
+CF.visibles=()=>!can('configuracion','ver')?['r']:CF.SECS.filter(s=>s==='u'?CF.hayUsuarios():!!$(`[data-sub="${s}"] .card, [data-sub="${s}"] [data-libre]`));
 // Sin permiso para editar la configuración se ve todo pero no se cambia nada (la apariencia es personal y siempre se puede elegir).
-CF.permisos=()=>{const ro=!can('configuracion','editar');$('#cfg_ro').classList.toggle('hide',!ro);
+CF.permisos=()=>{const ro=!can('configuracion','editar');$('#cfg_ro').classList.toggle('hide',!ro||!can('configuracion','ver'));
   $$('#g .cfg-pane').forEach(p=>{if(p.dataset.sub==='a')return;p.querySelectorAll('input,select,textarea,button').forEach(el=>{if(el.closest('[data-libre]'))return;if(ro){if(!el.disabled){el.disabled=true;el.dataset.ro='1'}}else if(el.dataset.ro){el.disabled=false;delete el.dataset.ro}})})};
 // Preferencias de este equipo (tema, animaciones, atajos, avisos): las mismas de la campana, se reflejan acá.
 CF.sincPrefs=()=>{if(typeof AV==='undefined')return;const P=AV.prefs();$$('input[name=cf_tema]').forEach(r=>r.checked=r.value===AV.temaActual());
@@ -132,11 +132,11 @@ CF.drawCfg=()=>{if($('#g').classList.contains('hide'))return;
   if(document.activeElement!==$('#g_gc'))$('#g_gc').value=CF.gastosCats().join(', ');
   if(nueva)$('#g_mb').value=(db.cfg.motivosBaja||[]).join(', ');
   if(CF.sub==='u'){const u=AU.usuario;$('#cfg_usr_e').innerHTML=AU.habilitado?`Los usuarios están activados.${u?` Ingresaste como <b>${esc(u.nombre||u.usuario||'')}</b> (${esc((typeof ROLN!=='undefined'&&ROLN[u.rol])||u.rol||'')}).`:''}`:'Todavía no activaste usuarios: cualquiera que abra el programa ve y modifica todo.'}
-  CF.sincPrefs();if(CF.sub==='r')CF.drawSeg();
+  CF.sincPrefs();if(CF.sub==='r')CF.drawSeg();if(!can('configuracion','ver'))$('#cfg_ro').classList.add('hide');
   [...new Set([CF.sub,...(CF.LEG[CF.sub]||[])])].forEach(l=>Object.values(CF.extras).forEach(f=>{try{f(l,nueva)}catch(x){console.error(x)}}));
   CF.permisos();if(q)CF.buscar(q);
   if(nueva&&!CF._busc)window.scrollTo(0,0);CF._busc=false};
-CF.drawSeg=async()=>{const hay=EDA&&sp.seg;$('#sg_ed').classList.toggle('hide',!hay);$('#sg_pel').classList.toggle('hide',!hay);if(!hay)return;const s=await sp.seg.estado();
+CF.drawSeg=async()=>{const sinCfg=!can('configuracion','ver');$('#cfg_priv').classList.toggle('hide',sinCfg);const hay=EDA&&sp.seg&&!sinCfg;$('#sg_ed').classList.toggle('hide',!hay);$('#sg_pel').classList.toggle('hide',!hay);if(!hay)return;const s=await sp.seg.estado();
   $('#sg_c').innerHTML=s.disponible?(s.activo?'<span class="tag">Activado</span> Tus datos y respaldos se guardan cifrados (AES-256).':'<span class="tag out">Desactivado</span> Los datos se guardan sin cifrar en este equipo.'):'Windows no ofrece protección de claves en este equipo; el cifrado no está disponible.';
   $('#sg_on').classList.toggle('hide',!s.disponible||s.activo);$('#sg_off').classList.toggle('hide',!s.activo);$('#sg_off').closest('.aj').classList.toggle('hide',!s.activo);};
 // ---- Buscador de ajustes: busca en el título, la explicación y palabras clave de cada tarjeta, sin distinguir tildes ni mayúsculas ----
