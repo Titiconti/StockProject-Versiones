@@ -2107,7 +2107,8 @@ PM.dibujar=()=>{const box=$('#g_d');if(!box)return;const s=PM.st,v=s.vista,L=s.a
   box.insertAdjacentHTML('beforeend',`<div class="card" id="pm_card" style="margin-top:12px"><h3>Aumento masivo de precios</h3><p class="mu" style="margin-top:0">Subí o bajá los precios de venta con un porcentaje (negativo para bajar). Primero ves una vista previa; no se cambia nada hasta confirmar. Se redondea al peso entero (o a centavos si el precio los tenía).</p><div class="form"><div><label>Porcentaje %</label><input id="pm_pct" inputmode="decimal" value="${esc(s.pct)}" placeholder="ej.: 10 o -5"></div><div><label>Aplicar a</label><select id="pm_alc"><option value="todos" ${s.alc==='todos'?'selected':''}>Todos los productos</option><option value="cat" ${s.alc==='cat'?'selected':''}>Una categoría</option><option value="prov" ${s.alc==='prov'?'selected':''}>Un proveedor</option></select></div>${sel}</div><div style="display:flex;gap:8px;margin:10px 0"><button class="btn sec" id="pm_v">Ver vista previa</button></div>${vp}</div>`)};
 {const r0=MG.render;MG.render=function(){r0.apply(this,arguments);PM.dibujar()}}
 $('#g_d').addEventListener('change',e=>{const t=e.target,s=PM.st;if(!t.id||t.id.slice(0,3)!=='pm_')return;
-  if(t.id==='pm_pct')s.pct=t.value;if(t.id==='pm_alc'){s.alc=t.value;s.val=''}if(t.id==='pm_val')s.val=t.value;s.vista=null;MG.render()});
+  if(t.id==='pm_pct'){s.pct=t.value;if(!s.vista)return}   // sin vista previa no se redibuja: si no, el blur cambia el botón entre mousedown y mouseup y se pierde el clic en Ver vista previa
+  if(t.id==='pm_alc'){s.alc=t.value;s.val=''}if(t.id==='pm_val')s.val=t.value;s.vista=null;MG.render()});
 $('#g_d').addEventListener('click',async e=>{const b=e.target.closest('button'),s=PM.st;if(!b||!b.id||b.id.slice(0,3)!=='pm_')return;
   if(b.id==='pm_v'){const pc=$('#pm_pct');if(pc)s.pct=pc.value;s.vista=PM.calc(s.pct,s.alc,s.val);MG.render()}
   if(b.id==='pm_ok'){if(!UT.chk('productos','editar')||!UT.chk('productos','eliminar'))return;if(EDA&&sp.now)try{await sp.now()}catch(x){}
@@ -2163,6 +2164,8 @@ $('#r').appendChild($('#a'));
 PL.rtab='r';
 PL.verTend=t=>{PL.rtab=t;$$('#r_t button').forEach(x=>x.classList.toggle('on',x.dataset.rt===t));$('#r').classList.toggle('tend',t==='t');$('#a').classList.toggle('hide',t!=='t');if(t==='t'&&typeof AN!=='undefined')AN.draw();else draw()};
 $('#r_t').onclick=e=>{const b=e.target.closest('[data-rt]');if(b)PL.verTend(b.dataset.rt)};
+// Analítica vive dentro de Reportes: si algo activa la pestaña oculta "a" (que no existe sola), se abre Reportes › Tendencias en vez de dejar la pantalla vacía.
+$('nav button[data-t="a"]').onclick=()=>{PL.verTend('t');$('nav button[data-t="r"]').click()};
 MODS.push(()=>{if($('#r').classList.contains('hide'))return;if(PL.rtab==='t'&&$('#a').classList.contains('hide')){$('#a').classList.remove('hide');if(typeof AN!=='undefined')AN.draw()}});
 </script>
 <script>
@@ -2383,7 +2386,7 @@ const FA={e:null,busy:false,qrC:{}};
 FA.ok=()=>ED&&!!sp.arca;
 FA.COND={5:'Consumidor final',1:'Responsable inscripto',6:'Monotributo',4:'Exento',13:'Monotributista social',16:'Monotributo trabajador independiente',15:'IVA no alcanzado',7:'No categorizado'};
 FA.num=f=>String(f.ptoVta).padStart(4,'0')+'-'+String(f.nro).padStart(8,'0');
-FA.nombre=f=>'Factura '+f.letra+' '+FA.num(f);
+FA.nombre=f=>'Factura '+(f.letra||({1:'A',6:'B',11:'C',3:'A',8:'B',13:'C'})[f.tipo]||'')+' '+FA.num(f);
 FA.fecha=iso=>iso&&/^\d{4}-\d{2}-\d{2}$/.test(iso)?iso.split('-').reverse().join('/'):'';
 FA.cargar=async()=>{if(!FA.ok())return FA.e=null;try{FA.e=await sp.arca.estado()}catch(x){FA.e=null}return FA.e};
 // Qué letra se emite: C para monotributo; A (cliente inscripto con CUIT) o B para responsable inscripto.

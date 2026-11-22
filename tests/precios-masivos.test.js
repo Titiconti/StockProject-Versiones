@@ -34,7 +34,7 @@ const assert = require('assert'), ExcelJS = require('exceljs'), { web } = requir
   ev(`AU.habilitado=false`);
 
   // pantalla: vista previa y confirmar
-  a.tab('g'); a.click('#gp [data-s=p]'); a.set('#pm_pct', '20'); a.set('#pm_alc', 'cat'); a.set('#pm_val', 'Limpieza'); a.click('#pm_v');
+  a.tab('g'); a.click('#gp [data-s=p]'); const pmv = $('#pm_v'); a.set('#pm_pct', '20'); assert($('#pm_v') === pmv, 'escribir el porcentaje no redibuja el boton: se perdia el primer clic'); a.set('#pm_alc', 'cat'); a.set('#pm_val', 'Limpieza'); a.click('#pm_v');
   assert(/1 productos cambiarían de precio/.test(a.txt('#pm_card')) && /Jabón/.test(a.txt('#pm_card')), a.txt('#pm_card'));
   assert.deepStrictEqual(precios(), p0, 'la vista previa de pantalla tampoco modifica'); a.click('#pm_ok');
   assert.strictEqual(J('db.prods[2].price'), 144.72); assert.strictEqual(J('db.prods[0].price'), p0[0]);

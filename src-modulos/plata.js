@@ -46,4 +46,6 @@ $('#r').appendChild($('#a'));
 PL.rtab='r';
 PL.verTend=t=>{PL.rtab=t;$$('#r_t button').forEach(x=>x.classList.toggle('on',x.dataset.rt===t));$('#r').classList.toggle('tend',t==='t');$('#a').classList.toggle('hide',t!=='t');if(t==='t'&&typeof AN!=='undefined')AN.draw();else draw()};
 $('#r_t').onclick=e=>{const b=e.target.closest('[data-rt]');if(b)PL.verTend(b.dataset.rt)};
+// Analítica vive dentro de Reportes: si algo activa la pestaña oculta "a" (que no existe sola), se abre Reportes › Tendencias en vez de dejar la pantalla vacía.
+$('nav button[data-t="a"]').onclick=()=>{PL.verTend('t');$('nav button[data-t="r"]').click()};
 MODS.push(()=>{if($('#r').classList.contains('hide'))return;if(PL.rtab==='t'&&$('#a').classList.contains('hide')){$('#a').classList.remove('hide');if(typeof AN!=='undefined')AN.draw()}});

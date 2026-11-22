@@ -6,7 +6,7 @@ const FA={e:null,busy:false,qrC:{}};
 FA.ok=()=>ED&&!!sp.arca;
 FA.COND={5:'Consumidor final',1:'Responsable inscripto',6:'Monotributo',4:'Exento',13:'Monotributista social',16:'Monotributo trabajador independiente',15:'IVA no alcanzado',7:'No categorizado'};
 FA.num=f=>String(f.ptoVta).padStart(4,'0')+'-'+String(f.nro).padStart(8,'0');
-FA.nombre=f=>'Factura '+f.letra+' '+FA.num(f);
+FA.nombre=f=>'Factura '+(f.letra||({1:'A',6:'B',11:'C',3:'A',8:'B',13:'C'})[f.tipo]||'')+' '+FA.num(f);
 FA.fecha=iso=>iso&&/^\d{4}-\d{2}-\d{2}$/.test(iso)?iso.split('-').reverse().join('/'):'';
 FA.cargar=async()=>{if(!FA.ok())return FA.e=null;try{FA.e=await sp.arca.estado()}catch(x){FA.e=null}return FA.e};
 // Qué letra se emite: C para monotributo; A (cliente inscripto con CUIT) o B para responsable inscripto.
