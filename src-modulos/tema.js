@@ -60,11 +60,11 @@ html.anim main>section:not(.hide)>:nth-child(2),html.anim main>section:not(.hide
 html.anim #pht{animation:tmIn .3s var(--ease)}html.anim .ov>.card{animation:tmPop .22s var(--ease)}html.anim #cart .row{animation:tmIn .2s var(--ease)}
 @keyframes tmIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}@keyframes tmUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}@keyframes tmPop{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}@keyframes tmBump{0%{transform:scale(1)}40%{transform:scale(1.045)}100%{transform:scale(1)}}
 /* ---- inicio: la caja se arma, se tapa, la cinta la sella y corre la cinta de carga ---- */
-#splash{position:fixed;inset:0;z-index:200;background:var(--ink);background-image:radial-gradient(60% 50% at 50% 42%,#1D3B6E 0,transparent 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;color:#fff;transition:opacity .38s ease,visibility .38s}#splash.fin{opacity:0;visibility:hidden}
+/* Mismo fondo (color fijo + degradé) que login.html y la cortina #pre de index.html: sin saltos de color entre las tres pantallas. */
+#splash{position:fixed;inset:0;z-index:200;background:#12233D;background-image:radial-gradient(70% 60% at 50% 0,#1D3B6E 0,#12233D 60%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;color:#fff;transition:opacity .7s ease,visibility .7s}#splash.fin{opacity:0;visibility:hidden}
 #splash .lg{width:150px;height:150px;filter:drop-shadow(0 18px 30px rgba(0,0,0,.45))}
-#splash .lg-l{animation:spL .42s var(--ease) both}#splash .lg-r{animation:spR .42s var(--ease) .1s both}#splash .lg-t{animation:spT .42s var(--ease) .26s both}#splash .lg-c{stroke-dasharray:1;animation:spC .36s ease-out .6s both}
-#splash .wm{font-size:40px;line-height:1;animation:tmIn .4s var(--ease) .62s both}#splash .cinta{width:200px;animation:tmIn .3s ease .7s both}
-@keyframes spL{from{opacity:0;transform:translate(-9px,7px)}to{opacity:1;transform:none}}@keyframes spR{from{opacity:0;transform:translate(9px,7px)}to{opacity:1;transform:none}}@keyframes spT{from{opacity:0;transform:translateY(-11px)}to{opacity:1;transform:none}}@keyframes spC{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+#splash .lg-l{animation:spL .7s var(--ease) both}#splash .lg-r{animation:spR .7s var(--ease) .18s both}#splash .lg-t{animation:spT .7s var(--ease) .45s both}#splash .lg-c{stroke-dasharray:1;animation:spC .6s ease-out 1s both}
+#splash .wm{font-size:40px;line-height:1;animation:tmIn .7s var(--ease) 1.05s both}#splash .cinta{width:200px;animation:tmIn .5s ease 1.2s both}@keyframes spL{from{opacity:0;transform:translate(-9px,7px)}to{opacity:1;transform:none}}@keyframes spR{from{opacity:0;transform:translate(9px,7px)}to{opacity:1;transform:none}}@keyframes spT{from{opacity:0;transform:translateY(-11px)}to{opacity:1;transform:none}}@keyframes spC{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
 /* ---- cinta de carga: la espera con el ángulo de la cinta del símbolo ---- */
 .cinta{display:inline-block;height:6px;width:64px;border-radius:3px;background-color:color-mix(in srgb,currentColor 18%,transparent);background-image:repeating-linear-gradient(120deg,currentColor 0 10px,transparent 10px 28px);background-size:32px 100%;animation:tmCinta .9s linear infinite;vertical-align:middle}
 @keyframes tmCinta{from{background-position:0 0}to{background-position:32px 0}}
@@ -94,8 +94,14 @@ MODS.push(TM.titulo);
 // El total "late" cuando cambia.
 {const t=$('#total');let v=t.textContent;new MutationObserver(()=>{if(t.textContent===v)return;v=t.textContent;t.classList.remove('bump');void t.offsetWidth;t.classList.add('bump')}).observe(t,{childList:true,characterData:true,subtree:true})}
 // Animación de inicio (una vez por apertura). Sin animaciones: no se muestra.
-TM.splash=()=>{let on=true;try{on=AV.prefs().anim}catch(e){}if(!on)return;
-  document.body.insertAdjacentHTML('beforeend',`<div id="splash" aria-hidden="true">${TM.MARCA(150)}<span class="cinta"></span></div>`);const s=$('#splash');setTimeout(()=>s.classList.add('fin'),1400);setTimeout(()=>s.parentNode&&s.parentNode.removeChild(s),1850)};
+// Arranque: index.html pinta primero una cortina (#pre) del color de la marca, así nunca se ve la interfaz sin estilos.
+// La cortina se va recién cuando el programa está listo (fuentes cargadas) y pasó un tiempo mínimo, aunque cargue antes.
+TM.listo=()=>Promise.race([(document.fonts&&document.fonts.ready)||Promise.resolve(),new Promise(r=>setTimeout(r,2500))]);
+TM.quitarPre=()=>{const p=$('#pre');if(!p)return;p.classList.add('fin');setTimeout(()=>p.remove(),400)};
+TM.splash=()=>{let on=true;try{on=AV.prefs().anim}catch(e){}
+  if(!on){TM.listo().then(()=>setTimeout(TM.quitarPre,Math.max(0,700-performance.now())));return}
+  document.body.insertAdjacentHTML('beforeend',`<div id="splash" aria-hidden="true">${TM.MARCA(150)}<span class="cinta"></span></div>`);const s=$('#splash');const pr=$('#pre');if(pr)pr.remove();
+  const t0=performance.now();TM.listo().then(()=>{const resta=Math.max(0,2300-(performance.now()-t0));setTimeout(()=>{s.classList.add('fin');setTimeout(()=>s.parentNode&&s.parentNode.removeChild(s),750)},resta)})};
 // Animaciones propias (solo con "Animaciones suaves" activadas).
 TM.anim=()=>document.documentElement.classList.contains('anim');
 TM.efimero=(id,html,ms)=>{const v=$('#'+id);if(v)v.parentNode.removeChild(v);document.body.insertAdjacentHTML('beforeend',html);const e=$('#'+id);setTimeout(()=>{if(e.parentNode)e.parentNode.removeChild(e)},ms)};
