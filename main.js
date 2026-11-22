@@ -57,7 +57,7 @@ function crear() {
 
 app.whenReady().then(() => {
   const ud = app.getPath('userData');
-  const opcionesStore = { docsDir: app.getPath('documents'), home: app.getPath('home'), defaults: defaults() };
+  const opcionesStore = require('./store').opciones(process.env.SP_CARPETA_PRUEBA, defaults(), { documents: () => app.getPath('documents'), home: () => app.getPath('home') });
   const principal = require('./store')({ dataFile: path.join(ud, 'stockproject-data.json'), configFile: path.join(ud, 'config.json'), ...opcionesStore });
   // Varias empresas: `store` apunta siempre a la empresa activa (el resto del programa no se entera del cambio).
   emp = require('./empresas')({ dir: ud, principal, crearStore: o => require('./store')(o), opcionesComunes: opcionesStore });
@@ -131,7 +131,7 @@ app.whenReady().then(() => {
   }));
   // Resumen de ventas en PDF: pide dónde guardarlo, lo genera y lo abre.
   ipcMain.handle('pdf', async (e, html, name) => {
-    const r = await dialog.showSaveDialog(win, { title: 'Guardar resumen en PDF', defaultPath: path.join(app.getPath('documents'), String(name || 'Resumen.pdf')), filters: [{ name: 'PDF', extensions: ['pdf'] }] });
+    const r = await dialog.showSaveDialog(win, { title: 'Guardar resumen en PDF', defaultPath: path.join(opcionesStore.docsDir, String(name || 'Resumen.pdf')), filters: [{ name: 'PDF', extensions: ['pdf'] }] });
     if (r.canceled || !r.filePath) return { ok: false };
     const tmp = path.join(app.getPath('temp'), 'stockproject-resumen-' + Date.now() + '.html');
     const w = new BrowserWindow({ show: false, webPreferences: { sandbox: true } });
@@ -206,7 +206,7 @@ app.whenReady().then(() => {
   ipcMain.handle('seg:copiaProtegida', async (e, pw) => {
     if (!permite('respaldo', 'ver')) return { ok: false, err: 'Sin permiso' };
     if (String(pw || '').length < 8) return { ok: false, err: 'La contraseña de la copia debe tener al menos 8 caracteres' };
-    const r = await dialog.showSaveDialog(win, { title: 'Guardar copia protegida', defaultPath: path.join(app.getPath('documents'), 'StockProject-protegida-' + new Date().toISOString().slice(0, 10) + '.spbak'), filters: [{ name: 'Copia protegida', extensions: ['spbak'] }] });
+    const r = await dialog.showSaveDialog(win, { title: 'Guardar copia protegida', defaultPath: path.join(opcionesStore.docsDir, 'StockProject-protegida-' + new Date().toISOString().slice(0, 10) + '.spbak'), filters: [{ name: 'Copia protegida', extensions: ['spbak'] }] });
     if (r.canceled || !r.filePath) return { ok: false };
     try { fs.writeFileSync(r.filePath, store.snapshotProtegido(pw)); usr.audit(quien(), 'respaldo.exportar_protegido'); return { ok: true, file: r.filePath }; } catch (x) { return { ok: false, err: String(x.message || x) }; }
   });
@@ -286,7 +286,7 @@ app.whenReady().then(() => {
   ipcMain.handle('mp:conciliar', (e, d) => permite('reporte', 'ver') ? mp.conciliar(String(d)) : { ok: false, err: 'Tu usuario no puede ver reportes' });
   ipcMain.handle('b:export', async () => {
     if (!permite('respaldo', 'ver')) return { ok: false };
-    const r = await dialog.showSaveDialog(win, { title: 'Guardar copia de seguridad', defaultPath: path.join(app.getPath('documents'), 'StockProject-copia-' + new Date().toISOString().slice(0, 10) + '.json'), filters: [{ name: 'Copia de StockProject', extensions: ['json'] }] });
+    const r = await dialog.showSaveDialog(win, { title: 'Guardar copia de seguridad', defaultPath: path.join(opcionesStore.docsDir, 'StockProject-copia-' + new Date().toISOString().slice(0, 10) + '.json'), filters: [{ name: 'Copia de StockProject', extensions: ['json'] }] });
     if (r.canceled || !r.filePath) return { ok: false };
     try { fs.writeFileSync(r.filePath, store.snapshot() || '{}'); usr.audit(quien(), 'respaldo.exportar'); return { ok: true, file: r.filePath }; } catch (x) { return { ok: false, err: String(x.message || x) }; }
   });

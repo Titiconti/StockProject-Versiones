@@ -9,7 +9,7 @@ const abrir = (key, b) => { const d = crypto.createDecipheriv('aes-256-gcm', key
 const kdf = (pw, salt) => crypto.scryptSync(String(pw), salt, 32, { N: 16384, r: 8, p: 1 });
 
 const validar = require('./validar');
-module.exports = function ({ dataFile, configFile, docsDir, home, defaults = {}, keep = 30 }) {
+module.exports = function ({ dataFile, configFile, docsDir, home, defaults = {}, keep = 30, sinNube = false }) {
   const crudo = f => fs.readFileSync(f, 'utf8');
   const claro = s => { if (s.startsWith(MAGIC)) { if (!key) throw new Error('datos cifrados y falta la clave'); return abrir(key, Buffer.from(s.slice(MAGIC.length), 'base64')); } return s; };
   const texto = f => claro(crudo(f));
@@ -21,6 +21,7 @@ module.exports = function ({ dataFile, configFile, docsDir, home, defaults = {},
   let rev = 0, key = null;   // key: clave de 32 bytes si el cifrado en reposo está activo   // versión de los datos: sube con cada guardado (detecta cambios hechos desde otro dispositivo)
 
   function detectCloud() {
+    if (sinNube) return null;   // pruebas (SP_CARPETA_PRUEBA): nunca buscar OneDrive, Dropbox ni Google Drive reales
     const c = [process.env.OneDrive, path.join(home, 'OneDrive'), path.join(home, 'Dropbox'),
       path.join(home, 'Google Drive'), path.join(home, 'My Drive')];
     for (let i = 68; i <= 90; i++) { const L = String.fromCharCode(i) + ':\\'; c.push(L + 'My Drive', L + 'Mi unidad'); }
@@ -120,3 +121,6 @@ module.exports = function ({ dataFile, configFile, docsDir, home, defaults = {},
   const tam = () => { try { return fs.statSync(dataFile).size } catch (e) { return 0 } };
   return { probarClave, marcaUsuarios, marcarUsuarios, tam, onPut: f => { hook = f }, setKey, cifrado, snapshotProtegido, esProtegido, load, write, put, rev: () => rev, snapshot, backup, info, setDir, restoreFrom, getConfig, setConfig };
 };
+
+// Solo para pruebas: con SP_CARPETA_PRUEBA=<dir>, Documentos, home y respaldos salen de esa carpeta y no se busca ninguna nube real. Sin la variable, todo igual que siempre.
+module.exports.opciones = (cp, defaults, real) => cp ? { docsDir: path.join(cp, 'Documents'), home: path.join(cp, 'home'), sinNube: true, defaults: { ...defaults, backupDir: path.join(cp, 'Respaldos') } } : { docsDir: real.documents(), home: real.home(), defaults };

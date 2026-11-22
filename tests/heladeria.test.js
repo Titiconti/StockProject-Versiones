@@ -2,7 +2,7 @@
 const assert = require('assert'), fs = require('fs'), path = require('path'), os = require('os'), { web } = require('./helpers');
 (async () => {
   const { w, $, click, set, tab, txt, db, errs } = web();
-  const ev = w.eval.bind(w), toast = () => $('#toast').textContent, P = n => db().prods.find(p => p.name === n), kg = n => P(n).lots.reduce((a, l) => a + l.qty, 0);
+  const ev = w.eval.bind(w), toast = () => $('#toast').textContent, P = n => db().prods.find(p => p.name === n), tot0 = p => p.lots.reduce((a, l) => a + l.qty, 0), kg = n => P(n).lots.reduce((a, l) => a + l.qty, 0);
   const J = c => JSON.parse(ev('JSON.stringify(' + c + ')'));
   assert(ev("RB.aplicar({rubro:'heladeria',r:{},extra:[]}).ok"), 'el rubro heladería se aplica'); ev('draw()');
   assert(ev("PX.on('heladeria')") && ev("PX.on('peso')"));
@@ -23,9 +23,17 @@ const assert = require('assert'), fs = require('fs'), path = require('path'), os
   tab('v'); assert(!w.document.querySelector(`#prods .p[data-id="${P('Chocolate').id}"]`), 'un gusto no se vende suelto');
 
   // ---- tamaños de precio fijo: productos comunes sin stock propio ----
-  assert.strictEqual(ev('HL.ejemplos()'), 4); assert.strictEqual(ev('HL.ejemplos()'), 0, 'no pisa los existentes');
+  assert.strictEqual(ev('HL.ejemplos()'), 0, 'al elegir el rubro ya se cargaron los ejemplos'); assert.strictEqual(ev('HL.ejemplos()'), 0, 'no pisa los existentes');
   assert.deepStrictEqual(db().prods.filter(p => p.tipo === 'tamano').map(p => p.name), ['Cucurucho', '1/4 kg', '1/2 kg', '1 kg']); assert(!db().prods.some(p => p.receta), 'sin receta de gramos');
+  // envases: productos comunes (unidades, stock 0) vinculados a cada tamaño
+  assert.deepStrictEqual(db().prods.filter(p => p.cat === 'Envases').map(p => [p.name, tot0(p)]), [['Cucurucho (envase)', 0], ['Vaso térmico 1/4', 0], ['Vaso térmico 1/2', 0], ['Envase 1 kg', 0]]);
+  assert.deepStrictEqual(['Cucurucho', '1/4 kg', '1/2 kg', '1 kg'].map(n => P(n).env), ['Cucurucho (envase)', 'Vaso térmico 1/4', 'Vaso térmico 1/2', 'Envase 1 kg'].map(n => P(n).id), 'cada tamaño con su envase');
+  assert(/Paletas y otros/.test(ev("JSON.stringify(PX.rubro().cats)")), 'categoría Paletas y otros');
+  tab('v'); assert.strictEqual($(`#prods .p[data-id="${P('1/4 kg').id}"]`).disabled, true, 'sin vasos no se vende'); assert(/Sin vaso térmico 1\/4/.test($(`#prods .p[data-id="${P('1/4 kg').id}"]`).textContent), 'avisa Sin vasos');
+  assert(!w.document.querySelector(`#prods .p[data-id="${P('Vaso térmico 1/4').id}"]`), 'los envases sin precio no se ofrecen en Ventas');
+  ev(`addLot(db.prods.find(p=>p.name==='Vaso térmico 1/4'),'L',3,'');addLot(db.prods.find(p=>p.name==='Cucurucho (envase)'),'L',10,'');draw()`);
   tab('v'); click(`#prods .p[data-id="${P('1/4 kg').id}"]`); click('#cobrar'); assert(/falta el precio/.test(toast()), 'sin precio no se vende');
+  for (let i = 0; i < 4; i++) click(`#prods .p[data-id="${P('1/4 kg').id}"]`); assert(/No quedan vaso térmico 1\/4/.test(toast()), 'no deja agregar más tamaños que envases');
   click('#vaciar'); ev('document.querySelector("#masmenu button[data-t=hl]").click()');
   const tp = $(`#hl_tl [data-tp="${P('Cucurucho').id}"]`); tp.value = '3.000'; tp.dispatchEvent(new w.Event('change', { bubbles: true })); assert.strictEqual(P('Cucurucho').price, 3000);
   const tp4 = $(`#hl_tl [data-tp="${P('1/4 kg').id}"]`); tp4.value = '8000'; tp4.dispatchEvent(new w.Event('change', { bubbles: true })); assert.strictEqual(P('1/4 kg').price, 8000);
@@ -34,10 +42,11 @@ const assert = require('assert'), fs = require('fs'), path = require('path'), os
   // ---- ventas por tamaño: user y caja del empleado, como en el resto del sistema ----
   ev("CJ.abrir(1000,'Caja 1','')"); tab('v'); assert(!w.document.querySelector('#hlbar'), 'sin selector de vendedor');
   click(`#prods .p[data-id="${P('1/4 kg').id}"]`); assert(!$('#pxm'), 'entra directo, sin elegir gustos'); click('#cobrar');
-  let s = db().sales[0]; assert.strictEqual(s.total, 8000); assert.strictEqual(s.user, 'Sin usuario'); assert(!('vend' in s), 'no hay vendedor por venta');
+  let s = db().sales[0]; assert.strictEqual(tot0(P('Vaso térmico 1/4')), 2, 'vender 1/4 descuenta un vaso'); assert.strictEqual(s.total, 8000); assert.strictEqual(s.user, 'Sin usuario'); assert(!('vend' in s), 'no hay vendedor por venta');
   assert(!s.items[0].gustos && !s.items[0].sel, 'la venta no toca los gustos'); assert.strictEqual(kg('Chocolate'), 2000); assert.strictEqual(s.caja, db().cajas[0].id); assert.strictEqual(ev('CJ.calc(CJ.abierta()).vendido'), 8000, 'la caja cuenta la venta');
-  click(`#prods .p[data-id="${P('Cucurucho').id}"]`); click(`#prods .p[data-id="${P('Cucurucho').id}"]`); click('#cobrar'); s = db().sales[1]; assert(s.total === 6000 && s.items[0].qty === 2);
+  click(`#prods .p[data-id="${P('Cucurucho').id}"]`); click(`#prods .p[data-id="${P('Cucurucho').id}"]`); click('#cobrar'); s = db().sales[1]; assert(s.total === 6000 && s.items[0].qty === 2); assert.strictEqual(tot0(P('Cucurucho (envase)')), 8, '2 cucuruchos = 2 envases');
   tab('r'); const sid = db().sales[0].id; click(`#hist [data-v="${sid}"]`); click(`#hist [data-v="${sid}"]`); assert(db().sales[0].void);
+  assert.strictEqual(tot0(P('Vaso térmico 1/4')), 3, 'anular devuelve el vaso'); assert.strictEqual(tot0(P('Cucurucho (envase)')), 8);
   assert.strictEqual(ev('CJ.calc(CJ.abierta()).esperado'), 7000, 'esperado de caja: 1000 + 6000 (la anulada no cuenta)'); assert.strictEqual(db().cajas[0].user, 'Sin usuario');
 
   // ---- conteo de baldes dentro de Inventario (mismas funciones que Más > Heladería) ----
@@ -52,7 +61,28 @@ const assert = require('assert'), fs = require('fs'), path = require('path'), os
   assert.deepStrictEqual([P('Viejo').balde, kg('Viejo')], [1, 1500], '7,5 kg con balde de 5 kg = 1,5 baldes');
   ev('HL.migrar();HL.migrar()'); assert.strictEqual(kg('Viejo'), 1500, 'migrar dos veces no cambia nada'); assert.strictEqual(ev(`HL.baldes(db.prods.find(p=>p.name==='Viejo'))`), 1.5);
   tab('i'); assert(/Viejo\s*1,5 baldes/.test(txt('#hl_ib')), 'se ve 1,5 baldes'); assert(!/\bkg\b|\bg\b|gramos|kilo/i.test(txt('#hl_ib') + txt('#hl_gl') + txt('#hl_hl')), 'ni kilos ni gramos en los baldes');
-  assert(/Viejo[\s\S]*1,5 baldes/.test(txt('#inv')) && !/Viejo[^\n]*\bkg\b/.test(txt('#inv')), 'Inventario muestra baldes, no kg');  // ---- permiso de precios ----
+  assert(/Viejo[\s\S]*1,5 baldes/.test(txt('#inv')) && !/Viejo[^\n]*\bkg\b/.test(txt('#inv')), 'Inventario muestra baldes, no kg');  click(`#inv [data-e="${P('Viejo').id}"]`); assert(/Balde/.test($('#px_u option[value=kg]').textContent) && !/kg/.test($('#px_u option[value=kg]').textContent + $('#fp').previousElementSibling.textContent + $('#fs').previousElementSibling.textContent), 'la ficha de un gusto no habla de kg'); tab('i');
+  // ---- eliminar gustos y tamaños, vincular envases, heladerías ya configuradas sin envase ----
+  ev("db.prods.push({id:db.nid++,name:'Sin vaso',code:'',price:500,cost:0,min:0,tipo:'tamano',cat:'Tamaños',lots:[]});draw()");
+  tab('v'); assert.strictEqual($(`#prods .p[data-id="${P('Sin vaso').id}"]`).disabled, false, 'un tamaño sin envase vinculado se vende como antes');
+  ev('document.querySelector("#masmenu button[data-t=hl]").click()');
+  const chg = (el, v) => { el.value = v; el.dispatchEvent(new w.Event('change', { bubbles: true })); };
+  chg($(`#hl_tl [data-te="${P('Sin vaso').id}"]`), String(P('Vaso térmico 1/2').id)); assert.strictEqual(P('Sin vaso').env, P('Vaso térmico 1/2').id, 'se vincula desde Más > Heladería');
+  chg($(`#hl_tl [data-te="${P('Sin vaso').id}"]`), ''); assert.strictEqual(P('Sin vaso').env, undefined, 'se desvincula');
+  assert(ev(`HL.vincular(${P('Sin vaso').id},${P('Chocolate').id}).err`), 'un gusto no sirve de envase');
+  ev("AU.habilitado=true;AU.usuario={id:9,rol:'empleado',user:'caja',nombre:'Caja'};AU.permisos={ventas:['ver','crear'],inventario:['ver'],productos:['ver','crear','editar']};draw()");
+  assert.strictEqual($(`#hl_gl [data-hd="${P('Viejo').id}"]`).disabled, true, 'sin permiso de eliminar el botón queda deshabilitado'); $(`#hl_gl [data-hd="${P('Viejo').id}"]`).click(); assert(P('Viejo'));
+  ev("AU.permisos.productos=['ver','crear','editar','eliminar'];draw()");
+  const nHist = db().baldes.length, nVentas = db().sales.length, gid = P('Viejo').id;
+  click(`#hl_gl [data-hd="${gid}"]`); assert(P('Viejo'), 'el primer toque solo pide confirmación'); assert(/¿Seguro\?/.test($(`#hl_gl [data-hd="${gid}"]`).textContent));
+  click(`#hl_gl [data-hd="${gid}"]`); assert(!P('Viejo'), 'eliminar gusto'); assert.strictEqual(db().baldes.length, nHist, 'el historial de baldes queda'); assert.strictEqual(db().sales.length, nVentas);
+  const vaso = P('Vaso térmico 1/2').id, tid = P('1/2 kg').id; assert(ev(`HL.eliminar(${vaso}).err`), 'solo gustos y tamaños'); assert.strictEqual(ev(`HL.eliminar(${P('Sin vaso').id}).ok`), true); assert(!P('Sin vaso'), 'eliminar tamaño');
+  const t0 = db().sales.find(x => x.items[0].name === '1/4 kg'); assert(t0 && t0.void, 'las ventas viejas siguen');
+  ev("db.prods=db.prods.filter(p=>p.name!=='Vaso térmico 1/2')"); assert.strictEqual(ev(`avail(db.prods.find(p=>p.id===${tid}))`), 9999, 'si falta el envase el tamaño queda sin vincular y se vende como antes');
+  ev("AU.habilitado=false;draw()");
+  const { proyeccion } = require('../nube'); const fn = JSON.parse(JSON.stringify(proyeccion(db(), Date.now()))).stock;
+  assert.strictEqual(fn.find(x => x.n === 'Vaso térmico 1/4').envase, true, 'el celular sabe qué productos son envases'); assert(!fn.find(x => x.n === 'Chocolate').envase);
+  // ---- permiso de precios ----
   ev("AU.habilitado=true;AU.usuario={id:2,rol:'empleado',user:'luis',nombre:'Luis'};AU.permisos={ventas:['ver','crear'],inventario:['ver'],productos:['ver','crear','editar']};draw()");
   assert.strictEqual(ev('HL.puedePrecios()'), false); ev('document.querySelector("#masmenu button[data-t=hl]").click()'); assert.strictEqual($('#hl_tl [data-tp]').disabled, true, 'precios bloqueados en la tabla de tamaños');
   tab('i'); click(`#inv [data-e="${P('Chocolate').id}"]`); assert.strictEqual($('#fp').disabled, true, 'el campo precio queda bloqueado'); $('#fp').disabled = false; set('#fp', '9999'); click('#fg');

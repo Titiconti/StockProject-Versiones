@@ -45,7 +45,7 @@ PX.vis=()=>{$$('#pxo [data-cap]').forEach(x=>{const c=x.dataset.cap;x.classList.
   $('#px_cats').innerHTML=[...new Set([...db.prods.map(p=>p.cat).filter(Boolean),...((PX.rubro()||{}).cats||[])])].sort().map(c=>`<option value="${esc(c)}">`).join('');
   const u=$('#px_u').value,c=$('#px_ctl').value,lq=fs.previousElementSibling,ll=fl.previousElementSibling;
   if(lq)lq.textContent=c==='variantes'?'Cantidad (se carga en cada variante)':u==='kg'?($('#px_bal').value>0?'Cantidad a ingresar (baldes)':'Cantidad a ingresar (kg)'):'Cantidad a ingresar';if(ll)ll.textContent=c==='serie'?'N.º de serie (uno por unidad, separados por coma)':'N.º de lote (opcional)';
-  fs.disabled=c==='variantes';fp.disabled=!!editId&&typeof HL!=='undefined'&&!HL.puedePrecios();fp.previousElementSibling.textContent=u==='kg'?'Precio por kg ('+MON+')':'Precio de venta ('+MON+')';
+  fs.disabled=c==='variantes';fp.disabled=!!editId&&typeof HL!=='undefined'&&!HL.puedePrecios();{const g=u==='kg'&&$('#px_bal').value>0;$('#px_u').querySelector('option[value=kg]').textContent=g?'Balde (se cuenta en baldes)':'Peso (precio por kg)';fp.previousElementSibling.textContent=g?'Precio ('+MON+')':u==='kg'?'Precio por kg ('+MON+')':'Precio de venta ('+MON+')'}
   $('#pxr').textContent=[u==='kg'?'por peso':'',c==='serie'?'con N.º de serie':c==='variantes'?'con variantes':'',$('#px_vr').checked?'vence':'',$('#px_cat').value].filter(Boolean).join(' · ')};
 ['#px_u','#px_ctl','#px_vr','#px_cat'].forEach(x=>$(x).addEventListener('change',PX.vis));
 PX.llenarForm=p=>{const d=p||{};$('#px_cat').value=d.cat||'';$('#px_u').value=d.unidad==='kg'?'kg':'u';$('#px_ctl').value=d.control||'';$('#px_min').value=d.minimo||'';$('#px_tr').value=(d.tramos||[]).map(t=>t.desde+'='+t.precio).join('; ');
@@ -58,7 +58,7 @@ PX.leerForm=prev=>{const u=$('#px_u').value==='kg'?'kg':'u',c=['serie','variante
   const plu=$('#px_plu').value.trim().replace(/^0+(?=\d)/,''),bal=$('#px_bal').value.trim()===''?0:PX.num($('#px_bal').value);
   if(plu&&(!/^\d{1,13}$/.test(plu)||u!=='kg'))return{err:'El código de balanza son solo números y va en productos por peso'};
   {const o=plu&&db.prods.find(x=>(!prev||x.id!==prev.id)&&String(x.plu||'')===plu);if(o)return{err:'El código de balanza '+plu+' ya lo usa '+o.name}}
-  if(!(bal>=0&&bal<=100)||(bal>0&&u!=='kg'))return{err:'Los kg por balde van de 0 a 100 y solo en productos por peso'};
+  if(!(bal>=0&&bal<=100)||(bal>0&&u!=='kg'))return{err:'Balde inválido'};
   // Solo gerente o administrador cambian precios (rubro heladería): el proceso principal lo vuelve a controlar.
   if(prev&&typeof HL!=='undefined'&&!HL.puedePrecios()&&Math.abs((parseFloat(fp.value)||0)-(prev.price||0))>0.004)return{err:'Solo el gerente o el administrador pueden cambiar precios'};
   if(prev){const t=tot(prev);if(t>0&&(prev.unidad||'u')!==u)return{err:'No se puede cambiar la forma de venta de un producto con stock: dejalo en 0 o creá otro producto'};if(t>0&&(prev.control||'')!==c)return{err:'No se puede cambiar el control de stock de un producto con stock: dejalo en 0 primero'};if(c!=='variantes'&&PX.hijos(prev).length)return{err:'Este producto tiene variantes: no se puede quitar la opción de variantes'}}
