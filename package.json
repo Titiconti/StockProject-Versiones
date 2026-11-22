@@ -25,6 +25,7 @@
       "mercadopago.js",
       "arca.js",
       "arca-ws.js",
+      "precios-remoto.js",
       "usuarios.js",
       "empresas.js",
       "monedas.js",

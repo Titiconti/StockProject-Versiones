@@ -76,7 +76,8 @@ app.whenReady().then(() => {
   ipcMain.handle('auth:logout', () => { usr.logout(tok); tok = null; win.loadFile(pagina()); return { ok: true }; });
   ipcMain.handle('auth:ir', () => { win.loadFile(pagina()); return true; });
   if (!faltaClave) try { store.load(); } catch (x) {}   // inicializa la versión de los datos
-  ipcMain.handle('save', (e, s, base) => { try { if (usr.habilitado()) { const q = quien(); if (!q) return { ok: false, auth: true, err: 'La sesión venció: volvé a ingresar' }; if (!usr.puedeEscribir(q)) return { ok: false, err: 'Tu usuario es de solo consulta' }; if (!usr.puedePrecios(q) && usr.cambiaPrecios(store.load(), s)) return { ok: false, err: 'Solo el gerente o el administrador pueden cambiar precios' }; return store.put(s, base, (prev, o) => autorizar(prev, o, (m, a) => usr.tiene(q, m, a))); } return store.put(s, base) } catch (x) { return { ok: false, err: String((x && x.message) || x) } } });
+  const avisarNube = r => { if (r && r.ok) { try { nube.avisar(); } catch (e) {} } return r; };   // despierta la sincronización rápida al guardar
+  ipcMain.handle('save', (e, s, base) => { try { if (usr.habilitado()) { const q = quien(); if (!q) return { ok: false, auth: true, err: 'La sesión venció: volvé a ingresar' }; if (!usr.puedeEscribir(q)) return { ok: false, err: 'Tu usuario es de solo consulta' }; if (!usr.puedePrecios(q) && usr.cambiaPrecios(store.load(), s)) return { ok: false, err: 'Solo el gerente o el administrador pueden cambiar precios' }; return avisarNube(store.put(s, base, (prev, o) => autorizar(prev, o, (m, a) => usr.tiene(q, m, a)))); } return avisarNube(store.put(s, base)) } catch (x) { return { ok: false, err: String((x && x.message) || x) } } });
   ipcMain.on('version', e => { e.returnValue = store.rev(); });
   ipcMain.on('defaults', e => { e.returnValue = defaults() });
   const sinInfo = { dir: '', last: null, warn: '' };
@@ -231,10 +232,22 @@ app.whenReady().then(() => {
     return r;
   });
   ipcMain.handle('arca:qr', (e, url) => { try { return String(url).startsWith(require('./arca').QR_URL) ? require('./arca').qrSvg(url) : ''; } catch (x) { return ''; } });  // Panel para el celular desde cualquier lugar: envío de datos de solo lectura al servidor central (nube.js).
-  const nube = require('./nube')({ leer: () => store.snapshot(), getCfg: () => principal.getConfig(), setCfg: p => principal.setConfig(p), servidor: defaults().nube || '',
+  // Cambios de precio pedidos por el dueño desde el celular: nube.js trae el pedido autenticado con el token de esta instalación y
+  // se aplica ACÁ, en el proceso principal, con la autoridad del dueño (no la del usuario que tenga la sesión abierta en la PC). La
+  // ventana no decide nada ni puede crear pedidos (no hay ningún canal de la ventana hacia acá): solo recibe el aviso para refrescar.
+  const aplicadorPrecios = require('./precios-remoto')({ leer: () => store.snapshot(), guardar: (s, base) => store.put(s, base), rev: () => store.rev() });
+  const aplicarPrecios = lista => {
+    let r; try { r = aplicadorPrecios(lista); } catch (x) { r = null; }
+    if (!r) return null;
+    r.resultados.forEach(x => usr.audit({ id: null, user: 'dueño desde el celular' }, 'precio.celular', x.id + ': ' + x.estado + (x.motivo ? ' (' + x.motivo + ')' : '')));
+    if (r.cambios.length && win && !win.isDestroyed()) win.webContents.send('precios:cambiados', { cambios: r.cambios, rev: r.rev, ajustes: r.ajustes, ajid: r.ajid, preciosCel: r.preciosCel });
+    return r.resultados;
+  };
+  const nube = require('./nube')({ aplicar: aplicarPrecios, leer: () => store.snapshot(), getCfg: () => principal.getConfig(), setCfg: p => principal.setConfig(p), servidor: defaults().nube || '',
     proteger: t => safeStorage.isEncryptionAvailable() ? 'ss:' + safeStorage.encryptString(t).toString('base64') : t,
     desproteger: t => String(t).startsWith('ss:') ? safeStorage.decryptString(Buffer.from(String(t).slice(3), 'base64')) : t });
   ipcMain.handle('nube:estado', () => conSesion() ? nube.estado() : { activo: false });
+  ipcMain.on('nube:online', () => { try { nube.reintentarYa(); } catch (e) {} });
   ipcMain.handle('nube:call', async (e, n, a) => {
     if (!permite('acceso_remoto', 'editar')) return { ok: false, err: 'Tu usuario no tiene permiso para cambiar el acceso remoto' };
     const f = { configurar: nube.configurar, activar: nube.activar, quitar: nube.quitar, registrar: a => a && typeof a === 'object' ? nube.registrar(a.nombre, a.clave) : nube.registrar(a), cambiarClave: nube.cambiarClave, clave: async () => ({ ok: true, clave: nube.clave() }), ahora: () => nube.sincronizar(true) }[n]; if (!f) return { ok: false };

@@ -2153,6 +2153,17 @@ if(NB.ok()){const n=$('[data-sub="n"]');n.insertAdjacentHTML('beforeend',`<detai
   $('#nb_kf').onsubmit=async ev=>{ev.preventDefault();const a=$('#nb_k1').value,b=$('#nb_k2').value,er=NB.errClave(a,(db.shop&&db.shop.n)||'');if(er){$('#nb_k1').focus();return toast(er)}if(a!==b){$('#nb_k2').focus();return toast('Las dos claves no coinciden')}
     $('#nb_kg').disabled=true;try{const r=await sp.nube.call('cambiarClave',a);if(r&&r.ok){kForm(false);toast('Listo: la clave del panel cambió')}else toast(r&&r.err||'No se pudo cambiar la clave')}finally{$('#nb_kg').disabled=false}};
   $('#nb').addEventListener('toggle',()=>NB.draw());MODS.push(NB.draw)}
+// ---- Cambios de precio pedidos por el dueño desde el celular ----
+// Los aplica el proceso principal (ver precios-remoto.js) y acá solo se refleja lo hecho, sin pisar lo que el usuario está tocando:
+// se actualiza el precio en memoria, el historial y la versión, y se avisa con un cartelito. No se redibuja si hay una ventana abierta.
+const PCEL={};
+PCEL.refrescar=info=>{if(!info||!Array.isArray(info.cambios)||!info.cambios.length)return;
+  info.cambios.forEach(c=>{const p=db.prods.find(x=>x.id===c.pid);if(p)p.price=c.precio});
+  if(Array.isArray(info.ajustes)){db.ajustes=info.ajustes;db.ajid=info.ajid}if(Array.isArray(info.preciosCel))db.preciosCel=info.preciosCel;
+  if(typeof info.rev==='number'){rev=info.rev;db.rev=info.rev}
+  const c0=info.cambios[0];toast('El dueño cambió el precio de '+c0.nombre+' desde el celular'+(info.cambios.length>1?' (y '+(info.cambios.length-1)+' más)':''));
+  if(!document.querySelector('.ov'))draw()};
+if(ED&&sp.precios)sp.precios.alCambiar(PCEL.refrescar);
 </script>
 <script>
 // ===== Cobro con Mercado Pago (QR en pantalla y terminal Point), con la cuenta del propio comercio =====

@@ -3,20 +3,46 @@
 // Si no hay Internet o el servidor no responde, el programa sigue funcionando igual y se reintenta solo.
 // Nunca se envían contraseñas, claves, usuarios del sistema ni la configuración; de los clientes, solo nombre y saldo.
 'use strict';
-const LATIDO = 5 * 60 * 1000;
+const crypto = require('crypto');
+// Envío por diferencias: al guardar (1 s) con un mínimo de 3 s entre envíos; latido cada 10 min; foto entera al arrancar y cada 6 h para reparar.
+const LATIDO = 10 * 60 * 1000, FOTO_CADA = 6 * 3600 * 1000, DEBOUNCE = 1000, ENTRE_ENVIOS = 3000, ESPERA_MAX = 10000, TIEMPO_ENVIO = 20000;
 const DIR_VIEJA = 'https://stock-project-versiones.vercel.app';   // dirección del panel hasta la 5.6.0
 const r2 = n => Math.round((+n || 0) * 100) / 100;
 const dia = iso => { const d = new Date(iso); return Number.isNaN(+d) ? '' : new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
 
+const OTROS = ['negocio', 'cajas', 'clientes', 'bajas', 'vencimientos', 'baldes'];
+// Clave de cada producto (igual que en el servidor): código|nombre, con #n si se repite.
+const claveStock = (p, vistos) => { const k = String(p.cod || '') + '|' + String(p.n || ''), v = vistos.get(k) || 0; vistos.set(k, v + 1); return v ? k + '#' + v : k; };
+// Foto troceada con el texto de cada pieza, para comparar sin recorrer todo de nuevo.
+function partir(foto) {
+  const vistos = new Map(), ventas = new Map(), stock = new Map(), otros = {};
+  foto.ventas.forEach(v => ventas.set(String(v.id), { v, j: JSON.stringify(v) }));
+  foto.stock.forEach(p => { const k = claveStock(p, vistos); stock.set(k, { p: { ...p, k }, j: JSON.stringify(p) }); });
+  OTROS.forEach(k => { otros[k] = JSON.stringify(foto[k]); });
+  return { ventas, stock, otros };
+}
+// Solo lo que cambió respecto de lo que el servidor ya tiene: ventas nuevas o modificadas (una anulación cambia la venta), productos
+// con otro stock o precio, los que se borraron, y las piezas chicas (cajas, saldos, bajas, vencimientos) enteras si cambiaron.
+function diferencias(ant, cur) {
+  const d = {}, ventas = [], stock = [], stDel = [], otros = {};
+  cur.ventas.forEach((x, id) => { const a = ant.ventas.get(id); if (!a || a.j !== x.j) ventas.push(x.v); });
+  cur.stock.forEach((x, k) => { const a = ant.stock.get(k); if (!a || a.j !== x.j) stock.push(x.p); });
+  ant.stock.forEach((x, k) => { if (!cur.stock.has(k)) stDel.push(k); });
+  OTROS.forEach(k => { if (ant.otros[k] !== cur.otros[k]) otros[k] = JSON.parse(cur.otros[k]); });
+  if (ventas.length) d.ventas = ventas; if (stock.length) d.stock = stock; if (stDel.length) d.stDel = stDel; if (Object.keys(otros).length) d.otros = otros;
+  return d;
+}
 // Arma la foto a partir de los datos. Es una función pura: se puede probar sin red.
 function proyeccion(db, ahora = Date.now()) {
   db = db || {}; const hoy = dia(ahora), desde = dia(ahora - 90 * 864e5), en30 = dia(ahora + 30 * 864e5), cfg = db.cfg || {}, enc = cfg.encuesta || {};
   const prods = db.prods || [], peso = p => p.unidad === 'kg', cant = (p, q) => peso(p) ? r2(q / 1000) : q;
   const vend = p => (p.lots || []).filter(l => !l.exp || l.exp >= hoy).reduce((a, l) => a + l.qty, 0), tot = p => (p.lots || []).reduce((a, l) => a + l.qty, 0);
-  const ventas = (db.sales || []).filter(s => dia(s.date) >= desde).slice(-3000).map(s => ({ id: s.id, fecha: s.date, total: r2(s.total), pago: s.pay, cliente: s.cname || null, usuario: s.user || null, anulada: !!s.void,
+  const ventas = (db.sales || []).filter(s => dia(s.date) >= desde).slice(-3000).map(s => ({ id: s.id, fecha: s.date, total: r2(s.total), pago: s.pay, cliente: s.cname || null, usuario: s.user || null, ...(s.vend ? { vend: String(s.vend.nombre || s.vend) } : {}), anulada: !!s.void,
     items: (s.items || []).map(i => ({ n: i.name, q: i.qty, u: i.u, p: r2(i.price), t: r2(i.tot != null ? i.tot : i.qty * i.price) })) }));
-  const stock = prods.filter(p => p.control !== 'variantes').map(p => { const v = vend(p), t = tot(p), ex = (p.lots || []).filter(l => l.exp && l.exp >= hoy && l.qty > 0).map(l => l.exp).sort()[0] || '';
-    return { n: p.name, cod: p.code || '', cat: p.cat || '', precio: r2(p.price), disp: cant(p, v), u: peso(p) ? 'kg' : undefined, min: p.min || 0, vence: ex, estado: v <= 0 ? (t > 0 ? 'vencido' : 'sin') : p.min && v <= (peso(p) ? p.min * 1000 : p.min) ? 'bajo' : 'ok' }; });
+  // Heladería: un gusto es un producto por peso con `balde` (kg por balde lleno). Baldes = todo lo que hay / kg por balde; "Pedir" si queda menos del mínimo de baldes (cfg.hel.pedir, 1 por defecto).
+  const gusto = (p, t) => { if (!(p.unidad === 'kg' && p.balde > 0)) return {}; const b = r2(t / 1000 / p.balde); return { balde: r2(p.balde), baldes: b, pedir: b < ((cfg.hel && cfg.hel.pedir) || 1) }; };
+  const stock = prods.filter(p => p.control !== 'variantes' && p.tipo !== 'tamano' && p.tipo !== 'armado').map(p => { const v = vend(p), t = tot(p), ex = (p.lots || []).filter(l => l.exp && l.exp >= hoy && l.qty > 0).map(l => l.exp).sort()[0] || '';
+    return { ...(p.id != null ? { id: p.id } : {}), n: p.name, cod: p.code || '', cat: p.cat || '', precio: r2(p.price), disp: cant(p, v), u: peso(p) ? 'kg' : undefined, min: p.min || 0, ...gusto(p, t), vence: ex, estado: v <= 0 ? (t > 0 ? 'vencido' : 'sin') : p.min && v <= (peso(p) ? p.min * 1000 : p.min) ? 'bajo' : 'ok' }; });
   const cajas = (db.cajas || []).slice(-30).map(c => { const k = c.cierre && c.tot ? c.tot : calcCaja(db, c); return { usuario: c.user, caja: c.caja, abre: c.abre, cierre: c.cierre || null, ini: r2(c.ini), esperado: r2(k.esperado), contado: c.cierre ? r2(c.contado) : null, dif: c.cierre ? r2(c.dif) : null, vendido: r2(k.vendido), porMedio: k.porMedio || {} }; });
   const saldo = new Map(), sum = (id, n) => saldo.set(id, (saldo.get(id) || 0) + n);
   (db.sales || []).forEach(s => { if (s.cid != null && !s.void && s.pay === 'Cuenta corriente') sum(s.cid, s.total); });
@@ -24,7 +50,9 @@ function proyeccion(db, ahora = Date.now()) {
   const clientes = (db.clients || []).map(c => ({ n: c.name, saldo: r2(saldo.get(c.id) || 0) })).filter(c => Math.abs(c.saldo) >= 0.005);
   const bajas = (db.desv || []).filter(v => !v.void && dia(v.date) >= desde).slice(-300).map(v => ({ fecha: v.date, motivo: v.reason || '', detalle: (v.items || []).map(i => i.qty + ' x ' + i.name).join(', '), costo: r2((v.items || []).reduce((a, i) => a + i.qty * (i.cost || 0), 0)), usuario: v.user || null }));
   const vencimientos = []; prods.forEach(p => (p.lots || []).forEach(l => { if (l.exp && l.qty > 0 && l.exp <= en30) vencimientos.push({ n: p.name, lote: l.n, cant: cant(p, l.qty), vence: l.exp, estado: l.exp < hoy ? 'vencido' : 'porvencer' }); }));
-  return { v: 1, generado: new Date(ahora).toISOString(), negocio: { nombre: (db.shop && db.shop.n) || 'Mi negocio', moneda: cfg.moneda || enc.mon || 'ARS', loc: cfg.loc || enc.loc || 'es-AR' }, ventas, stock, cajas, clientes, bajas, vencimientos };
+  // Últimos movimientos de baldes de la heladería (db.baldes, opcional): quién, cuándo, qué gusto y si entró un balde o se ajustó lo que queda.
+  const baldes = (Array.isArray(db.baldes) ? db.baldes : []).slice(-20).map(b => ({ fecha: b.date || '', usuario: b.user || null, n: b.gusto || '', t: b.t === 'ingreso' ? 'ingreso' : 'ajuste', baldes: r2(b.baldes) }));
+  return { v: 1, generado: new Date(ahora).toISOString(), negocio: { nombre: (db.shop && db.shop.n) || 'Mi negocio', moneda: cfg.moneda || enc.mon || 'ARS', loc: cfg.loc || enc.loc || 'es-AR' }, ventas, stock, cajas, clientes, bajas, vencimientos, baldes };
 }
 // Mismas reglas que el servidor para una clave elegida por el usuario.
 function errorClave(k, nombre) {
@@ -43,8 +71,12 @@ function calcCaja(db, c) {
 
 // leer(): texto JSON actual · getCfg()/setCfg(patch): configuración local · proteger/desproteger: cifrado del sistema para la clave.
 // servidor: dirección del servidor del panel que trae el programa (defaults.json > nube). Sirve para el alta automática.
-function crear({ leer, getCfg, setCfg, servidor = '', enviar = (u, o) => fetch(u, o), ahora = () => Date.now(), proteger = s => s, desproteger = s => s, cada = 30000, programar = setInterval, cancelar = clearInterval }) {
-  let timer = null, ocupado = false, est = { ultima: null, error: '', intento: null }, ultHash = '', ultEnvio = 0;
+function crear({ leer, getCfg, setCfg, servidor = '', enviar = (u, o) => fetch(u, { ...o, signal: AbortSignal.timeout(TIEMPO_ENVIO) }), ahora = () => Date.now(), proteger = s => s, desproteger = s => s, cada = 30000, programar = setInterval, cancelar = clearInterval, esperar = setTimeout, noEsperar = clearTimeout, aplicar = null }) {
+  let timer = null, ocupado = false, rehacer = false, est = { ultima: null, error: '', intento: null }, ultEnvio = 0, ultFoto = 0, ultInicio = 0, espera = null;
+  // Diferencias: acked = lo último que el servidor confirmó; enVuelo = envío sin confirmar (se repite igual); inst = identifica esta ejecución del programa.
+  // Cambios de precio pedidos desde el celular: aplicar(lista) los aplica en el programa y devuelve [{id, estado, motivo}] (null/[] = no pudo, quedan pendientes).
+  let cvVisto = null, consultando = false, timerC = null, actividad = 0, quiereConsulta = false;
+  let acked = null, enVuelo = null, n = 0, fallos = 0, noAntes = 0, soloFoto = false; const inst = 'i' + crypto.randomBytes(8).toString('hex');
   const conf = () => (getCfg().nube || {});
   const token = () => { try { return conf().token ? desproteger(conf().token) : ''; } catch (e) { return ''; } };
   const urlOk = u => { try { const x = new URL(u); return x.protocol === 'https:' || (x.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(x.hostname)); } catch (e) { return false; } };
@@ -66,7 +98,7 @@ function crear({ leer, getCfg, setCfg, servidor = '', enviar = (u, o) => fetch(u
     if (!r.ok || !j || !j.token) { est.error = (j && j.error) || 'El servidor no pudo crear el panel (' + r.status + '). Se reintenta solo.'; return { ok: false, pendiente: r.status >= 500 || r.status === 429, err: est.error }; }
     const c = conf(); delete c.pendiente;
     const cl = clave || j.clave;
-    setCfg({ nube: { ...c, url: servidor.replace(/\/+$/, ''), token: proteger(j.token), clave: proteger(cl), panel: String(j.panel || ''), activo: true } }); est = { ultima: null, error: '', intento: null }; ultHash = '';
+    setCfg({ nube: { ...c, url: servidor.replace(/\/+$/, ''), token: proteger(j.token), clave: proteger(cl), panel: String(j.panel || ''), activo: true } }); est = { ultima: null, error: '', intento: null }; reiniciar();
     detener(); iniciar();
     return { ok: true, panel: j.panel, clave: cl };
   }
@@ -86,7 +118,7 @@ function crear({ leer, getCfg, setCfg, servidor = '', enviar = (u, o) => fetch(u
     url = String(url || '').trim().replace(/\/+$/, ''); t = String(t || '').trim();
     if (!urlOk(url)) return { ok: false, err: 'La dirección del servidor tiene que empezar con https://' };
     if (!/^spn_[0-9a-f]{48}$/.test(t)) return { ok: false, err: 'La clave de instalación no es válida (empieza con spn_)' };
-    setCfg({ nube: { ...conf(), url, token: proteger(t), panel: String(panel || '').trim().slice(0, 200), activo: true } }); est = { ultima: null, error: '', intento: null }; ultHash = '';
+    setCfg({ nube: { ...conf(), url, token: proteger(t), panel: String(panel || '').trim().slice(0, 200), activo: true } }); est = { ultima: null, error: '', intento: null }; reiniciar();
     return { ok: true };
   }
   function activar(on) { if (on && !estado().configurado) return { ok: false, err: 'Primero cargá la dirección y la clave' }; setCfg({ nube: { ...conf(), activo: !!on } }); if (on) iniciar(); else detener(); return { ok: true }; }
@@ -100,27 +132,88 @@ function crear({ leer, getCfg, setCfg, servidor = '', enviar = (u, o) => fetch(u
   async function sincronizar(forzar) {
     mudar();
     if (conf().pendiente && !estado().configurado && !ocupado) { ocupado = true; try { const p = conf().pendiente; let k = ''; try { k = p.clave ? desproteger(p.clave) : ''; } catch (e) {} await registrar(p.nombre, k); } finally { ocupado = false; } }
-    const c = conf(), t = token(); if (!c.activo || !c.url || !t || ocupado) return estado();
-    ocupado = true; est.intento = new Date(ahora()).toISOString();
+    const c = conf(), t = token(); if (!c.activo || !c.url || !t) return estado();
+    if (ocupado) { rehacer = true; return estado(); }
+    if (!forzar && ahora() < noAntes) { armar(noAntes - ahora()); return estado(); }   // espera creciente tras un fallo: reintenta justo al vencer
+    ocupado = true; est.intento = new Date(ahora()).toISOString(); ultInicio = ahora();
     try {
       let db; try { db = JSON.parse(leer() || 'null'); } catch (e) { db = null; }
       if (!db) { est.error = 'No se pudieron leer los datos locales'; return estado(); }
-      const foto = proyeccion(db, ahora()), h = JSON.stringify({ ...foto, generado: 0 });
-      // Sin cambios se reenvía igual cada 5 minutos: así el panel sabe que el comercio sigue conectado sin gastar
-      // el cupo del servidor gratuito. Los cambios (una venta, un cierre de caja) salen en el próximo ciclo de 30 s.
-      if (!forzar && h === ultHash && ahora() - ultEnvio < LATIDO) return estado();
-      const seq = Math.max((c.seq || 0) + 1, ahora());
-      const r = await enviar(c.url + '/ingesta', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t }, body: JSON.stringify({ seq, foto }) });
-      if (r.status === 401) est.error = 'El servidor no reconoce la clave de esta instalación. Pedí una nueva a soporte.';
-      else if (r.status === 413) est.error = 'Hay demasiados datos para enviar de una vez.';
-      else if (!r.ok) est.error = 'El servidor respondió con un error (' + r.status + '). Se reintenta solo.';
-      else { est.error = ''; est.ultima = new Date(ahora()).toISOString(); ultHash = h; ultEnvio = ahora(); setCfg({ nube: { ...conf(), seq, ultima: est.ultima } }); }
-    } catch (e) { est.error = 'Sin conexión con el servidor. El programa sigue funcionando y se reintenta solo.'; }
-    finally { ocupado = false; }
+      const foto = proyeccion(db, ahora()), cur = partir(foto);
+      for (let vuelta = 0; vuelta < 3; vuelta++) {
+        // Un envío por diferencias que quedó sin confirmar se repite IGUAL (mismo n): si el servidor ya lo aplicó, lo reconoce y no lo duplica.
+        if (enVuelo && enVuelo.tipo === 'foto') enVuelo = null;
+        if (!enVuelo) {
+          const dif = acked && !forzar ? diferencias(acked, cur) : null, hay = dif && Object.keys(dif).length > 0;
+          if (acked && !forzar && !hay && ahora() - ultEnvio < LATIDO) return estado();   // sin cambios: solo el latido
+          const entera = !acked || forzar || soloFoto || ahora() - ultFoto >= FOTO_CADA;
+          enVuelo = entera ? { tipo: 'foto', n: ++n, destino: cur } : { tipo: 'dif', n: ++n, destino: cur, cuerpo: { inst, n, generado: foto.generado, ...dif } };
+        }
+        const e = enVuelo, seq = Math.max((c.seq || 0) + 1, ahora());
+        const r = await enviar(c.url + (e.tipo === 'foto' ? '/ingesta' : '/ingesta/ops'), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t }, body: JSON.stringify(e.tipo === 'foto' ? { seq, foto, inst, n: e.n } : e.cuerpo) });
+        let j = null; try { j = r.json ? await r.json() : null; } catch (x) {}
+        // El servidor pide la foto entera (instalación nueva, hueco, estado perdido) o no conoce las diferencias (versión vieja del servidor).
+        if (e.tipo === 'dif' && vuelta < 2 && (r.status === 409 || r.status === 404 || r.status === 405 || r.status === 413 || (j && j.pedirFoto))) { if (r.status === 404 || r.status === 405) soloFoto = true; acked = null; enVuelo = null; continue; }
+        if (r.status === 401) { est.error = 'El servidor no reconoce la clave de esta instalación. Pedí una nueva a soporte.'; fallo(); }
+        else if (r.status === 413) { est.error = 'Hay demasiados datos para enviar de una vez.'; fallo(); }
+        else if (!r.ok) { est.error = 'El servidor respondió con un error (' + r.status + '). Se reintenta solo.'; fallo(); }
+        else {
+          if (j && typeof j.cv === 'number' && j.cv !== cvVisto && (cvVisto !== null || j.cv > 0)) { cvVisto = j.cv; quiereConsulta = true; }   // el servidor avisa que hay novedades de precios
+          est.error = ''; est.ultima = new Date(ahora()).toISOString(); acked = e.destino; enVuelo = null; fallos = 0; noAntes = 0; ultEnvio = ahora();
+          if (e.tipo === 'foto') { ultFoto = ahora(); setCfg({ nube: { ...conf(), seq, ultima: est.ultima } }); }   // el seq solo importa para las fotos enteras
+          // Si el envío confirmado era uno repetido y mientras tanto hubo más cambios, se mandan ya (sin esperar al próximo aviso).
+          if (e.destino !== cur && vuelta < 2 && Object.keys(diferencias(acked, cur)).length) { forzar = false; continue; }
+        }
+        break;
+      }
+    } catch (e) { est.error = 'Sin conexión con el servidor. El programa sigue funcionando y se reintenta solo.'; fallo(); }
+    finally { ocupado = false; if (rehacer) { rehacer = false; avisar(); } if (quiereConsulta) { quiereConsulta = false; consultar(); } }
     return estado();
   }
-  function iniciar() { if (timer || !(conf().activo || conf().pendiente)) return; timer = programar(() => { sincronizar(); }, cada); if (timer && timer.unref) timer.unref(); sincronizar(); }
-  function detener() { if (timer) { cancelar(timer); timer = null; } }
-  return { estado, configurar, activar, quitar, sincronizar, iniciar, detener, registrar, clave, cambiarClave };
+  // Espera 2, 4, 8 y 10 s entre reintentos (tope 10 s: al volver el servidor se recupera enseguida). Con el servidor caído el pedido ni llega a la base.
+  function fallo() { fallos++; const d = Math.min(ESPERA_MAX, 2000 * 2 ** (fallos - 1)); noAntes = ahora() + d; armar(d); }
+  // Un solo temporizador de envío a la vez (el de guardar, el de reintento y el de volver la red comparten este).
+  function armar(ms) {
+    if (espera) return;
+    espera = esperar(() => { espera = null; sincronizar(); }, ms);
+    if (espera && espera.unref) espera.unref();
+  }
+  // Volvió la red (evento "online" de la ventana): reintenta ya, sin esperar la espera creciente.
+  function reintentarYa() { noAntes = 0; return sincronizar(); }
+  function reiniciar() { acked = null; enVuelo = null; fallos = 0; noAntes = 0; soloFoto = false; }
+  // Se llama cada vez que se guardan datos: manda en ~1 s (nunca más de un envío cada 3 s). No espera al ciclo de 30 s, que queda de respaldo.
+  // ---- Cambios de precio desde el celular ----
+  // Pregunta por los pendientes (1 comando de Redis en el servidor), los aplica con aplicar() y confirma. Si la confirmación no llega,
+  // el servidor los vuelve a mandar y aplicar() no los repite (cada pedido tiene su id).
+  async function consultar() {
+    const c = conf(), t = token(); if (!aplicar || consultando || !c.activo || !c.url || !t) return;
+    consultando = true;
+    try {
+      const r = await enviar(c.url + '/ingesta/pendientes', { method: 'GET', headers: { Authorization: 'Bearer ' + t } });
+      if (!r.ok || !r.json) return;
+      const j = await r.json(), lista = j && Array.isArray(j.pendientes) ? j.pendientes : []; if (!lista.length) return;
+      const res = await aplicar(lista); if (!Array.isArray(res) || !res.length) return;
+      await enviar(c.url + '/ingesta/ack', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t }, body: JSON.stringify({ resultados: res }) });
+      avisar();   // el precio nuevo también tiene que llegar a la foto del panel
+    } catch (e) { /* sin conexión: se vuelve a preguntar */ } finally { consultando = false; }
+  }
+  // Cada 60 s mientras el local trabaja (algún guardado en los últimos 30 min); más lento si está quieto (3 min) o de noche (10 min).
+  function esperaConsulta() {
+    const h = new Date(ahora()).getHours();
+    if (ahora() - actividad < 30 * 60000) return 60000;
+    return h < 6 ? 600000 : 180000;
+  }
+  function siguienteConsulta(ms) {
+    if (!aplicar || timerC) return;
+    timerC = esperar(async () => { timerC = null; await consultar(); siguienteConsulta(); }, ms == null ? esperaConsulta() : ms);
+    if (timerC && timerC.unref) timerC.unref();
+  }
+  function avisar() {
+    actividad = ahora();
+    if (!estado().configurado || !conf().activo) return;
+    armar(Math.max(DEBOUNCE, ultInicio + ENTRE_ENVIOS - ahora()));
+  }  function iniciar() { if (timer || !(conf().activo || conf().pendiente)) return; timer = programar(() => { sincronizar(); }, cada); if (timer && timer.unref) timer.unref(); sincronizar(); siguienteConsulta(5000); }
+  function detener() { if (timer) { cancelar(timer); timer = null; } if (espera) { noEsperar(espera); espera = null; } if (timerC) { noEsperar(timerC); timerC = null; } }
+  return { estado, configurar, activar, quitar, sincronizar, avisar, reintentarYa, consultar, iniciar, detener, registrar, clave, cambiarClave };
 }
 module.exports = crear; module.exports.proyeccion = proyeccion; module.exports.LATIDO = LATIDO; module.exports.errorClave = errorClave;
