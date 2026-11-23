@@ -42,7 +42,7 @@ for (const p of ['aviso-legal.html', 'privacidad.html']) {
 }
 const priv = fs.readFileSync(path.join(NUBE, 'privacidad.html'), 'utf8');
 for (const x of ['25.326', 'RGPD', 'Vercel', 'Upstash', 'menores', 'supresión']) assert(priv.includes(x), 'la privacidad menciona ' + x);
-assert(/Ejemplo/.test(html) && /no es un cliente real/.test(html), 'el comercio de ejemplo está rotulado');
+assert(/Así se usa en un kiosco/.test(html) && !/Ejemplo/.test(html), 'el bloque del kiosco no se presenta como cliente ni como ejemplo');
 assert(/Protenay/.test(html) && !/<blockquote/.test(html), 'Darío figura sin citas inventadas');
 assert(/Meta Platforms/.test(html) && /Microsoft/.test(html), 'aviso de marcas en el pie');
 assert(/sp-quieto/.test(js) && /data-mov/.test(html), 'hay un botón para reducir el movimiento');
@@ -56,6 +56,8 @@ const LEGALES = ['aviso-legal.html', 'privacidad.html'];
     if (!/\.(html|js|css|json|md|vtt|svg|txt)$/i.test(e.name) || (dir === NUBE && LEGALES.includes(e.name))) continue;
     const t = fs.readFileSync(f, 'utf8').replace(/[\w.+-]+@[\w.-]+\.\w+/g, '');
     assert(!/Tiziano|Barbaglia/i.test(t), 'el nombre del responsable aparece fuera de las páginas legales: ' + path.relative(NUBE, f));
+    assert(!/Del Parque/i.test(t), 'no hay comercios con nombre inventado: ' + path.relative(NUBE, f));
   }
 })(NUBE);
+for (const p of LEGALES) assert(!/Del Parque/i.test(fs.readFileSync(path.join(NUBE, p), 'utf8')), 'no hay comercios con nombre inventado: ' + p);
 console.log('landing OK');

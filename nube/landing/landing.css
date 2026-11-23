@@ -15,7 +15,7 @@
 
 /* phone panel section */
 .cel-rubros { max-width: 52ch; }
-.cel-phone { display: flex; justify-content: center; }
+.cel-phone { display: flex; justify-content: flex-end; }
 .cel-phone img { height: min(640px, calc(100svh - 240px)); width: auto; max-width: 100%; border-radius: 36px; border: 10px solid #12233d; box-shadow: 0 40px 80px -48px rgb(18 35 61 / .6); background: #12233d; object-fit: cover; }
 @media (max-width: 1023px) { .cel-phone { margin-top: var(--s-7); } .cel-phone img { height: 420px; } }
 
@@ -30,10 +30,7 @@
 .caso { padding: var(--s-6); background: #fff; border: 1px solid #d5dae3; border-radius: var(--r-lg); display: flex; flex-direction: column; gap: var(--s-4); }
 .caso h3 { margin: 0; font-size: var(--t-card); }
 .caso p { margin: 0; max-width: 56ch; }
-.caso--ejemplo { background: transparent; border-style: dashed; border-color: #8a94a6; }
 .caso__tag { align-self: flex-start; font: 500 13px/1 var(--font-mono); padding: 6px 10px; border-radius: 99px; background: #d8f3e7; color: #0b6b4b; }
-.caso--ejemplo .caso__tag { background: #fdecd2; color: #6b3a00; }
-.caso__aviso { font-weight: 600; color: #6b3a00; }
 .caso__cita { margin: 0; padding-left: var(--s-4); border-left: 3px solid #2447f9; }
 
 /* pie: tinta, con la palabra gigante cortada por el borde */
@@ -56,7 +53,6 @@
 .vs__scene figcaption h3 { margin: 0 0 var(--s-2); font-size: var(--t-card); }
 .vs__scene figcaption p { margin: 0; color: var(--p-muted); }
 .vs__frame { align-items: start; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-6); margin-top: var(--s-7); }
-.vs__list { display: none; }
 @media (max-width: 767px) { .vs__frame { grid-template-columns: minmax(0, 1fr); } }
 /* ritmo estilo "una idea por sección" (estructura tomada de la plantilla Norte de Profitize, con la marca de StockProject) */
 .gran { font-size: clamp(32px, 4.4vw, 64px); line-height: 1.02; letter-spacing: -0.035em; font-weight: 600; text-wrap: balance; }
@@ -67,7 +63,7 @@ html.fx [data-revela].is-visivel { opacity: 1; transform: none; }
 
 /* contraste del botón principal al pasar el mouse y aire interior en las secciones con fondo */
 .btn--primary:hover { background: #1c3de0 !important; color: #fff !important; }
-main > section:not(.hero) { padding-inline: 12px; }
+main > section:not(.hero) { padding-inline: 0; }
 /* componentes de 21st.dev adaptados */
 #funciones [data-blur-progresivo] > .blur-prog { inset: 72% 0 0 0; }
 .hero__rubro { margin-top: var(--s-3) !important; }
@@ -82,19 +78,19 @@ main > section:not(.hero) { padding-inline: 12px; }
 .mov[aria-pressed="true"] { background: #12233d; color: #f4f6fa; border-color: #12233d; opacity: 1; }
 .pie .mov[aria-pressed="true"] { background: #f4f6fa; color: #12233d; border-color: #f4f6fa; }
 .nav__actions .mov { margin-right: 8px; }
-@media (max-width: 1179px) { .nav__actions .mov { display: none; } }
+@media (max-width: 1359px) { .nav__actions .mov { display: none; } }
 
 /* hero con la figura del mostrador (estructura del hero de Norte: palabra gigante detrás, objeto al centro, un dato a cada lado, botón al centro) */
-.hero { position: relative; min-height: 100svh; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, min(720px, 50vw)) minmax(0, 1fr); grid-template-areas: "izq fig der" "izq acc der"; align-items: center; column-gap: var(--s-6); padding: calc(var(--nav) + 24px) clamp(20px, 5.6vw, 80px) 40px; overflow: hidden; padding-inline: max(clamp(20px, 5.6vw, 80px), (100vw - 1500px) / 2) !important; }
+.hero { position: relative; min-height: 100svh; display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, min(560px, 40vw)) minmax(0, .7fr); grid-template-areas: "izq fig ." "izq acc ."; align-items: center; column-gap: var(--s-6); padding: calc(var(--nav) + 24px) clamp(20px, 5.6vw, 80px) 40px; overflow: hidden; padding-inline: max(clamp(20px, 5.6vw, 80px), (100vw - 1500px) / 2) !important; }
 .hero__palabra { position: absolute; left: 0; right: 0; top: calc(var(--nav) + 4svh); margin: 0; text-align: center; font: 700 clamp(48px, 16.4vw, 246px)/.8 var(--font-display); letter-spacing: -0.05em; white-space: nowrap; color: transparent; -webkit-text-stroke: 2px #cdd5e3; user-select: none; pointer-events: none; }
-.hero__izq { grid-area: izq; align-self: end; position: relative; max-width: 30ch; }
+.hero__izq { grid-area: izq; align-self: end; position: relative; max-width: 40ch; }
 .hero__der { grid-area: der; align-self: end; justify-self: end; text-align: right; position: relative; max-width: 26ch; }
-.hero__izq h1 { margin: 0 0 var(--s-4); font-size: clamp(26px, 2.5vw, 40px); line-height: 1.08; letter-spacing: -0.03em; font-weight: 600; text-wrap: balance; }
-.hero__izq p, .hero__der p { margin: 0; color: var(--p-muted); font-size: 17px; }
+.hero__izq h1 { margin: 0 0 var(--s-4); font-size: clamp(26px, min(3.3vw, 6svh), 52px); line-height: 1.08; letter-spacing: -0.03em; font-weight: 600; text-wrap: balance; }
+.hero__izq p, .hero__der p { margin: 0; color: var(--p-muted); font-size: clamp(14px, 2.3svh, 17px); }
 .hero__figura { grid-area: fig; position: relative; z-index: 2; aspect-ratio: 1; width: min(100%, 64svh); justify-self: center; }
 .hero__acciones { grid-area: acc; position: relative; display: flex; gap: var(--s-4); justify-content: center; flex-wrap: wrap; margin-top: var(--s-4); }
 @media (max-width: 1023px) {
-  .hero { grid-template-columns: minmax(0, 1fr); grid-template-areas: "izq" "fig" "acc" "der"; row-gap: var(--s-5); text-align: left; }
+  .hero { grid-template-columns: minmax(0, 1fr); grid-template-areas: "izq" "fig" "acc"; row-gap: var(--s-5); text-align: left; }
   .hero__der { justify-self: start; text-align: left; }
   .hero__palabra { position: relative; grid-area: fig; align-self: start; top: auto; left: auto; right: auto; font-size: 16.4vw; margin: 0 calc(-1 * clamp(20px, 5.6vw, 80px)); max-width: none; }
   .hero__izq { max-width: 40ch; }
@@ -134,4 +130,19 @@ main > section.portada.is-live { height: 240svh !important; }
 /* las secciones miden lo que mide su contenido (el kit las fija a una pantalla y, en pantallas bajas, el texto pisaba a la sección siguiente) */
 main > section:not(.portada) { height: auto !important; min-height: 0 !important; }
 
-main > section.ground-surface { padding-block: clamp(48px, 9vh, 112px) !important; padding-inline: 12px !important; }
+main > section.ground-surface { padding-block: clamp(48px, 9vh, 112px) !important; padding-inline: 0 !important; }
+
+.caso__lista { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-4); }
+.caso__lista li { max-width: 56ch; }
+
+/* beneficios en filas: la captura grande a un lado y el texto al otro, alternando */
+.benef { grid-template-columns: minmax(0, 1fr) !important; gap: 96px !important; }
+.benef li { display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); column-gap: var(--s-7); align-items: center; }
+.benef li:nth-child(even) figure { order: 2; }
+.benef figure { margin: 0 !important; max-width: 640px; }
+.benef h3 { font-size: clamp(22px, 2.2vw, 32px); margin: 0 0 var(--s-3); }
+.benef p { font-size: 18px; margin: 0; }
+@media (max-width: 899px) { .benef { gap: var(--s-7) !important; } .benef li { grid-template-columns: minmax(0, 1fr); row-gap: var(--s-4); } .benef li:nth-child(even) figure { order: 0; } }
+.pie__cols ul + .mov { margin-top: var(--s-4); }
+#arranque .stack-5 > p:last-child { margin-top: var(--s-5); }
+@media (max-width: 1023px) { .cel-phone { justify-content: center; } }
