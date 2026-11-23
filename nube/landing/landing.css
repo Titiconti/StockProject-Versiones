@@ -8,35 +8,6 @@
 /* WhatsApp mark on the contact buttons: the button says where it goes */
 .ic-wa { width: 1.15em; height: 1.15em; flex: none; margin-right: .5em; vertical-align: -0.2em; }
 
-/* hero: the real program's video, drawn frame by frame as the page scrolls (scroll-video.js) */
-main > section.sv { position: relative; height: 420svh !important; min-height: 0; padding: 0 !important; background: #12233d; }
-.sv__stage { position: sticky; top: 0; height: 100svh; overflow: hidden; }
-.sv__canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; background: #12233d; }
-.sv__panel { position: absolute; left: var(--gut); bottom: 64px; width: min(520px, calc(100% - 2 * var(--gut))); margin: 0; padding: 32px; border-radius: var(--r-lg); background: #12233d; color: #f4f6fa; box-shadow: 0 24px 48px -24px rgb(18 35 61 / .55); }
-.sv__panel--portada { bottom: auto; top: calc(var(--nav) + 48px); width: min(600px, calc(100% - 2 * var(--gut))); padding: 40px; }
-.sv__panel h1, .sv__panel h2 { font-family: var(--font-display); font-weight: 600; font-size: clamp(40px, 5.2vw, 76px); line-height: 1.02; letter-spacing: -0.035em; margin: 0 0 20px; color: inherit; text-wrap: balance; }
-.sv__panel p { margin: 0; font-size: 18px; line-height: 1.55; color: #d9e0ec; max-width: 52ch; }
-.sv__panel .btn-row { margin-top: 28px; }
-.sv__panel .btn.btn--secondary { background: transparent !important; color: #f4f6fa !important; box-shadow: inset 0 0 0 1px rgb(244 246 250 / .5) !important; }
-.sv__steps { list-style: none; margin: 0; padding: 0; }
-.sv__step { visibility: hidden; opacity: 0; }
-.sv__t { font-family: var(--font-display); font-weight: 600; font-size: clamp(26px, 2.6vw, 36px) !important; line-height: 1.1 !important; letter-spacing: -0.02em; color: #f4f6fa !important; margin-bottom: 10px !important; }
-/* still (reduced motion, no script): the first frame with the portada, then the four steps in a row on ink */
-main > section.sv.is-still { height: auto !important; }
-.sv.is-still .sv__stage { position: relative; height: auto; min-height: 100svh; overflow: visible; display: flex; flex-direction: column; }
-.sv.is-still .sv__canvas { position: absolute; height: 100svh; }
-.sv.is-still .sv__steps { position: relative; margin-top: calc(100svh - 40px); display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; padding: 0 var(--gut) 64px; }
-.sv.is-still .sv__step { position: static; width: auto; visibility: visible; opacity: 1; box-shadow: none; background: #1f3049; }
-@media (max-width: 767px) {
-  .sv__panel { left: 16px; right: 16px; width: auto; bottom: calc(24px + var(--bar)); padding: 24px; }
-  .sv__panel--portada { top: calc(var(--nav) + 16px); bottom: auto; padding: 24px; }
-  .sv__panel p { font-size: 16px; }
-  .sv__panel .btn-row { flex-direction: column; }
-}
-/* lenis: native scroll stays the source of truth */
-html.lenis, html.lenis body { height: auto; }
-.lenis.lenis-smooth { scroll-behavior: auto !important; }
-
 /* features: the client's screenshots fill each panel from the top left */
 #funciones .panel { --p-h: 300px; }
 #funciones .frame__img { object-fit: cover; object-position: 0 0; }
@@ -53,15 +24,7 @@ html.lenis, html.lenis body { height: auto; }
 
 /* foco visible con teclado en toda la página */
 :focus-visible { outline: 3px solid #2447f9; outline-offset: 3px; border-radius: 4px; }
-.sv__panel :focus-visible, .pie :focus-visible { outline-color: #f4f6fa; }
-
-/* cómo arrancás: tres pasos */
-.pasos { list-style: none; margin: var(--s-7) 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-6); counter-reset: paso; }
-.paso { padding-top: var(--s-5); border-top: 1px solid #c9d0dc; }
-.paso__n { display: block; font: 600 14px/1 var(--font-mono); color: #2447f9; margin-bottom: var(--s-4); }
-.paso h3 { margin: 0 0 var(--s-3); font-size: var(--t-card); }
-.paso p { margin: 0; color: var(--p-muted); max-width: 40ch; }
-@media (max-width: 767px) { .pasos { grid-template-columns: minmax(0, 1fr); gap: var(--s-5); } }
+.pie :focus-visible { outline-color: #f4f6fa; }
 
 /* prueba social */
 .caso { padding: var(--s-6); background: #fff; border: 1px solid #d5dae3; border-radius: var(--r-lg); display: flex; flex-direction: column; gap: var(--s-4); }
@@ -92,49 +55,27 @@ html.lenis, html.lenis body { height: auto; }
 .vs__scene video { width: 100%; aspect-ratio: 16 / 10; border-radius: var(--r-lg); background: #12233d; display: block; object-fit: cover; }
 .vs__scene figcaption h3 { margin: 0 0 var(--s-2); font-size: var(--t-card); }
 .vs__scene figcaption p { margin: 0; color: var(--p-muted); }
-.vs__frame { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-6); margin-top: var(--s-7); }
+.vs__frame { align-items: start; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-6); margin-top: var(--s-7); }
 .vs__list { display: none; }
 @media (max-width: 767px) { .vs__frame { grid-template-columns: minmax(0, 1fr); } }
-/* videos con scroll: la escena activa se agranda y se mira; el resto se desenfoca */
-.vs.is-live { height: 380svh; padding: 0 !important; }
-.vs.is-live .vs__pin { position: sticky; top: 0; height: 100svh; display: flex; align-items: center; overflow: hidden; }
-.vs.is-live .vs__body { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: var(--s-7); align-items: center; margin-top: var(--s-6); }
-.vs.is-live .vs__frame { display: block; position: relative; margin: 0; aspect-ratio: 16 / 10; border-radius: var(--r-lg); overflow: hidden; box-shadow: 0 30px 60px -36px rgb(18 35 61 / .55); background: #12233d; }
-.vs.is-live .vs__scene { position: absolute; inset: 0; opacity: 0; transition: opacity .5s var(--ease); }
-.vs.is-live .vs__scene.is-activa { opacity: 1; }
-.vs.is-live .vs__scene video { height: 100%; aspect-ratio: auto; border-radius: 0; }
-.vs.is-live figcaption { display: none; }
-.vs.is-live .vs__list { display: grid; gap: var(--s-5); list-style: none; margin: 0; padding: 0; }
-.vs__item { transition: opacity .4s var(--ease), filter .4s var(--ease), transform .4s var(--ease); opacity: .72; filter: blur(1.5px); transform-origin: 0 50%; }
-.vs__item.is-activa { opacity: 1; filter: none; transform: scale(1.04); }
-.vs__item h3 { margin: 0 0 var(--s-2); font-size: var(--t-card); }
-.vs__item p { margin: 0; color: #12233d; }
-@media (max-width: 767px) {
-  .vs.is-live { height: 340svh; }
-  .vs.is-live .vs__body { grid-template-columns: minmax(0, 1fr); gap: var(--s-5); }
-  .vs__item:not(.is-activa) { display: none; }
-  .vs__item { filter: none; transform: none; }
-}
-
 /* ritmo estilo "una idea por sección" (estructura tomada de la plantilla Norte de Profitize, con la marca de StockProject) */
-.gran { font-size: clamp(34px, 5.2vw, 84px); line-height: 1.02; letter-spacing: -0.035em; font-weight: 600; text-wrap: balance; }
+.gran { font-size: clamp(32px, 4.4vw, 64px); line-height: 1.02; letter-spacing: -0.035em; font-weight: 600; text-wrap: balance; }
 .gran .linea { display: block; }
 html.fx [data-revela] { opacity: 0; transform: translateY(10px); transition: opacity .5s var(--ease), transform .5s var(--ease); }
 html.fx [data-revela].is-visivel { opacity: 1; transform: none; }
 .importar { --hm: 1; }
 
-/* números grandes sobre tinta: entran desenfocados en horizontal (efectos.js) */
-/* la franja crece con su contenido: sin altura fija (el kit fija main > section a 100svh) y con aire abajo */
-main > section.numeros { height: auto !important; min-height: 0 !important; background: #12233d; color: #f4f6fa; padding-block: clamp(72px, 14vh, 160px) !important; overflow: hidden; }
-.numeros .wrap { display: grid; gap: clamp(40px, 8vh, 96px); }
-.numero { grid-column: 1 / -1; display: grid; gap: var(--s-4); width: min(100%, 38rem); text-align: left; }
-.numero--b { justify-self: end; }
-.numero__valor { margin: 0; font: 600 clamp(88px, 16vw, 260px)/.86 var(--font-display); letter-spacing: -0.05em; font-variant-numeric: tabular-nums; }
-.numero__leyenda { margin: 0; color: #f4f6fa; font-size: 18px; max-width: 34ch; text-wrap: pretty; }
-.numero--b .numero__leyenda { justify-self: end; }
-@media (max-width: 767px) { .numero__valor { font-size: clamp(72px, 24vw, 120px); } }
+/* contraste del botón principal al pasar el mouse y aire interior en las secciones con fondo */
+.btn--primary:hover { background: #1c3de0 !important; color: #fff !important; }
+main > section:not(.hero) { padding-inline: 12px; }
+/* componentes de 21st.dev adaptados */
+#funciones [data-blur-progresivo] > .blur-prog { inset: 72% 0 0 0; }
+.hero__rubro { margin-top: var(--s-3) !important; }
+.hero__rubro .xfade { font-weight: 600; color: #12233d; }
+.pie .mov { white-space: normal; text-align: left; max-width: 100%; }
 
-
+/* portada: la caja del logo se abre al scrollear (portada.js).
+   Sin JS o con "Reducir movimiento": la caja queda abierta y quieta. */
 /* botón "Reducir movimiento" */
 .mov { white-space: nowrap; min-height: 44px; font: inherit; font-size: 14px; color: inherit; background: transparent; border: 1px solid currentColor; border-radius: 99px; padding: 8px 14px; cursor: pointer; opacity: .85; }
 .mov:hover { opacity: 1; }
@@ -158,17 +99,8 @@ main > section.numeros { height: auto !important; min-height: 0 !important; back
   .hero__palabra { position: relative; grid-area: fig; align-self: start; top: auto; left: auto; right: auto; font-size: 16.4vw; margin: 0 calc(-1 * clamp(20px, 5.6vw, 80px)); max-width: none; }
   .hero__izq { max-width: 40ch; }
 }
-/* contraste del botón principal al pasar el mouse y aire interior en las secciones con fondo */
-.btn--primary:hover { background: #1c3de0 !important; color: #fff !important; }
-main > section:not(.sv):not(.hero) { padding-inline: 12px; }
-/* componentes de 21st.dev adaptados */
-#funciones [data-blur-progresivo] > .blur-prog { inset: 72% 0 0 0; }
-.hero__rubro { margin-top: var(--s-3) !important; }
-.hero__rubro .xfade { font-weight: 600; color: #12233d; }
-.pie .mov { white-space: normal; text-align: left; max-width: 100%; }
-
-/* portada: la caja del logo se abre al scrollear y de adentro sale el recorrido del almacén (portada.js).
-   Sin JS o con "Reducir movimiento": la caja queda abierta, quieta, y el video va debajo con sus controles. */
+/* portada: la caja del logo se abre al scrollear (portada.js).
+   Sin JS o con "Reducir movimiento": la caja queda abierta y quieta. */
 main > section.portada { height: auto !important; min-height: 0 !important; padding: 0 !important; position: relative; }
 .portada .hero { min-height: 100svh; }
 .portada .hero__izq, .portada .hero__der, .portada .hero__acciones { z-index: 3; }
@@ -178,30 +110,28 @@ main > section.portada { height: auto !important; min-height: 0 !important; padd
 .portada:not(.is-live) .pc-r { transform: translate(6px, 4px); }
 .portada:not(.is-live) .pc-l { transform: translate(-6px, 4px); }
 .portada:not(.is-live) .pc-c { stroke-dashoffset: 1; }
-.portada__video { position: relative; width: min(1100px, 92vw); margin: var(--s-6) auto var(--s-7); }
-.portada__lienzo { position: relative; aspect-ratio: 16 / 9; border-radius: var(--r-lg); overflow: hidden; background: #12233d; }
-.portada__lienzo video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
-.portada__pantalla { position: absolute; opacity: 0; object-fit: cover; object-position: left top; pointer-events: none; box-shadow: inset 0 0 6px rgb(0 0 0 / .25); filter: brightness(.97) contrast(.98); }
 /* con scroll */
-main > section.portada.is-live { height: 560svh !important; }
+main > section.portada.is-live { height: 240svh !important; }
 .portada.is-live .hero { position: sticky; top: 0; height: 100svh; min-height: 0; }
-.portada.is-live .portada__video { position: absolute; inset: 0; width: auto; margin: 0; z-index: 1; clip-path: circle(var(--r, 0px) at var(--cx, 50%) var(--cy, 50%)); background: #12233d; }
-.portada.is-live .portada__lienzo { position: absolute; aspect-ratio: auto; border-radius: 0; }
 .portada.is-live .hero__palabra { z-index: 0; }
 @media (max-width: 1023px) { .portada.is-live .hero__palabra { top: auto; } }
 
-/* la caja de cada turno: tres pasos fijos, sin efectos de scroll */
-.cajas { list-style: none; margin: var(--s-7) 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-6); }
-.cajas figure { margin: 0 0 var(--s-4); border-radius: var(--r-lg); overflow: hidden; border: 1px solid #d5dae3; background: #fff; }
-.cajas img { width: 100%; height: auto; display: block; }
-.cajas h3 { margin: 0 0 var(--s-2); font-size: var(--t-card); }
-.cajas p { margin: 0; color: var(--p-muted); max-width: 40ch; }
-@media (max-width: 899px) { .cajas { grid-template-columns: minmax(0, 1fr); } }
-/* así se cobra una venta: pasos y captura, sin efectos */
-.cobro { list-style: none; margin: var(--s-6) 0 0; padding: 0; display: grid; gap: var(--s-5); counter-reset: cobro; }
-.cobro li { counter-increment: cobro; padding-left: 44px; position: relative; }
-.cobro li::before { content: counter(cobro); position: absolute; left: 0; top: 2px; font: 600 14px/1 var(--font-mono); color: #2447f9; }
-.cobro h3 { margin: 0 0 var(--s-2); font-size: var(--t-card); }
-.cobro p { margin: 0; color: var(--p-muted); max-width: 40ch; }
-.cobro__pantalla { margin: 0; border-radius: var(--r-lg); overflow: hidden; border: 1px solid #d5dae3; background: #fff; box-shadow: 0 30px 60px -40px rgb(18 35 61 / .45); }
-.cobro__pantalla img { width: 100%; height: auto; display: block; }
+
+/* beneficios con captura real */
+.benef { list-style: none; margin: var(--s-7) 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-6); }
+.benef figure { margin: 0 0 var(--s-4); border-radius: var(--r-lg); overflow: hidden; border: 1px solid #d5dae3; background: #fff; }
+.benef img { width: 100%; height: auto; display: block; }
+.benef h3 { margin: 0 0 var(--s-2); font-size: var(--t-card); }
+.benef p { margin: 0; color: var(--p-muted); max-width: 42ch; }
+@media (max-width: 899px) { .benef { grid-template-columns: minmax(0, 1fr); } }
+
+/* qué incluye la instalación */
+.incluye__t { margin: 0 0 var(--s-3); font-size: var(--t-card); }
+.incluye { list-style: none; margin: 0 0 var(--s-6); padding: 0; display: grid; gap: var(--s-3); }
+.incluye li { padding-left: 20px; position: relative; max-width: 52ch; }
+.incluye li::before { content: ""; position: absolute; left: 0; top: .7em; width: 8px; height: 1.5px; background: #2447f9; }
+
+/* las secciones miden lo que mide su contenido (el kit las fija a una pantalla y, en pantallas bajas, el texto pisaba a la sección siguiente) */
+main > section:not(.portada) { height: auto !important; min-height: 0 !important; }
+
+main > section.ground-surface { padding-block: clamp(48px, 9vh, 112px) !important; padding-inline: 12px !important; }

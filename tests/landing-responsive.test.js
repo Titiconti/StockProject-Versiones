@@ -14,7 +14,6 @@ for (const p of PAGINAS) {
 }
 const css = fs.readFileSync(path.join(NUBE, 'landing', 'landing.css'), 'utf8');
 assert(/\.hero__palabra[^}]*clamp\(/.test(css), 'la palabra gigante usa tipografía fluida');
-assert(/main > section\.numeros \{[^}]*height: auto !important/.test(css), 'la franja de números crece con su contenido');
 
 // ---- en navegador ----
 function cargarPlaywright() {
