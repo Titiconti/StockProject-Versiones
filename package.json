@@ -33,7 +33,24 @@
       "clave.html",
       "fonts/chivo-latin-wght-normal.woff2",
       "index.html",
-      "defaults.json"
+      "defaults.json",
+      "catalogos/almacen.json",
+      "catalogos/cafeteria.json",
+      "catalogos/carniceria.json",
+      "catalogos/dietetica.json",
+      "catalogos/electronica.json",
+      "catalogos/farmacia.json",
+      "catalogos/ferreteria.json",
+      "catalogos/heladeria.json",
+      "catalogos/kiosco.json",
+      "catalogos/libreria.json",
+      "catalogos/mayorista.json",
+      "catalogos/panaderia.json",
+      "catalogos/perfumeria.json",
+      "catalogos/petshop.json",
+      "catalogos/ropa.json",
+      "catalogos/servicios.json",
+      "catalogos/verduleria.json"
     ],
     "win": {
       "target": [

@@ -97,6 +97,8 @@ app.whenReady().then(() => {
   });
   ipcMain.on('defaults', e => { e.returnValue = defaults() });
   const sinInfo = { dir: '', last: null, warn: '' };
+  // Catálogo de productos de ejemplo por rubro (catalogos/<rubro>.json): solo lectura; el nombre se valida para no salir de la carpeta.
+  ipcMain.handle('cat:leer', (e, rubro) => { if (!conSesion() || !/^[a-z]{3,20}$/.test(String(rubro))) return null; try { return JSON.parse(fs.readFileSync(path.join(__dirname, 'catalogos', rubro + '.json'), 'utf8')); } catch (x) { return null; } });
   ipcMain.handle('xlsx:leer', async (e, buf) => { try { return await require('./xlsx-lector').leerXlsx(buf) } catch (x) { return { err: 'No se pudo leer el .xlsx' } } });
   ipcMain.handle('b:info', () => conSesion() ? store.info() : sinInfo);
   ipcMain.handle('b:now', () => { if (!permite('respaldo', 'crear')) return store.info(); usr.audit(quien(), 'respaldo.crear'); return store.backup(); });
