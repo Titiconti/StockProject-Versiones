@@ -46,5 +46,16 @@ assert(/Ejemplo/.test(html) && /no es un cliente real/.test(html), 'el comercio 
 assert(/Protenay/.test(html) && !/<blockquote/.test(html), 'Darío figura sin citas inventadas');
 assert(/Meta Platforms/.test(html) && /Microsoft/.test(html), 'aviso de marcas en el pie');
 assert(/sp-quieto/.test(js) && /data-mov/.test(html), 'hay un botón para reducir el movimiento');
-assert(/data-anatomia/.test(html) && !/prefers-reduced-motion/.test(js), 'la figura del hero y los efectos no dependen de la opción del sistema');
+assert(/data-portada/.test(html) && /portada__cubo/.test(html) && !/prefers-reduced-motion/.test(js), 'la portada (caja que se abre) y los efectos no dependen de la opción del sistema');
+// 5) el nombre del responsable solo figura en las páginas legales (el mail de contacto, que lo lleva en la dirección, no cuenta)
+const LEGALES = ['aviso-legal.html', 'privacidad.html'];
+(function recorrer(dir) {
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const f = path.join(dir, e.name);
+    if (e.isDirectory()) { if (e.name !== 'node_modules') recorrer(f); continue; }
+    if (!/\.(html|js|css|json|md|vtt|svg|txt)$/i.test(e.name) || (dir === NUBE && LEGALES.includes(e.name))) continue;
+    const t = fs.readFileSync(f, 'utf8').replace(/[\w.+-]+@[\w.-]+\.\w+/g, '');
+    assert(!/Tiziano|Barbaglia/i.test(t), 'el nombre del responsable aparece fuera de las páginas legales: ' + path.relative(NUBE, f));
+  }
+})(NUBE);
 console.log('landing OK');

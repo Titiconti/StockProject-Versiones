@@ -138,10 +138,7 @@ const gz = t => 'gz:' + zlib.gzipSync(Buffer.from(t, 'utf8')).toString('base64')
   assert(!/<script[^>]*src="https?:/i.test(html), 'ningún script de otro sitio');
   assert(!/<script(?![^>]*\bsrc=)[^>]*>/i.test(html), 'ningún script en línea');
   assert(!/\son[a-z]+="/i.test(html.replace(/<meta[^>]*>/g, '')), 'sin manejadores en línea');
-  for (const f of ['gsap.min.js', 'ScrollTrigger.min.js', 'lenis.min.js']) { assert(html.includes('landing/vendor/' + f)); assert(fs.statSync(path.join(NUBE, 'landing', 'vendor', f)).size > 5000); }
-  const lic = fs.readFileSync(path.join(NUBE, 'landing', 'vendor', 'LICENCIAS.md'), 'utf8');
-  for (const x of ['3.12.5', '1.1.13', 'cdnjs.cloudflare.com', 'unpkg.com', 'MIT', 'standard-license']) assert(lic.includes(x), 'LICENCIAS.md anota ' + x);
-  for (const f of ['gsap.min.js', 'ScrollTrigger.min.js', 'lenis.min.js']) assert(lic.includes(crypto.createHash('sha256').update(fs.readFileSync(path.join(NUBE, 'landing', 'vendor', f))).digest('hex')), 'hash de ' + f);
+  assert(!fs.existsSync(path.join(NUBE, 'landing', 'vendor')) && !/gsap|lenis|ScrollTrigger/i.test(html), 'la landing ya no carga librerías de scroll (GSAP, Lenis)');
   const V = JSON.parse(fs.readFileSync(path.join(NUBE, 'vercel.json'), 'utf8'));
   const rx = src => new RegExp('^' + src.replace(/:\w+\(/g, '(').replace(/\\\\/g, '\\') + '$');
   const headersPara = ruta => Object.fromEntries(V.headers.filter(h => rx(h.source).test(ruta)).flatMap(h => h.headers.map(x => [x.key.toLowerCase(), x.value])));
