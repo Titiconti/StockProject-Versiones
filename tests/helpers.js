@@ -4,10 +4,15 @@ const HTML = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const wait = ms => new Promise(r => setTimeout(r, ms));
 async function until(fn, ms = 4000) { const t = Date.now(); while (Date.now() - t < ms) { if (await fn()) return true; await wait(40); } return false; }
 
+// Completa el recibido (efectivo) al apretar Cobrar, salvo que la prueba ponga w.__sinAutoRec = true.
+function autoRec(w) { w.addEventListener('click', e => { try { if (e.target.id === 'cobrar' && !w.__sinAutoRec && w.eval("$('#pay').value") === 'Efectivo' && !(parseFloat(w.eval("$('#rec').value")) >= w.eval('cartTotal()'))) w.eval("$('#rec').value=cartTotal()"); } catch (_) {} }, true); }
 function api(w) {
   const d = w.document, $ = s => d.querySelector(s);
   w.Element.prototype.scrollIntoView = () => {}; w.scrollTo = () => {};   // jsdom no los implementa
   const errs = []; w.addEventListener('error', e => errs.push(e.message));
+  // Cobrar en efectivo exige "Recibido" >= total (v5.7.2). Las pruebas que no hablan de eso completan el recibido solas;
+  // las que prueban esa regla ponen w.__sinAutoRec = true.
+  autoRec(w);
   const ev = (el, t, o) => el.dispatchEvent(new w.Event(t, { bubbles: true, ...o }));
   return {
     w, d, $, errs,
@@ -23,4 +28,4 @@ function api(w) {
 }
 // Versión web (datos en el navegador) con la demo de productos y clientes.
 function web() { const dom = new JSDOM(HTML, { runScripts: 'dangerously', url: 'http://localhost/', pretendToBeVisual: true }); return api(dom.window); }
-module.exports = { JSDOM, HTML, wait, until, api, web };
+module.exports = { autoRec, JSDOM, HTML, wait, until, api, web };

@@ -1,7 +1,7 @@
 {
   "name": "stockproject",
   "productName": "StockProject",
-  "version": "5.7.1",
+  "version": "5.7.2",
   "description": "StockProject - Punto de venta e inventario",
   "author": "StockProject",
   "main": "main.js",

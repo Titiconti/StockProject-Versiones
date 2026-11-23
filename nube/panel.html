@@ -564,6 +564,15 @@ nav button[aria-current="page"]{background:var(--activo);color:#fff}
       var pm = c.porMedio && typeof c.porMedio === 'object' ? c.porMedio : {}, ks = Object.keys(pm).filter(function (k) { return num(pm[k]) !== 0; });
       return ks.length ? h('div', { class: 'chips' }, ks.map(function (k) { return h('span', { class: 'chip' }, k + ' ' + plata(pm[k])); })) : null;
     }
+    var ARQ = { qr: 'QR', deb: 'Débito', cre: 'Crédito', tra: 'Transferencia', pt: 'Point' };
+    function extras(c) {
+      var ch = [];
+      if (c.queda != null) ch.push(h('span', { class: 'chip' }, 'Retiro ' + plata(c.retiro) + ' · queda ' + plata(c.queda)));
+      if (c.traspasoDif != null && Math.abs(num(c.traspasoDif)) >= 0.005) ch.push(h('span', { class: 'chip' }, 'Traspaso: diferencia ' + plata(c.traspasoDif)));
+      var aq = c.arqueo && typeof c.arqueo === 'object' ? c.arqueo : {};
+      Object.keys(aq).forEach(function (k) { var x = aq[k] || {}; if (Math.abs(num(x.dif)) >= 0.005) ch.push(h('span', { class: 'chip' }, 'Arqueo ' + (ARQ[k] || txt(k)) + ': dif. ' + plata(x.dif))); });
+      return ch.length ? h('div', { class: 'chips' }, ch) : null;
+    }
     function titulo(c) { return [txt(c.caja), txt(c.usuario)].filter(Boolean).join(' · ') || 'Caja'; }
     cont.appendChild(h('h2', { class: 'subt' }, 'Cajas abiertas'));
     if (!ab.length) cont.appendChild(h('div', { class: 'tarj' }, h('p', { class: 'vacio' }, 'No hay ninguna caja abierta en este momento.')));
@@ -587,7 +596,7 @@ nav button[aria-current="page"]{background:var(--activo);color:#fff}
           h('div', null, h('div', { class: 'rot' }, 'Esperado'), h('b', null, plata(c.esperado))),
           h('div', null, h('div', { class: 'rot' }, 'Contado'), h('b', null, plata(c.contado))),
           h('div', null, h('div', { class: 'rot' }, 'Vendido'), h('b', null, plata(c.vendido)))),
-        medios(c)));
+        medios(c), extras(c)));
     });
     cont.appendChild(g2);
   }

@@ -1,6 +1,6 @@
 const {JSDOM}=require('jsdom'),fs=require('fs'),assert=require('assert');
 const html=fs.readFileSync(require('path').join(__dirname,'..','index.html'),'utf8');
-const dom=new JSDOM(html,{runScripts:'dangerously',url:'http://localhost/',pretendToBeVisual:true});
+const dom=new JSDOM(html,{runScripts:'dangerously',url:'http://localhost/',pretendToBeVisual:true});require('./helpers').autoRec(dom.window);
 const w=dom.window,d=w.document,$=s=>d.querySelector(s),click=s=>{const e=typeof s==='string'?$(s):s;e.dispatchEvent(new w.MouseEvent('click',{bubbles:true}))};
 const errs=[];w.addEventListener('error',e=>errs.push(e.message));
 // pestañas
