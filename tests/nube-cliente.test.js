@@ -26,16 +26,28 @@ const assert = require('assert'), crear = require('../nube'), { proyeccion } = c
   assert.doesNotThrow(() => proyeccion({}, T)); assert.doesNotThrow(() => proyeccion(null, T));
 
   // ---- heladería: tamaños armados sin stock propio, gustos en baldes, vendedor elegido ----
-  const dbH = { shop: { n: 'Heladería Sol' }, prods: [{ id: 1, name: 'Chocolate', unidad: 'kg', balde: 5, price: 100, lots: [{ id: 1, n: 'A', qty: 7500, exp: '' }] },
+  const dbH = { shop: { n: 'Heladería Sol' }, cfg: { rubro: 'heladeria', caps: { peso: true, heladeria: true } }, prods: [{ id: 1, name: 'Chocolate', unidad: 'kg', balde: 5, price: 100, lots: [{ id: 1, n: 'A', qty: 7500, exp: '' }] },
       { id: 2, name: 'Limón', unidad: 'kg', balde: 5, price: 100, lots: [{ id: 2, n: 'A', qty: 2500, exp: '' }] }, { id: 3, name: '1/4 kg', tipo: 'tamano', price: 4000, lots: [] }, { id: 4, name: 'Pan', price: 5, lots: [{ id: 3, n: 'A', qty: 3, exp: '' }] }], baldes: [{ id: 1, date: iso(-1), user: 'Lu', gid: 2, gusto: 'Limón', t: 'ingreso', baldes: 1, g: 5000 }, { id: 2, date: iso(0), user: 'Ana', gid: 1, gusto: 'Chocolate', t: 'ajuste', baldes: 1.5, g: -500 }],
     sales: [{ id: 1, date: iso(0), items: [{ id: 3, name: '1/4 kg', qty: 1, price: 4000 }], total: 4000, pay: 'Efectivo', user: 'Caja', vend: { id: 2, nombre: 'Lu' } }, { id: 2, date: iso(0), items: [], total: 5, pay: 'Efectivo', user: 'Ana' }], cajas: [], clients: [], pays: [], cargos: [], desv: [] };
   const fH = JSON.parse(JSON.stringify(proyeccion(dbH, T))), sH = n => fH.stock.find(x => x.n === n);
   assert.strictEqual(sH('1/4 kg'), undefined, 'los tamaños armados no tienen stock propio: no aparecen como "sin stock"');
   assert.deepStrictEqual([sH('Chocolate').gusto, sH('Chocolate').baldes, sH('Chocolate').pedir, sH('Chocolate').disp, sH('Chocolate').u], [true, 1.5, false, 1.5, 'balde'], 'datos 5.7.0 (balde = 5 kg): 7,5 kg = 1,5 baldes, sin kilos');
-  const sN = proyeccion({ prods: [{ id: 1, name: 'Americana', unidad: 'kg', balde: 1, price: 0, lots: [{ id: 1, n: 'A', qty: 250, exp: '' }] }, { id: 2, name: 'Dulce de leche', unidad: 'kg', balde: 1, price: 0, lots: [{ id: 2, n: 'A', qty: 1500, exp: '' }] }] }, T).stock; assert.deepStrictEqual(sN.map(x => [x.n, x.disp, x.u, x.pedir]), [['Americana', 0.25, 'balde', true], ['Dulce de leche', 1.5, 'balde', false]], 'formato nuevo: 1 balde = 1000'); assert.deepStrictEqual([sH('Limón').baldes, sH('Limón').pedir], [0.5, true], 'queda menos de 1 balde: Pedir');
+  const sN = proyeccion({ cfg: { caps: { heladeria: true } }, prods: [{ id: 1, name: 'Americana', unidad: 'kg', balde: 1, price: 0, lots: [{ id: 1, n: 'A', qty: 250, exp: '' }] }, { id: 2, name: 'Dulce de leche', unidad: 'kg', balde: 1, price: 0, lots: [{ id: 2, n: 'A', qty: 1500, exp: '' }] }] }, T).stock; assert.deepStrictEqual(sN.map(x => [x.n, x.disp, x.u, x.pedir]), [['Americana', 0.25, 'balde', true], ['Dulce de leche', 1.5, 'balde', false]], 'formato nuevo: 1 balde = 1000'); assert.deepStrictEqual([sH('Limón').baldes, sH('Limón').pedir], [0.5, true], 'queda menos de 1 balde: Pedir');
   assert(!('gusto' in sH('Pan')) && !('balde' in sH('Pan')) && !('baldes' in sH('Pan')) && !('pedir' in sH('Pan')), 'sin balde no se agrega nada (compatible con lo anterior)');
   assert.deepStrictEqual(fH.baldes.map(b => [b.usuario, b.n, b.t, b.baldes]), [['Lu', 'Limón', 'ingreso', 1], ['Ana', 'Chocolate', 'ajuste', 1.5]], 'últimas entradas de baldes: quién y cuándo'); assert(fH.baldes[0].fecha); assert.deepStrictEqual(JSON.parse(JSON.stringify(proyeccion({ prods: [] }, T))).baldes, [], 'sin historial de baldes: lista vacía, no rompe');
   assert.strictEqual(fH.ventas[0].vend, 'Lu'); assert.strictEqual(fH.ventas[0].usuario, 'Caja'); assert(!('vend' in fH.ventas[1]), 'sin vendedor elegido no se agrega'); assert.strictEqual(fH.ventas[1].usuario, 'Ana');
+  // ---- rubro: los baldes solo existen para el panel si el rubro activo es Heladería ----
+  const gustoViejo = JSON.parse(JSON.stringify(dbH)); gustoViejo.prods.push({ id: 9, name: 'Dulce con precio', unidad: 'kg', balde: 5, price: 50, lots: [{ id: 9, n: 'A', qty: 3000, exp: '' }] });
+  const fHel = JSON.parse(JSON.stringify(proyeccion(gustoViejo, T)));
+  assert(fHel.stock.find(x => x.n === 'Chocolate').gusto && fHel.baldes.length === 2, 'heladería: el panel recibe gustos en baldes e historial');
+  for (const cfgOtro of [{ rubro: 'kiosco', caps: { peso: true } }, { rubro: 'kiosco' }, {}]) {   // kiosco con gustos viejos (de cuando era heladería)
+    const kio = JSON.parse(JSON.stringify(gustoViejo)); kio.cfg = cfgOtro; kio.prods.forEach(x => { if (x.balde > 0 && x.id !== 9) x.price = 0; }); kio.envs = [{}]; kio.prods.find(x => x.id === 3).env = 4; kio.prods.find(x => x.id === 3).tipo = 'tamano';
+    const fK = JSON.parse(JSON.stringify(proyeccion(kio, T))), nomK = fK.stock.map(x => x.n);
+    assert.deepStrictEqual(fK.baldes, [], 'otro rubro: sin historial de baldes'); assert(fK.stock.every(x => !('gusto' in x) && !('baldes' in x) && !('pedir' in x) && !('balde' in x) && !('envase' in x) && x.u !== 'balde'), 'otro rubro: nada de baldes ni envases en el stock');
+    assert(!nomK.includes('Chocolate') && !nomK.includes('Limón'), 'gustos sin precio: no se muestran en otro rubro'); const dulce = fK.stock.find(x => x.n === 'Dulce con precio'); assert(dulce && dulce.precio === 50 && dulce.u === 'kg' && dulce.disp === 3, 'un gusto con precio se ve como producto común (en kilos)');
+    assert(fK.stock.find(x => x.n === 'Pan') && fK.stock.every(x => x.id != null), 'los productos conservan su id: el cambio de precio desde el celular sigue disponible');
+  }
+
   // ---- envío ----
   let cfg = {}, reloj = T, red = 'ok'; const envios = [];
   const enviar = async (u, o) => { if (red === 'caida') throw new TypeError('fetch failed'); envios.push({ u, auth: o.headers.Authorization, body: JSON.parse(o.body) }); return { ok: red === 'ok', status: red === 'ok' ? 200 : +red }; };

@@ -41,9 +41,12 @@ function proyeccion(db, ahora = Date.now()) {
     items: (s.items || []).map(i => ({ n: i.name, q: i.qty, u: i.u, p: r2(i.price), t: r2(i.tot != null ? i.tot : i.qty * i.price) })) }));
   // Heladería: un gusto es un producto por peso con `balde` y se cuenta en BALDES (nunca kg): "Pedir" si queda menos del mínimo (cfg.hel.pedir, 1 por defecto).
   // Baldes = todo lo que hay / 1000 / balde (con `balde`=1 es el formato nuevo; con kg por balde, el de la 5.7.0: da lo mismo).
-  const gusto = (p, t) => { if (!(p.unidad === 'kg' && p.balde > 0)) return {}; const b = r2(t / 1000 / p.balde); return { gusto: true, disp: b, u: 'balde', min: 0, baldes: b, pedir: b < ((cfg.hel && cfg.hel.pedir) || 1) }; };
-  const envases = new Set(prods.filter(t => t.tipo === 'tamano' && t.env != null).map(t => t.env));   // heladería: productos usados como envase de un tamaño
-  const stock = prods.filter(p => p.control !== 'variantes' && p.tipo !== 'tamano' && p.tipo !== 'armado').map(p => { const v = vend(p), t = tot(p), ex = (p.lots || []).filter(l => l.exp && l.exp >= hoy && l.qty > 0).map(l => l.exp).sort()[0] || '';
+  // Solo si el rubro activo es Heladería (como lo decide el programa: capacidad `heladeria` del rubro): con otro rubro (kiosco, etc.) los
+  // gustos viejos no se tratan como baldes, no hay envases ni historial de baldes, y un gusto sin precio no se muestra (sería un producto en $0).
+  const heladeria = !!((cfg.caps && cfg.caps.heladeria) || (!cfg.caps && cfg.rubro === 'heladeria')), esGusto = p => p.unidad === 'kg' && p.balde > 0;
+  const gusto = (p, t) => { if (!heladeria || !esGusto(p)) return {}; const b = r2(t / 1000 / p.balde); return { gusto: true, disp: b, u: 'balde', min: 0, baldes: b, pedir: b < ((cfg.hel && cfg.hel.pedir) || 1) }; };
+  const envases = new Set(!heladeria ? [] : prods.filter(t => t.tipo === 'tamano' && t.env != null).map(t => t.env));   // heladería: productos usados como envase de un tamaño
+  const stock = prods.filter(p => p.control !== 'variantes' && p.tipo !== 'tamano' && p.tipo !== 'armado' && (heladeria || !esGusto(p) || p.price > 0)).map(p => { const v = vend(p), t = tot(p), ex = (p.lots || []).filter(l => l.exp && l.exp >= hoy && l.qty > 0).map(l => l.exp).sort()[0] || '';
     return { ...(p.id != null ? { id: p.id } : {}), n: p.name, cod: p.code || '', cat: p.cat || '', precio: r2(p.price), disp: cant(p, v), u: peso(p) ? 'kg' : undefined, min: p.min || 0, ...gusto(p, t), ...(envases.has(p.id) ? { envase: true } : {}), vence: ex, estado: v <= 0 ? (t > 0 ? 'vencido' : 'sin') : p.min && v <= (peso(p) ? p.min * 1000 : p.min) ? 'bajo' : 'ok' }; });
   const cajas = (db.cajas || []).slice(-30).map(c => { const k = c.cierre && c.tot ? c.tot : calcCaja(db, c); return { usuario: c.user, caja: c.caja, abre: c.abre, cierre: c.cierre || null, ini: r2(c.ini), esperado: r2(k.esperado), contado: c.cierre ? r2(c.contado) : null, dif: c.cierre ? r2(c.dif) : null, vendido: r2(k.vendido), porMedio: k.porMedio || {} }; });
   const saldo = new Map(), sum = (id, n) => saldo.set(id, (saldo.get(id) || 0) + n);
@@ -53,7 +56,7 @@ function proyeccion(db, ahora = Date.now()) {
   const bajas = (db.desv || []).filter(v => !v.void && dia(v.date) >= desde).slice(-300).map(v => ({ fecha: v.date, motivo: v.reason || '', detalle: (v.items || []).map(i => i.qty + ' x ' + i.name).join(', '), costo: r2((v.items || []).reduce((a, i) => a + i.qty * (i.cost || 0), 0)), usuario: v.user || null }));
   const vencimientos = []; prods.forEach(p => (p.lots || []).forEach(l => { if (l.exp && l.qty > 0 && l.exp <= en30) vencimientos.push({ n: p.name, lote: l.n, cant: cant(p, l.qty), vence: l.exp, estado: l.exp < hoy ? 'vencido' : 'porvencer' }); }));
   // Últimos movimientos de baldes de la heladería (db.baldes, opcional): quién, cuándo, qué gusto y si entró un balde o se ajustó lo que queda.
-  const baldes = (Array.isArray(db.baldes) ? db.baldes : []).slice(-20).map(b => ({ fecha: b.date || '', usuario: b.user || null, n: b.gusto || '', t: b.t === 'ingreso' ? 'ingreso' : 'ajuste', baldes: r2(b.baldes) }));
+  const baldes = (heladeria && Array.isArray(db.baldes) ? db.baldes : []).slice(-20).map(b => ({ fecha: b.date || '', usuario: b.user || null, n: b.gusto || '', t: b.t === 'ingreso' ? 'ingreso' : 'ajuste', baldes: r2(b.baldes) }));
   return { v: 1, generado: new Date(ahora).toISOString(), negocio: { nombre: (db.shop && db.shop.n) || 'Mi negocio', moneda: cfg.moneda || enc.mon || 'ARS', loc: cfg.loc || enc.loc || 'es-AR' }, ventas, stock, cajas, clientes, bajas, vencimientos, baldes };
 }
 // Mismas reglas que el servidor para una clave elegida por el usuario.
