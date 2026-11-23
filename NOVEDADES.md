@@ -1,5 +1,13 @@
 # Novedades de StockProject
 
+## 5.7.1
+- **Heladería con envases y conteo por balde:** cargás los envases (cucuruchos, potes) y el conteo por balde en Inventario, y también desde el celular.
+- **Eliminar gustos y tamaños** que ya no usás.
+- **Guías de instalación dentro de Mercado Pago y ARCA**, paso a paso, y un botón para **crear la caja QR** sin salir del programa.
+- **Débito y crédito por el Point de Mercado Pago.**
+- **IVA contenido en el ticket**, según la Ley 27.743 (transparencia fiscal).
+- Correcciones varias.
+
 ## 5.7.0
 - **Facturación electrónica con ARCA:** conectás tu propio certificado desde Configuración › Facturación (te guía paso a paso) y elegís cuándo facturar: a pedido, siempre al cobrar o solo a ciertos clientes. Si anulás una venta facturada, sale sola la nota de crédito.
 - **Cobro con Mercado Pago:** QR y Point con tu cuenta. La venta se marca cobrada sola cuando el pago se aprueba, y en «Conciliar Mercado Pago» cruzás los pagos del día con las ventas.
