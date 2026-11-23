@@ -67,7 +67,7 @@ FA.bloque=s=>{const f=s&&s.fe;if(!f||!f.cae)return'';const e=f.emisor||{},r=f.re
   <div style="margin-top:4px">CAE: ${esc(f.cae)}<br>Vencimiento del CAE: ${FA.fecha(f.vto)}</div>${FA.qrC[f.cae]?`<div style="width:110px;margin:6px auto 0">${FA.qrC[f.cae]}</div>`:''}`};
 
 // ---- Asistente de conexión (Configuración > Tu negocio) ----
-if(FA.ok()){const n=$('#cfg_fa');if(n){n.insertAdjacentHTML('beforeend',`<div class="card" id="fa" data-kw="arca afip factura electronica certificado cuit punto de venta homologacion produccion monotributo iva"><h3>Facturación electrónica (ARCA)</h3><div id="fa_e" style="margin:8px 0"></div><div id="fa_adm">
+if(FA.ok()){const n=$('#cfg_fa');if(n){n.insertAdjacentHTML('beforeend',`<div class="card" id="fa" data-kw="arca afip factura electronica certificado cuit punto de venta homologacion produccion monotributo iva"><h3>Facturación electrónica (ARCA)</h3><div id="fa_e" style="margin:8px 0"></div><div id="fa_adm"><div id="fa_guia"></div>
 <p class="mu" style="margin:0 0 8px">Conectá <b>tu</b> negocio con ARCA para emitir facturas desde este programa. Es gratis: se usa el servicio oficial de ARCA con un certificado propio. Empezás en <b>modo prueba</b> (homologación); recién cuando lo activás a mano se emiten facturas reales.</p>
 <h4 style="margin:12px 0 4px">1. Datos del negocio</h4><div class="form"><div><label for="fa_cuit">CUIT (sin guiones)</label><input id="fa_cuit" inputmode="numeric" maxlength="11" autocomplete="off"></div><div><label for="fa_raz">Razón social o nombre</label><input id="fa_raz" maxlength="100"></div>
 <div><label for="fa_dom">Domicilio comercial</label><input id="fa_dom" maxlength="120"></div><div><label for="fa_ini">Inicio de actividades</label><input id="fa_ini" placeholder="dd/mm/aaaa" maxlength="10"></div>
@@ -88,7 +88,19 @@ if(FA.ok()){const n=$('#cfg_fa');if(n){n.insertAdjacentHTML('beforeend',`<div cl
   FA.estadoHtml=()=>{const e=FA.e;if(!e)return'';const F=t=>new Date(t).toLocaleDateString('es-AR');
     if(e.listo)return `<div class="tip" style="border-left-color:var(--${e.cfg.ambiente==='produccion'?'ok':'warn'})"><b>Conectado · ${e.cfg.ambiente==='produccion'?'facturas reales':'modo prueba (sin validez fiscal)'}</b><br>CUIT ${esc(e.cfg.cuit)} · punto de venta ${e.cfg.ptoVta} · certificado vigente hasta ${F(e.vence)}${e.vence-Date.now()<30*864e5?' <b style="color:var(--bad)">(vence pronto: pedí uno nuevo)</b>':''}</div>`;
     return `<div class="tip" style="border-left-color:var(--${e.vencido?'bad':'bd'})">${e.vencido?'<b>El certificado venció.</b> Generá un pedido nuevo (paso 2) y cargá el certificado nuevo.':'Todavía no está conectado. Seguí los pasos de abajo.'}</div>`};
-  FA.pintar=async()=>{await FA.cargar();const el=$('#fa_e');if(el)el.innerHTML=FA.estadoHtml()};
+  // Guía de instalación (para quien le instala el programa a un cliente). Los tildes salen del estado real; la prueba de conexión vale mientras el programa está abierto.
+  FA.guia=()=>{const e=FA.e;if(!e)return[];const c=e.cfg,h=db.sales.some(s=>s.fe&&s.fe.cae&&s.fe.amb==='homologacion');return[
+   {t:'Tener la clave fiscal del CLIENTE (nivel 3 o más)',ok:null,d:'<p>La pide el dueño del CUIT. Sin nivel 3 no se pueden administrar certificados (<i>verificar</i> el nivel exigido en ARCA).</p>'},
+   {t:'Cargar los datos del negocio',ok:!!e.configurado,d:'<p>Paso 1 de abajo: CUIT, razón social, domicilio, condición frente al IVA y punto de venta. Monotributo emite Factura C; responsable inscripto, A o B.</p>'},
+   {t:'Generar la clave y el pedido de certificado (CSR)',ok:!!e.tieneClave,d:'<p>Paso 2 de abajo. La clave privada queda protegida solo en esta PC. Guardá el pedido para pegarlo en ARCA.</p>'},
+   {t:'Crear el certificado en ARCA',ok:null,d:'<p>Con la clave fiscal, en <b>Administración de certificados digitales</b>: agregá un alias, pegá el pedido y descargá el .crt. Para <b>prueba</b> (homologación) el servicio es <b>WSASS - Autogestión Certificados Homologación</b>; para producción, el mismo pedido en Administración de certificados digitales.</p>'},
+   {t:'Asociar el certificado a WSFE',ok:null,d:'<p>En el <b>Administrador de relaciones de clave fiscal</b>: nueva relación → servicio <b>Facturación electrónica (WSFE)</b>, representante = el alias. Una para homologación y otra para producción.</p>'},
+   {t:'Crear el punto de venta "Factura electrónica - Web Services"',ok:!!c.ptoVta,d:'<p>En <b>Administración de puntos de venta y domicilios</b>, agregá uno de ese tipo (monotributo: "RECE para aplicativo y web services"). Los de controlador fiscal o "Comprobantes en línea" no sirven. Anotá el número en el paso 1.</p>'},
+   {t:'Cargar el certificado (.crt)',ok:!!e.tieneCert,d:`<p>Paso 3 de abajo: elegí si es de Prueba o de Producción y cargá el archivo. Cargados: prueba ${e.certs&&e.certs.homologacion?'sí':'no'} · producción ${e.certs&&e.certs.produccion?'sí':'no'}.</p>`},
+   {t:'Probar la conexión con ARCA',ok:!!FA.probado,d:'<p>Paso 4 de abajo: tiene que decir "Conexión correcta" y que el punto de venta está habilitado.</p>'},
+   {t:'Emitir una factura de prueba en homologación',ok:h,d:'<p>En modo prueba, facturá una venta chica desde el historial de Reportes y revisá CAE, número y QR. No tiene validez fiscal.</p>'},
+   {t:'Pasar a producción',ok:c.ambiente==='produccion'&&!!e.listo,d:'<p>Cargá el certificado de <b>Producción</b>, probá de nuevo y en <b>Zona delicada</b> activá Producción. Desde ahí las facturas son reales.</p>'}]};
+  FA.pintar=async()=>{await FA.cargar();const el=$('#fa_e');if(el)el.innerHTML=FA.estadoHtml();UT.guiaPintar($('#fa_guia'),'fa_ig','Ver guía de instalación',FA.guia())};
   CF.extras.arca=(sub,nueva)=>{if(sub==='f'&&nueva)FA.pintar().then(L)};
   const R=async(p,ok)=>{const r=await p;if(r&&r.ok){if(ok)toast(ok)}else toast((r&&r.err)||'No se pudo');await FA.pintar();L();return r};
   $('#fa_cuit').oninput=()=>{$('#fa_cuit').value=$('#fa_cuit').value.replace(/\D/g,'')};$('#fa_cond').onchange=()=>$('#fa_alw').classList.toggle('hide',$('#fa_cond').value!=='ri');
@@ -99,10 +111,32 @@ if(FA.ok()){const n=$('#cfg_fa');if(n){n.insertAdjacentHTML('beforeend',`<div cl
   $('#fa_cd').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([$('#fa_csrt').value],{type:'text/plain'}));a.download='stockproject.csr';a.click()};
   $('#fa_crf').onchange=()=>{const f=$('#fa_crf').files[0];if(!f||f.size>20000)return f&&toast('Ese archivo no parece un certificado');const r=new FileReader();r.onload=()=>{$('#fa_crt').value=String(r.result)};r.readAsText(f)};
   $('#fa_cg').onclick=async()=>{const r=await R(sp.arca.cert($('#fa_crt').value,$('#fa_camb').value),'Certificado guardado');if(r&&r.ok)$('#fa_crt').value=''};
-  $('#fa_pr').onclick=async()=>{$('#fa_pr').disabled=true;$('#fa_prr').textContent='Conectando con ARCA…';const r=await sp.arca.probar();$('#fa_pr').disabled=false;
+  $('#fa_pr').onclick=async()=>{$('#fa_pr').disabled=true;$('#fa_prr').textContent='Conectando con ARCA…';const r=await sp.arca.probar();$('#fa_pr').disabled=false;FA.probado=!!(r&&r.ok&&r.ptoVtaOk);if(FA.probado)FA.pintar();
     $('#fa_prr').innerHTML=r.ok?`<span style="color:var(--ok)"><b>Conexión correcta.</b></span> ${r.ptoVtaOk?'El punto de venta está habilitado.':'<span style="color:var(--bad)">'+esc(r.ptoVtaMsg)+'</span>'}${r.ptos&&r.ptos.length?'<br>Puntos de venta en ARCA: '+r.ptos.map(p=>p.nro+(p.bloqueado||p.baja?' (bloqueado)':'')).join(', '):''}`:`<span style="color:var(--bad)">${esc(r.err||'No se pudo conectar')}</span>`};
   const g5=async()=>{const prod=$('#fa_prod').checked;if(prod&&!confirm('Vas a emitir facturas REALES ante ARCA, con validez fiscal. ¿Seguro?'))return;
     await R(sp.arca.config({modo:($$('input[name=fa_modo]').find(r=>r.checked)||{}).value||'manual',ambiente:prod?'produccion':'homologacion'}),prod?'Producción activada: las facturas son reales':'Guardado')};
   $('#fa_g5').onclick=g5;$('#fa_g5p').onclick=g5;
   MODS.push(()=>{if($('#fa')&&CF.sub==='f'&&!$('#g').classList.contains('hide'))FA.pintar()});
   FA.cargar().then(()=>{if(FA.e&&FA.e.listo)draw()});setInterval(()=>FA.reintentar(),6e4);setTimeout(()=>FA.reintentar(),5e3)}}
+
+// ===== Transparencia fiscal al consumidor (Ley 27.743, RG ARCA 5614/2024) =====
+// Bloque "IVA Contenido" + "Otros Impuestos Nacionales Indirectos" al pie del ticket y de la factura. Config: db.cfg.transp = { modo:'auto'|'si'|'no', alic }.
+// 'auto' = se muestra si el comercio es responsable inscripto según la configuración de ARCA (monotributo: queda apagado, a confirmar con contador).
+const TF_ALIC={3:0,4:10.5,5:21,6:27,8:5,9:2.5};
+FA.r2=n=>Math.round(n*100)/100;
+FA.transpCfg=()=>{const t=(db.cfg&&db.cfg.transp)||{},modo=['si','no'].includes(t.modo)?t.modo:'auto',ri=!!(FA.e&&FA.e.cfg&&FA.e.cfg.condIva==='ri');return{modo,on:modo==='si'||(modo==='auto'&&ri),alic:t.alic!=null&&t.alic!==''?+t.alic:(FA.e&&FA.e.cfg&&+FA.e.cfg.alicuota)||21}};
+// IVA contenido por alícuota: el total ya lleva IVA; se separa el neto (redondeado a centavos) y el IVA es la diferencia. Una línea por alícuota (si un renglón trae `iva`, se respeta).
+FA.ivaLineas=(s,def)=>{const it=s.items||[],bruto=it.reduce((a,i)=>a+(i.tot!=null?i.tot:i.qty*i.price),0),k=bruto>0?(+s.total||0)/bruto:1,g={};
+  it.forEach(i=>{const a=i.iva!=null?+i.iva:def;g[a]=(g[a]||0)+(i.tot!=null?i.tot:i.qty*i.price)*k});if(!it.length)g[def]=+s.total||0;
+  return Object.keys(g).map(a=>{const b=FA.r2(g[a]);return{a:+a,iva:FA.r2(b-FA.r2(b/(1+a/100)))}}).sort((x,y)=>y.a-x.a)};
+FA.pct=a=>String(a).replace('.',',');
+FA.transpBloque=s=>{if(!s)return'';const c=FA.transpCfg();if(!c.on)return'';const f=s.fe&&s.fe.cae&&s.fe.iva>0?s.fe:null,L=f?[{a:TF_ALIC[f.alicuotaId],iva:f.iva}]:FA.ivaLineas(s,c.alic);
+  return `<hr><div class="tf" style="font-size:.92em"><b>Régimen de Transparencia Fiscal al Consumidor (Ley 27.743)</b>${L.map(x=>`<div class="r" style="display:flex;justify-content:space-between;gap:8px"><span>IVA Contenido${x.a!=null?' ('+FA.pct(x.a)+' %)':''}</span><span>${fmt(x.iva)}</span></div>`).join('')}<div class="r" style="display:flex;justify-content:space-between;gap:8px"><span>Otros Impuestos Nacionales Indirectos</span><span>${fmt(0)}</span></div></div>`};
+{const n=FA.ok()?$('#cfg_fa'):$('#cfg_caja');if(n){n.insertAdjacentHTML('beforeend',`<div class="card" id="tf" data-kw="transparencia fiscal iva contenido ley 27743 ticket impuestos nacionales indirectos"><h3>Transparencia fiscal en tickets y facturas</h3>
+<p class="mu" style="margin:0 0 8px">La Ley 27.743 (resolución general 5614/2024 de ARCA) pide que las facturas y tickets a consumidores finales muestren el <b>IVA contenido</b> en el precio. Es obligatorio para responsables inscriptos desde el 1/4/2025. Para monotributistas la norma no define cómo calcularlo: consultalo con tu contador antes de activarlo.</p>
+<div class="opt-list"><label class="opt"><input type="radio" name="tf_m" value="auto"> Automático: se muestra si en ARCA sos responsable inscripto</label><label class="opt"><input type="radio" name="tf_m" value="si"> Siempre mostrarlo</label><label class="opt"><input type="radio" name="tf_m" value="no"> No mostrarlo</label></div>
+<div class="form" style="margin-top:8px"><div><label for="tf_a">IVA incluido en tus precios</label><select id="tf_a"><option value="21">21 %</option><option value="10.5">10,5 %</option><option value="27">27 %</option><option value="0">0 %</option></select></div></div>
+<p id="tf_e" class="mu" style="margin:8px 0"></p><button class="btn" id="tf_g">Guardar</button></div>`);
+  const E=()=>{const c=FA.transpCfg();$$('input[name=tf_m]').forEach(r=>r.checked=r.value===c.modo);$('#tf_a').value=String(c.alic);$('#tf_e').textContent=c.on?'Hoy se muestra el bloque "Régimen de Transparencia Fiscal" en los tickets y las facturas.':'Hoy no se muestra en los tickets.'};
+  $('#tf_g').onclick=()=>{if(!can('configuracion','editar'))return toast('Tu usuario no tiene permiso para esto');db.cfg.transp={modo:($$('input[name=tf_m]').find(r=>r.checked)||{}).value||'auto',alic:+$('#tf_a').value};save();E();toast('Guardado')};
+  E();MODS.push(()=>{const c=FA.transpCfg(),e=$('#tf_e');if(e)e.textContent=c.on?'Hoy se muestra el bloque "Régimen de Transparencia Fiscal" en los tickets y las facturas.':'Hoy no se muestra en los tickets.'})}}

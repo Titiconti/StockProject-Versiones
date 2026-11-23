@@ -21,7 +21,7 @@ contextBridge.exposeInMainWorld('sp', {
   sys: { metricas: () => ipcRenderer.invoke('sys:metricas') },
   precios: { alCambiar: f => ipcRenderer.on('precios:cambiados', (e, info) => { try { f(info); } catch (x) {} }) },   // solo recibe avisos: no puede crear ni aprobar cambios
   nube: { estado: () => ipcRenderer.invoke('nube:estado'), call: (n, a) => ipcRenderer.invoke('nube:call', n, a) },
-  mp: Object.fromEntries(['estado', 'guardar', 'quitar', 'probar', 'terminales', 'cobrar', 'consultar', 'cancelar', 'conciliar'].map(n => [n, a => ipcRenderer.invoke('mp:' + n, a)])),
+  mp: Object.fromEntries(['estado', 'guardar', 'quitar', 'probar', 'crearCaja', 'terminales', 'cobrar', 'consultar', 'cancelar', 'conciliar'].map(n => [n, a => ipcRenderer.invoke('mp:' + n, a)])),
   arca: { estado: () => ipcRenderer.invoke('arca:estado'), config: p => ipcRenderer.invoke('arca:config', p), csr: o => ipcRenderer.invoke('arca:csr', o), cert: (t, a) => ipcRenderer.invoke('arca:cert', t, a), probar: () => ipcRenderer.invoke('arca:probar'), tipos: () => ipcRenderer.invoke('arca:tipos'), anular: id => ipcRenderer.invoke('arca:anular', id), facturar: (id, r) => ipcRenderer.invoke('arca:facturar', id, r), qr: u => ipcRenderer.invoke('arca:qr', u) },
   seg: {
     estado: () => ipcRenderer.invoke('seg:estado'),

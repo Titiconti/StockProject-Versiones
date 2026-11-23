@@ -121,9 +121,11 @@ const { web } = require('./helpers'), crearPC = require('../nube'), { crear } = 
   const PC7 = crearPC({ leer: () => st.snapshot(), getCfg: () => c7, setCfg: p => { c7 = { ...c7, ...p }; }, enviar: async () => ({ ok: true, status: 200, json: async () => ({ pendientes: [], cv: 0 }) }), ahora: () => R2, programar: () => 1, cancelar: () => {}, esperar: (f, ms) => { esperas.push(ms); if (ms >= 5000) corre = f; return 1; }, aplicar: async () => [] });
   PC7.configurar({ url: base, token: ana.token }); PC7.iniciar(); await new Promise(r2 => setTimeout(r2, 50)); assert(esperas.includes(5000), 'primera consulta a los 5 s');
   const sig = async () => { const f = corre; esperas.length = 0; f && await f(); return esperas[esperas.length - 1]; };
-  R2 = new Date(2026, 10, 22, 14, 0, 0).getTime(); PC7.avisar(); assert.strictEqual(await sig(), 60000, 'trabajando (guardado reciente): cada 60 s');
+  // Horas simuladas a partir del reloj de la prueba (mañana a las 14:00 y pasado mañana a las 03:00): nunca dependen de la hora real.
+  const hoy0 = new Date(reloj), manana14 = new Date(hoy0.getFullYear(), hoy0.getMonth(), hoy0.getDate() + 1, 14, 0, 0).getTime(), pasado3 = new Date(hoy0.getFullYear(), hoy0.getMonth(), hoy0.getDate() + 2, 3, 0, 0).getTime();
+  R2 = manana14; PC7.avisar(); assert.strictEqual(await sig(), 60000, 'trabajando (guardado reciente): cada 60 s');
   R2 += 40 * 60000; assert.strictEqual(await sig(), 180000, 'quieto: cada 3 min');
-  R2 = new Date(2026, 10, 23, 3, 0, 0).getTime(); assert.strictEqual(await sig(), 600000, 'de noche: cada 10 min');
+  R2 = pasado3; assert.strictEqual(await sig(), 600000, 'de noche: cada 10 min');
   PC7.detener();
   console.log('MEDIDO consulta de pendientes: 1 comando | cada 60 s activo (~600/día en 10 h) + 3 min quieto + 10 min de noche = ~800/día = ~24 mil comandos/mes por comercio');
   await srv.close(); try { fs.rmSync(T, { recursive: true, force: true }); } catch (e) {} console.log('NUBE_PRECIOS_OK'); process.exit(0);

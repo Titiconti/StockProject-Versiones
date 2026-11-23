@@ -13,6 +13,7 @@ Electron 33 + Node.js. Interfaz en `index.html` (HTML/JS sin framework). Los mó
 - Seguir las skills `safe-code-change`, `test-and-verify` y `github-publish-tested`.
 - Nunca usar la carpeta de datos real de un negocio para probar.
 - Correr siempre las pruebas con `npm test` (no `node tests/x.test.js` suelto): `tests/run.js` quita las variables `OneDrive*`, porque `store.js` las usa para elegir la carpeta de respaldos. Todo proceso hijo que use `os.homedir()` (p. ej. `servidor-cli.js`) debe recibir un `USERPROFILE`/`HOME` temporal. `tests/aislamiento.test.js` vigila esto.
+- **Todo arranque de Electron en pruebas usa `--user-data-dir` temporal + `SP_CARPETA_PRUEBA` temporal** (carpeta vacía). Con `SP_CARPETA_PRUEBA`, `main.js` saca Documentos, home y respaldos de esa carpeta y no busca OneDrive/Dropbox/Google Drive reales. Sin ella, Electron usa las carpetas reales de Windows (ignora `USERPROFILE`) y restaura respaldos reales. `tests/aislamiento.test.js` lo vigila.
 - **Una etiqueta `vX.Y.Z` publica una actualización automática para todos los clientes:** solo con aprobación explícita del dueño.
 - No guardar secretos en el repositorio ni en este archivo.
 

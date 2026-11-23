@@ -49,7 +49,7 @@ function productos(o, a) {
       }
     }
     if (p.plu != null && !/^\d{1,13}$/.test(String(p.plu))) return 'Código de balanza inválido en ' + nom(p);
-    if (p.balde != null && (!num(p.balde) || p.balde <= 0 || p.balde > 100)) return 'Kg por balde inválidos en ' + nom(p);
+    if (p.balde != null && (!num(p.balde) || p.balde <= 0 || p.balde > 100)) return 'Balde inválido en ' + nom(p);
     if (p.tipo != null && p.tipo !== 'tamano') return 'Tipo de producto inválido en ' + nom(p);
     if (p.minimo != null && (!num(p.minimo) || p.minimo < 0)) return 'Cantidad mínima inválida en ' + nom(p);
     if (p.garantia != null && (!Number.isInteger(p.garantia) || p.garantia < 0 || p.garantia > 240)) return 'Garantía inválida en ' + nom(p);
