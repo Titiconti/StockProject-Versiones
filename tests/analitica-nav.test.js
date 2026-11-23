@@ -1,4 +1,4 @@
-﻿// Regresion: activar la pestaña oculta "a" (Analitica) dejaba una pantalla vacia de alto 0 porque Analitica vive dentro de Reportes.
+// Regresion: activar la pestaña oculta "a" (Analitica) dejaba una pantalla vacia de alto 0 porque Analitica vive dentro de Reportes.
 const assert = require('assert'), { web } = require('./helpers.js');
 (async () => {
   const a = web(), { $, w } = a, ev = w.eval.bind(w);

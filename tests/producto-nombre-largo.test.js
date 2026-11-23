@@ -1,4 +1,4 @@
-﻿// Regresion: un nombre de producto de mas de 200 caracteres quedaba en memoria, y como validar.js lo rechaza, despues no se guardaba NADA mas.
+// Regresion: un nombre de producto de mas de 200 caracteres quedaba en memoria, y como validar.js lo rechaza, despues no se guardaba NADA mas.
 const assert = require('assert'), { web } = require('./helpers.js');
 (async () => {
   const a = web(), { $, w } = a, ev = w.eval.bind(w);
