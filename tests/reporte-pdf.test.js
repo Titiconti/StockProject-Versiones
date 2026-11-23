@@ -3,7 +3,7 @@ const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 
 function boot(desktop, pdfResult = { ok: true }) {
   const calls = { print: 0, pdf: [] };
-  const dom = new JSDOM(html, { runScripts: 'dangerously', url: 'http://localhost/', pretendToBeVisual: true, beforeParse(w) {
+  const dom = new JSDOM(html, { runScripts: 'dangerously', url: 'http://localhost/', pretendToBeVisual: true, beforeParse(w) { require('./helpers').autoRec(w);
     w.print = () => { calls.print++; };
     if (desktop) { let st = ''; w.sp = { load: () => st, save: s => { st = s; }, defaults: () => ({ demo: true }),
       info: async () => ({ dir: 'C:\\x', last: null, warn: '' }), now: async () => ({}), choose: async () => ({}), restore: async () => true,

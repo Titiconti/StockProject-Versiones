@@ -1,6 +1,6 @@
 const {JSDOM}=require('jsdom'),fs=require('fs'),assert=require('assert');
 const html=fs.readFileSync(require('path').join(__dirname,'..','index.html'),'utf8');
-function boot(desktop){const printed=[];const dom=new JSDOM(html,{runScripts:'dangerously',url:'http://localhost/',pretendToBeVisual:true,beforeParse(w){
+function boot(desktop){const printed=[];const dom=new JSDOM(html,{runScripts:'dangerously',url:'http://localhost/',pretendToBeVisual:true,beforeParse(w){require('./helpers').autoRec(w);
  w.print=()=>printed.push('window.print');
  if(desktop){let store='';w.sp={load:()=>store,save:s=>{store=s},defaults:()=>({demo:true}),info:async()=>({dir:'C:\\x',last:null,warn:''}),now:async()=>({}),choose:async()=>({}),restore:async()=>true,print:async (h,o)=>{printed.push(h);printed.opts=o;return{ok:true}}}}}});
  return{w:dom.window,printed}}

@@ -13,11 +13,11 @@ RP.enCamino=()=>{const m=new Map();db.orders.filter(o=>!o.closed).forEach(o=>o.i
 RP.prov=()=>{const m=new Map();db.orders.slice().sort((a,b)=>a.date<b.date?-1:1).forEach(o=>{if(o.supplier)o.items.forEach(i=>m.set(i.pid,o.supplier))});return m};
 RP.lead=()=>{const m=new Map();db.orders.forEach(o=>{const r=(o.receipts||[])[0];if(!r)return;const d=Math.max(0,Math.round((new Date(r.date)-new Date(o.date))/864e5));o.items.forEach(i=>{const a=m.get(i.pid)||[];a.push(d);m.set(i.pid,a)})});return m};
 RP.calc=()=>{const v30=RP.ventas(30),v7=RP.ventas(7),cam=RP.enCamino(),prov=RP.prov(),lead=RP.lead(),cob=RP.cob(),hoy=UT.hoy(),out=[];
-  db.prods.forEach(p=>{const vend=avail(p),q30=v30.get(p.id)||0,q7=v7.get(p.id)||0,enc=cam.get(p.id)||0,L=lead.get(p.id),ld=L?Math.round(L.reduce((a,x)=>a+x,0)/L.length):RP.dias();
+  db.prods.forEach(p=>{if(p.tipo==='promo')return;const vend=avail(p),q30=v30.get(p.id)||0,q7=v7.get(p.id)||0,enc=cam.get(p.id)||0,L=lead.get(p.id),ld=L?Math.round(L.reduce((a,x)=>a+x,0)/L.length):RP.dias();
     const diario=q30/30,trend=q30?(q7/7)/(diario||1):null,conHist=q30>0,min=p.min||0;
     const obj=conHist?Math.max(min,Math.ceil(diario*(ld+cob))):min*2,sug=Math.ceil(obj-(vend+enc));
     if(!(sug>0)||(!conHist&&!(min>0&&vend+enc<=min)))return;
-    const diasStock=conHist?vend/diario:null,ex=p.lots.filter(l=>l.exp&&l.exp>=T()&&l.qty>0).map(l=>l.exp).sort()[0]||'';
+    const diasStock=conHist?vend/diario:null,ex=!vtoOn()?'':p.lots.filter(l=>l.exp&&l.exp>=T()&&l.qty>0).map(l=>l.exp).sort()[0]||'';
     const pri=vend<=0?'alta':conHist?(diasStock<ld?'alta':diasStock<ld+7||vend<=min?'media':'baja'):(vend<=min?'media':'baja');
     const mot=[];if(vend<=0)mot.push('sin stock vendible');else if(min&&vend<=min)mot.push(`stock ${vend} en o bajo el mínimo (${min})`);
     if(conHist)mot.push(`vendió ${q30} en 30 días (${diario.toFixed(1).replace('.',',')} por día)`+(diasStock!=null?`, alcanza para ~${Math.floor(diasStock)} días`:''));else mot.push('sin ventas en 30 días: se usa solo el stock mínimo');

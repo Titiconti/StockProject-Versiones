@@ -1,5 +1,10 @@
 # Novedades de StockProject
 
+## 5.7.2
+- **Promos y combos con stock real:** armá un producto con otros (café + 2 medialunas); al vender descuenta cada uno y al anular vuelven.
+- **Efectivo:** hay que cargar el recibido y no puede ser menor al total. Los vencimientos y lotes solo se ven en los rubros que los usan.
+- **Caja:** retiro antes de cerrar, control de lo que queda para el próximo turno y arqueo por medio de pago.
+
 ## 5.7.1
 - **Heladería con envases y conteo por balde:** cargás los envases (cucuruchos, potes) y el conteo por balde en Inventario, y también desde el celular.
 - **Eliminar gustos y tamaños** que ya no usás.
