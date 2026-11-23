@@ -48,16 +48,6 @@ html.lenis, html.lenis body { height: auto; }
 .cel-phone img { height: min(640px, calc(100svh - 240px)); width: auto; max-width: 100%; border-radius: 36px; border: 10px solid #12233d; box-shadow: 0 40px 80px -48px rgb(18 35 61 / .6); background: #12233d; object-fit: cover; }
 @media (max-width: 1023px) { .cel-phone { margin-top: var(--s-7); } .cel-phone img { height: 420px; } }
 
-/* the caja steps at rest (reduced motion, before the moment mounts) keep their two screens, as live */
-main > #caja:not(.is-live) { min-height: 200svh; }
-@media (max-width: 639px) { main > #caja:not(.is-live) { min-height: 200lvh; } }
-/* tablet held upright: the three videos stack into two screens; the caja steps sit still in one */
-@media (min-width: 640px) and (max-width: 1023px) {
-  #videos { --h: 2; }
-  #caja { --h: 1; }
-  main > #caja:not(.is-live) { min-height: 100svh; }
-}
-
 /* the WhatsApp number inside the closing line: underlined, no arrow */
 .tel { color: inherit; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
 
@@ -126,23 +116,10 @@ main > #caja:not(.is-live) { min-height: 200svh; }
   .vs__item { filter: none; transform: none; }
 }
 
-/* sello compartido: el cubo viaja de un título al siguiente (efectos.js) */
-.sello-m { display: none; width: 48px; height: 48px; margin-bottom: var(--s-4); }
-.sello { display: none; position: fixed; left: 0; top: 0; width: 48px; height: 48px; z-index: 30; pointer-events: none; will-change: transform; filter: drop-shadow(0 10px 14px rgb(18 35 61 / .25)); }
-html.fx .sello-m { display: block; }
-html.fx .sello { display: block; }
-@media (max-width: 767px) { html.fx .sello-m, html.fx .sello { display: none; } }
-
-/* foco de atención: lo que está en el centro de la pantalla se agranda, el resto se desenfoca */
-html.fx [data-foco] { transition: transform .45s var(--ease), opacity .45s var(--ease), filter .45s var(--ease); }
-html.fx [data-foco].fuera { opacity: .6; filter: blur(1.5px); transform: scale(.985); }
-html.fx [data-foco].dentro { transform: scale(1.02); }
-@media (max-width: 767px) { html.fx [data-foco] { filter: none !important; opacity: 1 !important; transform: none !important; } }
-html.sp-quieto .vs__item, html.sp-quieto .vs__scene { transition: none; }
 /* ritmo estilo "una idea por sección" (estructura tomada de la plantilla Norte de Profitize, con la marca de StockProject) */
 .gran { font-size: clamp(34px, 5.2vw, 84px); line-height: 1.02; letter-spacing: -0.035em; font-weight: 600; text-wrap: balance; }
 .gran .linea { display: block; }
-html.fx [data-revela] { opacity: 0; transform: translateY(18px); transition: opacity .9s var(--ease), transform .9s var(--ease); }
+html.fx [data-revela] { opacity: 0; transform: translateY(10px); transition: opacity .5s var(--ease), transform .5s var(--ease); }
 html.fx [data-revela].is-visivel { opacity: 1; transform: none; }
 .importar { --hm: 1; }
 
@@ -212,3 +189,19 @@ main > section.portada.is-live { height: 560svh !important; }
 .portada.is-live .portada__lienzo { position: absolute; aspect-ratio: auto; border-radius: 0; }
 .portada.is-live .hero__palabra { z-index: 0; }
 @media (max-width: 1023px) { .portada.is-live .hero__palabra { top: auto; } }
+
+/* la caja de cada turno: tres pasos fijos, sin efectos de scroll */
+.cajas { list-style: none; margin: var(--s-7) 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-6); }
+.cajas figure { margin: 0 0 var(--s-4); border-radius: var(--r-lg); overflow: hidden; border: 1px solid #d5dae3; background: #fff; }
+.cajas img { width: 100%; height: auto; display: block; }
+.cajas h3 { margin: 0 0 var(--s-2); font-size: var(--t-card); }
+.cajas p { margin: 0; color: var(--p-muted); max-width: 40ch; }
+@media (max-width: 899px) { .cajas { grid-template-columns: minmax(0, 1fr); } }
+/* así se cobra una venta: pasos y captura, sin efectos */
+.cobro { list-style: none; margin: var(--s-6) 0 0; padding: 0; display: grid; gap: var(--s-5); counter-reset: cobro; }
+.cobro li { counter-increment: cobro; padding-left: 44px; position: relative; }
+.cobro li::before { content: counter(cobro); position: absolute; left: 0; top: 2px; font: 600 14px/1 var(--font-mono); color: #2447f9; }
+.cobro h3 { margin: 0 0 var(--s-2); font-size: var(--t-card); }
+.cobro p { margin: 0; color: var(--p-muted); max-width: 40ch; }
+.cobro__pantalla { margin: 0; border-radius: var(--r-lg); overflow: hidden; border: 1px solid #d5dae3; background: #fff; box-shadow: 0 30px 60px -40px rgb(18 35 61 / .45); }
+.cobro__pantalla img { width: 100%; height: auto; display: block; }
