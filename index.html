@@ -316,11 +316,14 @@ function drawProds0(){const q=$('#q').value.toLowerCase();
 $('#prods').innerHTML=prodList(q).map(p=>{const a=avail(p),ex=p.lots.filter(l=>!l.exp||l.exp>=T()).map(l=>l.exp).filter(Boolean).sort()[0];
 // Estado con texto (no solo color): Disponible · Stock bajo · Sin stock · Vencido (no vendible) · Vence pronto.
 const vp=esPadre(p)?PX.stockPadre(p):0,vencido=!esPadre(p)&&a<=0&&tot(p)>0,bajo=a>0&&p.min&&a<=p.min,st=esPadre(p)?(vp>0?['','Con variantes']:['out','Sin stock']):vencido?['out','Vencido · no vendible']:a<=0?['out','Sin stock']:bajo?['low','Stock bajo']:['','Disponible'];
-return `<button class="p" data-id="${p.id}" ${(esPadre(p)?vp<=0:a<=0)?'disabled':''} title="${esc(p.name)}${p.code?' · '+esc(p.code):''}"><b>${esc(p.name)}</b><span>${esPadre(p)?'Elegí talle/variante':a>0?(p.tipo==='tamano'&&!envaseDe(p)?'':'Disponible: '+fq(p,a)):vencido?'Lotes vencidos':envaseDe(p)?'Sin '+esc(envaseDe(p).name.toLowerCase()):'Sin stock'}${p.code?' · <span class="pc">'+esc(p.code)+'</span>':''}</span><span class="pt"><i class="tag ${st[0]}">${st[1]}</i>${ex&&ex<=plus(30)?` <i class="tag low">Vence ${fD(ex)}</i>`:''}</span><em>${fmt(up(p))}</em></button>`}).join('')||'<p class="mu">No hay productos.</p>'}
+return `<button class="p" data-id="${p.id}" ${(esPadre(p)?vp<=0:a<=0)?'disabled':''} title="${esc(p.name)}${p.code?' · '+esc(p.code):''}"><b>${esc(p.name)}</b><span>${esPadre(p)?'Elegí talle/variante':a>0?(p.tipo==='tamano'&&!envaseDe(p)?'':'Disponible: '+fq(p,a)):vencido?'Lotes vencidos':envaseDe(p)?'Sin '+esc(envaseDe(p).name.toLowerCase()):'Sin stock'}${p.code?' · <span class="pc">'+esc(p.code)+'</span>':''}</span><span class="pt"><i class="tag ${st[0]}">${st[1]}</i>${ex&&ex<=plus(30)?` <i class="tag low">Vence ${fD(ex)}</i>`:''}</span><em>${sinPrecio(p)?'Sin precio':fmt(up(p))}</em></button>`}).join('')||'<p class="mu">No hay productos.</p>'}
 // Vista de Ventas: cuadrícula o lista (preferencia de este equipo).
 const VISTA_K='sp_vista_ventas';function vistaVentas(v){if(v){try{localStorage.setItem(VISTA_K,v)}catch(e){}}let x='g';try{x=localStorage.getItem(VISTA_K)||'g'}catch(e){}$('#prods').classList.toggle('lista',x==='l');$$('#vvw button').forEach(b=>b.classList.toggle('on',b.dataset.vw===x));return x}
 let cartSer={};   // números de serie elegidos por producto (control por serie)
-function add(id){const p=db.prods.find(x=>x.id==id);if(!p)return;if(esPadre(p))return PX.variante(p);if(esPeso(p)||esSerie(p))return PX.elegir(p);if((cart[id]||0)>=avail(p))return toast(envaseDe(p)?'No quedan '+envaseDe(p).name.toLowerCase()+' para vender '+p.name:'No hay más stock disponible');cart[id]=(cart[id]||0)+1;drawCart()}
+// Un producto sin precio (por ejemplo, cargado desde el catálogo del rubro) no se vende hasta que se le pone precio. Los gustos y tamaños de heladería tienen su propio control.
+const AVISO_SIN_PRECIO=n=>n+' no tiene precio: cargalo en Productos antes de venderlo';
+function sinPrecio(p){return !!p&&!(p.price>0)&&!(p.balde>0)&&p.tipo!=='tamano'&&p.control!=='variantes'}
+function add(id){const p=db.prods.find(x=>x.id==id);if(!p)return;if(esPadre(p))return PX.variante(p);if(sinPrecio(p))return toast(AVISO_SIN_PRECIO(p.name));if(esPeso(p)||esSerie(p))return PX.elegir(p);if((cart[id]||0)>=avail(p))return toast(envaseDe(p)?'No quedan '+envaseDe(p).name.toLowerCase()+' para vender '+p.name:'No hay más stock disponible');cart[id]=(cart[id]||0)+1;drawCart()}
 $('#prods').onclick=e=>{const b=e.target.closest('.p');if(b)add(b.dataset.id)};
 $('#vvw').onclick=e=>{const b=e.target.closest('[data-vw]');if(b)vistaVentas(b.dataset.vw)};vistaVentas();
 {const dp=deb(drawProds,150);$('#q').oninput=()=>db.prods.length>300?dp():drawProds()}
@@ -365,7 +368,7 @@ const p=db.prods.find(x=>x.id==id);if(b.dataset.a==='e')return PX.elegir(p,true)
 $('#vaciar').onclick=()=>{cart={};cartSer={};cartImp={};$('#rec').value='';drawCart()};
 $('#cobrar').onclick=()=>{const pay=$('#pay').value;if(typeof CJ!=='undefined'&&!CJ.puedeVender()){CJ.formAbrir('Para cobrar tiene que haber una caja abierta.');return toast('Abrí la caja antes de cobrar')}if(pay==='Cuenta corriente'&&!cl$(clId))return toast('Elegí un cliente para vender en cuenta corriente');
 {const e=typeof HL!=='undefined'?HL.antes():'';if(e)return toast(e)}   // heladería: los tamaños necesitan precio
-for(const id of Object.keys(cart)){const p=db.prods.find(x=>x.id==id);if(p&&p.minimo&&!esPeso(p)&&cart[id]<p.minimo)return toast(p.name+': la compra mínima es de '+p.minimo+' unidades');if(p&&esSerie(p)&&!PX.serieOk(p,cartSer[id],cart[id]))return toast(p.name+': revisá los números de serie elegidos')}
+for(const id of Object.keys(cart)){const p=db.prods.find(x=>x.id==id);if(sinPrecio(p))return toast(AVISO_SIN_PRECIO(p.name));if(p&&p.minimo&&!esPeso(p)&&cart[id]<p.minimo)return toast(p.name+': la compra mínima es de '+p.minimo+' unidades');if(p&&esSerie(p)&&!PX.serieOk(p,cartSer[id],cart[id]))return toast(p.name+': revisá los números de serie elegidos')}
 for(const id of Object.keys(cart)){const p=db.prods.find(x=>x.id==id);if(!p||!(cart[id]>0)||cart[id]>avail(p)){const n=p?p.name:'un producto';cleanCart();drawCart();drawProds();return toast('Cambió el stock vendible de '+n+' (sin stock o lote vencido): revisá la venta antes de cobrar')}}   // nunca se registra una venta con un descuento de stock incompleto
 
 if(typeof MP!=='undefined'&&MP.paso(pay,cartTotal(),()=>$('#cobrar').click()))return;
@@ -844,24 +847,25 @@ CF.abrirEncuesta=(forzar)=>{if($('#enc'))return;const e=CF.enc()||{};let paso=0;
   const ov=document.createElement('div');ov.className='ov';ov.id='enc';document.body.appendChild(ov);
   const rad=(n,o,v)=>Object.entries(o).map(([k,t])=>`<label class="opt"><input type="radio" name="${n}" value="${k}" ${v===k?'checked':''}> ${esc(t)}</label>`).join('');
   // Pasos: rubro → preguntas propias del rubro (solo si las tiene) → volumen → necesidades → país y horario.
-  const claves=()=>['tipo',...(RBok&&st.rubro&&RB.visibles(st).length?['rubro']:[]),'vol','necs','conf'],clave=()=>claves()[paso];
+  const claves=()=>['tipo',...(RBok&&st.rubro&&RB.visibles(st).length?['rubro']:[]),...(RBok&&st.rubro&&typeof CT!=='undefined'&&CT.hay()&&CT.rubros().includes(st.rubro)&&can('productos','crear')?['catalogo']:[]),'vol','necs','conf'],clave=()=>claves()[paso];
   const P={tipo:()=>RBok?`<h3>¿Cuál es tu rubro?</h3><p class="mu" style="margin-top:0">El programa se adapta a lo que elijas: qué te pregunta al cargar un producto, cómo se vende y qué avisos ves.</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:0 10px">${Object.entries(RB.PERFILES).map(([k,p])=>`<label class="opt"><input type="radio" name="tipo" value="${k}" ${st.rubro===k?'checked':''}> <span><b>${p.n}</b><br><span class="mu" style="font-size:12.5px">${p.d}</span></span></label>`).join('')}</div>`:`<h3>¿Qué tipo de comercio tenés?</h3>${rad('tipo',CF.TIPOS,st.tipo)}`,
     rubro:()=>`<h3>${esc(RB.PERFILES[st.rubro].n)}: contanos cómo trabajás</h3>${RB.htmlPregs(st,'#enc')}`,
+    catalogo:()=>CT.htmlPaso(RB.PERFILES[st.rubro].n),
     vol:()=>`<h3>¿Cuántas operaciones hacés por día?</h3>${rad('vol',CF.VOLS,st.vol)}`,
     necs:()=>`<h3>¿Qué necesitás resolver?</h3>${Object.entries(CF.NECS).map(([k,t])=>`<label class="opt"><input type="checkbox" name="necs" value="${k}" ${st.necs.includes(k)?'checked':''}> ${esc(t)}</label>`).join('')}`,
     conf:()=>{const p=CF.PAISES[st.pais];return `<h3>Configuración inicial</h3><div class="form"><div style="grid-column:1/-1"><label>Nombre del negocio</label><input id="e_nom" maxlength="80" placeholder="Ej.: ${esc(typeof RB!=='undefined'&&st.rubro&&RB.PERFILES[st.rubro]?RB.PERFILES[st.rubro].n+' Don Tito':'Kiosco Ana')}" value="${esc(st.nom)}"></div>${typeof NB!=='undefined'&&NB.ok()?`<div id="e_clw" style="grid-column:1/-1;display:${st.panel?'grid':'none'};grid-template-columns:1fr 1fr;gap:8px 12px"><div><label for="e_cl">Elegí una clave para tu panel</label><input id="e_cl" type="password" maxlength="64" autocomplete="new-password" aria-describedby="e_clh"></div><div><label for="e_cl2">Repetila</label><input id="e_cl2" type="password" maxlength="64" autocomplete="new-password"></div><p class="mu" id="e_clh" style="grid-column:1/-1;margin:0;font-size:13px">Mínimo 8, con letras y números. Si lo dejás vacío, te damos una.</p></div>`:''}<div><label>País (define impuestos y formato)</label><select id="e_pais">${Object.entries(CF.PAISES).map(([k,v])=>`<option value="${k}" ${st.pais===k?'selected':''}>${v.n}</option>`).join('')}</select></div><div><label>Moneda principal</label><select id="e_mon">${Object.entries(CF.MONEDAS).map(([k,v])=>`<option value="${k}" ${(st.mon||p.mon)===k?'selected':''}>${k} · ${v}</option>`).join('')}</select></div><div><label>Abrís desde</label><input id="e_ha" type="time" value="${esc(st.ha)}"></div><div><label>Cerrás a las</label><input id="e_hc" type="time" value="${esc(st.hc)}"></div></div><label class="opt" style="margin-top:10px"><input type="checkbox" id="e_not" ${st.notif?'checked':''}> Avisarme con notificaciones del sistema (stock bajo, deudas, recomendaciones)</label><p class="mu">Impuesto sugerido para ${p.n}: ${p.imp} ${p.tasa}% (podés cambiarlo después).</p>${typeof NB!=='undefined'&&NB.ok()?`<label class="opt"><input type="checkbox" id="e_panel" ${st.panel?'checked':''}> Crear mi panel para ver las ventas desde el celular, desde cualquier lugar</label>`:''}`}};
-  const leer=()=>{const q=n=>[...ov.querySelectorAll(`[name=${n}]:checked`)].map(x=>x.value);const k=clave();if(k==='tipo'){const v=q('tipo')[0];if(RBok){if(v&&v!==st.rubro){st.rubro=v;st.r={};st.extra=[]}if(st.rubro)st.tipo=RB.PERFILES[st.rubro].tipo}else st.tipo=v||st.tipo}if(k==='rubro')RB.leerPregs(st,'#enc');if(k==='vol')st.vol=q('vol')[0]||st.vol;if(k==='necs')st.necs=q('necs');if(k==='conf'){st.nom=($('#e_nom').value||'').replace(/\s+/g,' ').trim();st.panel=!!($('#e_panel')&&$('#e_panel').checked);st.pais=$('#e_pais').value;st.mon=$('#e_mon').value;st.ha=$('#e_ha').value;st.hc=$('#e_hc').value;st.notif=$('#e_not').checked}};
+  const leer=()=>{const q=n=>[...ov.querySelectorAll(`[name=${n}]:checked`)].map(x=>x.value);const k=clave();if(k==='tipo'){const v=q('tipo')[0];if(RBok){if(v&&v!==st.rubro){st.rubro=v;st.r={};st.extra=[];st.cat=null}if(st.rubro)st.tipo=RB.PERFILES[st.rubro].tipo}else st.tipo=v||st.tipo}if(k==='rubro')RB.leerPregs(st,'#enc');if(k==='vol')st.vol=q('vol')[0]||st.vol;if(k==='necs')st.necs=q('necs');if(k==='conf'){st.nom=($('#e_nom').value||'').replace(/\s+/g,' ').trim();st.panel=!!($('#e_panel')&&$('#e_panel').checked);st.pais=$('#e_pais').value;st.mon=$('#e_mon').value;st.ha=$('#e_ha').value;st.hc=$('#e_hc').value;st.notif=$('#e_not').checked}};
   const dibujar=()=>{ov.innerHTML=`<div class="card"><div class="mu" style="margin-bottom:6px">Paso ${paso+1} de ${claves().length} · Configuración inicial</div>${P[clave()]()}<div style="display:flex;gap:8px;margin-top:14px;justify-content:space-between"><button class="btn sec" id="e_atras" ${paso?'':'disabled'}>Atrás</button><span style="display:flex;gap:8px"><button class="btn sec" id="e_cerrar">${forzar?'Cancelar':'Más tarde'}</button><button class="btn" id="e_sig">${clave()==='conf'?'Terminar':'Siguiente'}</button></span></div></div>`;
     // La clave del panel no se guarda en st: si se redibuja el paso, se pasa de un dibujo al otro y listo.
     if(clave()==='conf'){$('#e_pais').onchange=()=>{const c1=$('#e_cl')?$('#e_cl').value:'',c2=$('#e_cl2')?$('#e_cl2').value:'';leer();st.mon=null;dibujar();if($('#e_cl')){$('#e_cl').value=c1;$('#e_cl2').value=c2}};if($('#e_panel')&&$('#e_clw'))$('#e_panel').onchange=()=>{$('#e_clw').style.display=$('#e_panel').checked?'grid':'none'}}if(clave()==='rubro')ov.querySelectorAll('input[type=radio]').forEach(i=>i.onchange=()=>{leer();dibujar()});
-    $('#e_atras').onclick=()=>{leer();paso--;dibujar()};$('#e_cerrar').onclick=()=>ov.remove();
+    if(clave()==='catalogo')CT.paso(st,$('#ct_box'));$('#e_atras').onclick=()=>{leer();paso--;dibujar()};$('#e_cerrar').onclick=()=>ov.remove();
     $('#e_sig').onclick=()=>{leer();if(RBok&&clave()==='tipo'&&!st.rubro)return toast('Elegí tu rubro');if(clave()==='rubro'){const er=RB.validar(st);if(er)return toast(er)}if(clave()!=='conf'){paso++;return dibujar()}if(st.nom.length<2){$('#e_nom').focus();return toast('Escribí el nombre de tu negocio')}
       let clPanel='';if(st.panel&&$('#e_cl')){const c1=$('#e_cl').value,c2=$('#e_cl2').value;if(c1||c2){const er=NB.errClave(c1,st.nom);if(er){$('#e_cl').focus();return toast(er)}if(c1!==c2){$('#e_cl2').focus();return toast('Las dos claves no coinciden')}clPanel=c1.trim()}}
       const p=CF.PAISES[st.pais];db.shop=db.shop||{};db.shop.n=st.nom.slice(0,80);if(typeof shn!=='undefined')shn.value=db.shop.n;
-      db.cfg.moneda=st.mon||p.mon;db.cfg.loc=p.loc;if(RBok&&st.rubro)RB.aplicar(st);db.cfg.encuesta={fecha:new Date().toISOString(),rubro:st.rubro||undefined,tipo:st.tipo,vol:st.vol,necs:st.necs,pais:st.pais,mon:st.mon||p.mon,loc:p.loc,horario:{a:st.ha,c:st.hc},notif:st.notif,fiscal:{imp:p.imp,tasa:p.tasa,id:p.id}};
+      db.cfg.moneda=st.mon||p.mon;db.cfg.loc=p.loc;if(RBok&&st.rubro)RB.aplicar(st);let nCat=0;if(st.cat&&st.cat.items&&st.cat.sel.size&&typeof CT!=='undefined'&&can('productos','crear'))nCat=CT.agregar(st.cat.items.filter((x,i)=>st.cat.sel.has(i))).n;db.cfg.encuesta={fecha:new Date().toISOString(),rubro:st.rubro||undefined,tipo:st.tipo,vol:st.vol,necs:st.necs,pais:st.pais,mon:st.mon||p.mon,loc:p.loc,horario:{a:st.ha,c:st.hc},notif:st.notif,fiscal:{imp:p.imp,tasa:p.tasa,id:p.id}};
       delete db.cfg.tabs;delete db.cfg.orden;delete db.cfg.widgets;delete db.cfg.gastosCats;
       if(call&&AU.habilitado)call('audit','config.encuesta',st.tipo);save();ov.remove();CF.aplicar();draw();CF.drawCfg();if(st.panel&&typeof NB!=='undefined')NB.crear(st.nom,clPanel);
-      const ir=$('nav button:not(.hide)[data-t=h]');if(ir)ir.click();if(!db.cfg.tourVisto)setTimeout(CF.tour,300)}};
+      const fin=()=>{const ir=$('nav button:not(.hide)[data-t=h]');if(ir)ir.click();if(!db.cfg.tourVisto)setTimeout(CF.tour,300)};if(nCat)CT.ofrecer(fin);else fin()}};
   dibujar()};
 
 // ---------- Recorrido guiado y ayuda contextual ----------
@@ -1678,6 +1682,86 @@ RB.abrir=()=>{if($('#rbo'))return;const b=db.cfg.entrevistaBorrador,prev=db.cfg.
 {const n=$('#g_neg');if(n)n.insertAdjacentHTML('beforeend','<p id="rb_res" class="mu" style="margin:12px 0 6px"></p><button class="btn sec" id="rb_ab">Entrevista por rubro</button>');
   $('#rb_ab').onclick=RB.abrir;
   MODS.push(()=>{const e=$('#rb_res');if(!e)return;const c=db.cfg.caps;e.textContent=db.cfg.rubro&&c?'Rubro: '+RB.PERFILES[db.cfg.rubro].n+' · '+(Object.keys(RB.CAPS).filter(k=>c[k]).map(k=>RB.CAPS[k]).join(', ')||'sin funciones adicionales'):db.cfg.entrevistaBorrador?'Tenés una entrevista por rubro sin terminar.':'Respondé la entrevista por rubro para activar venta por peso, variantes, números de serie o precios por cantidad según tu negocio.';$('#rb_ab').textContent=db.cfg.entrevistaBorrador?'Retomar la entrevista':db.cfg.rubro?'Repetir la entrevista por rubro':'Entrevista por rubro'})}
+</script>
+<script>
+// ===== Catálogo precargado por rubro: productos típicos sin precio, a elegir por categoría, y carga rápida de precios =====
+// Los datos viven en catalogos/<rubro>.json (se leen por IPC: sp.catalogo). Sin precios, sin marcas y sin códigos de barras.
+// Cargar un producto del catálogo = crearlo con precio 0 y sin stock. Mientras no tenga precio no se vende (sinPrecio, en index.html).
+// Nunca duplica: compara por nombre normalizado (sin tildes ni mayúsculas) contra los productos que ya existen.
+const CT={cache:{},abiertas:new Set()};
+CT.hay=()=>KIND==='ipc'&&!!sp.catalogo;   // en la demo web no hay catálogo
+CT.rubros=()=>Object.keys(RB.PERFILES).filter(k=>k!=='otro');
+// Valida lo que llega del archivo: descarta lo mal formado y repetido. u: 'u' (unidad) o 'kg' (por peso).
+CT.limpiar=d=>{const vistos=new Set(),out=[];if(!d||!Array.isArray(d.productos))return out;
+  d.productos.forEach(x=>{if(!x||typeof x.n!=='string'||typeof x.c!=='string')return;const n=x.n.replace(/\s+/g,' ').trim().slice(0,80),c=x.c.replace(/\s+/g,' ').trim().slice(0,40),k=norm(n);if(!n||!c||vistos.has(k))return;vistos.add(k);out.push({n,c,u:x.u==='kg'?'kg':'u'})});return out};
+CT.leer=async r=>{if(CT.cache[r])return CT.cache[r];let d=null;try{d=await sp.catalogo(r)}catch(e){}const l=CT.limpiar(d);if(l.length)CT.cache[r]=l;return l};
+CT.ya=()=>new Set(db.prods.map(p=>norm(p.name)));
+CT.todos=items=>{const ya=CT.ya();return new Set(items.map((x,i)=>i).filter(i=>!ya.has(norm(items[i].n))))};
+CT.sinPrecio=()=>db.prods.filter(sinPrecio);
+// Agrega los productos (sin precio ni stock). Por peso solo si el negocio vende por peso; vencimiento obligatorio si el rubro lo pide. No guarda: quien llama hace save().
+CT.agregar=items=>{const ya=CT.ya(),c=PX.caps();let n=0,repetidos=0;
+  items.forEach(x=>{const k=norm(x.n);if(ya.has(k)){repetidos++;return}ya.add(k);const p={id:db.nid++,name:x.n,code:'',price:0,cost:0,min:0,cat:x.c,lots:[]};if(x.u==='kg'&&c.peso)p.unidad='kg';if(c.vtoPorDefecto)p.reqVto=true;db.prods.push(p);n++});
+  if(n)ajuste({tipo:'catalogo.carga',txt:`Catálogo del rubro: ${n} productos cargados sin precio`});return{n,repetidos}};
+CT.cargarElegidos=(items,sel)=>{if(!UT.chk('productos','crear'))return null;const r=CT.agregar(items.filter((x,i)=>sel.has(i)));if(r.n){save();draw()}return r};
+CT.contar=n=>{const e=$('#ct_n');if(e)e.textContent=n?`${n} ${n===1?'producto elegido':'productos elegidos'}`:'No se va a cargar ningún producto';const b=$('#ct_ok');if(b)b.disabled=!n};
+// ---------- vista previa por categoría ----------
+CT.html=(items,sel)=>{const ya=CT.ya(),por={};items.forEach((x,i)=>(por[x.c]=por[x.c]||[]).push(i));
+  const fila=i=>{const x=items[i],y=ya.has(norm(x.n));return `<label class="opt" style="display:flex;gap:6px;break-inside:avoid"><input type="checkbox" style="width:auto" data-ct-i="${i}" ${y?'disabled':''} ${sel.has(i)?'checked':''}> <span>${esc(x.n)}${x.u==='kg'?' <span class="mu">(por kg)</span>':''}${y?' <span class="mu">(ya lo tenés)</span>':''}</span></label>`};
+  return `<div style="margin-bottom:6px;display:flex;gap:8px"><button type="button" class="btn sec" data-ct-todo="1">Elegir todos</button><button type="button" class="btn sec" data-ct-todo="0">Ninguno</button></div>`+Object.entries(por).map(([c,ix])=>{
+    const libres=ix.filter(i=>!ya.has(norm(items[i].n))),on=libres.filter(i=>sel.has(i)).length,ab=CT.abiertas.has(c),k=esc(c);
+    return `<div style="border-bottom:1px solid rgba(128,128,128,.25);padding:6px 0"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label style="display:inline-flex;gap:6px;align-items:center;flex:1;min-width:170px"><input type="checkbox" style="width:auto" data-ct-cat="${k}" ${libres.length&&on===libres.length?'checked':''} ${libres.length?'':'disabled'}> <b>${k}</b></label><span class="mu">${on} de ${libres.length}${ix.length>libres.length?' · '+(ix.length-libres.length)+' ya cargados':''}</span><button type="button" class="btn sec" data-ct-ver="${k}">${ab?'Ocultar':'Ver todos'}</button></div>${ab?`<div style="columns:2 230px;margin-top:4px">${ix.map(fila).join('')}</div>`:`<div class="mu" style="font-size:12.5px">${esc(ix.slice(0,4).map(i=>items[i].n).join(', '))}…</div>`}</div>`}).join('')};
+// Dibuja en box y deja listos los eventos; sel (Set de posiciones) se modifica en el lugar.
+CT.montar=(box,items,sel)=>{const pintar=()=>{box.innerHTML=CT.html(items,sel);CT.contar(sel.size)},ya=CT.ya();
+  box.onchange=e=>{const t=e.target;if(t.dataset.ctI!==undefined){const i=+t.dataset.ctI;t.checked?sel.add(i):sel.delete(i)}else if(t.dataset.ctCat!==undefined)items.forEach((x,i)=>{if(x.c===t.dataset.ctCat&&!ya.has(norm(x.n)))t.checked?sel.add(i):sel.delete(i)});else return;pintar()};
+  box.onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.ctVer!==undefined){const c=b.dataset.ctVer;CT.abiertas.has(c)?CT.abiertas.delete(c):CT.abiertas.add(c)}else if(b.dataset.ctTodo!==undefined){if(b.dataset.ctTodo==='1')CT.todos(items).forEach(i=>sel.add(i));else sel.clear()}else return;pintar()};
+  pintar()};
+CT.cuerpo=()=>'<div id="ct_box" style="max-height:46vh;overflow:auto;margin:8px 0"></div>';CT.cuenta=()=>'<span id="ct_n" class="mu"></span>';
+CT.htmlPaso=rubro=>`<h3>¿Querés cargar productos de ejemplo de tu rubro?</h3><p class="mu" style="margin-top:0">Te armamos una lista de productos típicos de ${esc(rubro.toLowerCase())}, sin precios, para que no arranques de cero. Elegí cuáles querés (podés tildar o destildar por categoría); si preferís empezar vacío, tocá Ninguno. Después les ponés el precio en una grilla.</p>${CT.cuerpo()}<p>${CT.cuenta()}</p>`;
+// Paso del asistente de primer uso: la selección vive en st.cat y se aplica recién al terminar el asistente.
+CT.paso=(st,box)=>{if(!st.cat||st.cat.rubro!==st.rubro)st.cat={rubro:st.rubro,items:null,sel:new Set()};const c=st.cat;
+  if(c.items)return CT.montar(box,c.items,c.sel);
+  box.innerHTML='<p class="mu">Cargando…</p>';
+  CT.leer(st.rubro).then(items=>{if(!box.isConnected||st.cat!==c)return;c.items=items;c.sel=CT.todos(items);if(!items.length){box.innerHTML='<p class="mu">Este rubro no tiene catálogo. Podés seguir sin él.</p>';return}CT.montar(box,items,c.sel)})};
+// ---------- Productos › Cargar catálogo de mi rubro ----------
+CT.abrir=async rubro0=>{if(!CT.hay())return toast('El catálogo está disponible en el programa instalado');if(!UT.chk('productos','crear')||$('#ctov'))return;
+  let rubro=rubro0||(CT.rubros().includes(db.cfg.rubro)?db.cfg.rubro:CT.rubros()[0]),items=[],sel=new Set();
+  const ov=document.createElement('div');ov.className='ov';ov.id='ctov';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');document.body.appendChild(ov);
+  ov.innerHTML=`<div class="card" style="max-width:740px;width:100%"><h3>Cargar catálogo de mi rubro</h3><p class="mu" style="margin-top:0">Productos típicos, sin precio y sin stock. Elegí los que vendés: los que ya tenés cargados no se repiten. Después les ponés el precio en una grilla; hasta entonces no se pueden vender.</p><div class="form"><div><label for="ct_r">Rubro</label><select id="ct_r">${CT.rubros().map(k=>`<option value="${k}" ${k===rubro?'selected':''}>${esc(RB.PERFILES[k].n)}</option>`).join('')}</select></div></div>${CT.cuerpo()}<div style="display:flex;gap:8px;justify-content:space-between;align-items:center;flex-wrap:wrap">${CT.cuenta()}<span style="display:flex;gap:8px"><button class="btn sec" id="ct_x">Cancelar</button><button class="btn" id="ct_ok" disabled>Cargar productos</button></span></div></div>`;
+  const box=ov.querySelector('#ct_box');
+  const cargar=async()=>{box.innerHTML='<p class="mu">Cargando…</p>';const r=rubro;items=await CT.leer(r);if(!ov.isConnected||r!==rubro)return;sel=CT.todos(items);
+    if(!items.length){box.innerHTML='<p class="mu">No se pudo leer el catálogo de este rubro.</p>';return CT.contar(0)}CT.montar(box,items,sel)};
+  ov.querySelector('#ct_r').onchange=e=>{rubro=e.target.value;cargar()};ov.querySelector('#ct_x').onclick=()=>ov.remove();
+  ov.querySelector('#ct_ok').onclick=()=>{const r=CT.cargarElegidos(items,sel);if(!r)return;ov.remove();if(!r.n)return toast('No había productos nuevos para cargar');toast(`Se cargaron ${r.n} productos sin precio`);CT.ofrecer()};
+  cargar()};
+// ---------- Después de cargar: ofrecer ponerles precio ----------
+CT.ofrecer=despues=>{const fin=()=>{if(despues)despues()},n=CT.sinPrecio().length;if(!n||!can('productos','editar'))return fin();
+  const ov=document.createElement('div');ov.className='ov';ov.id='ctof';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');document.body.appendChild(ov);
+  ov.innerHTML=`<div class="card" style="max-width:480px"><h3>Ahora faltan los precios</h3><p>Hay <b>${n}</b> ${n===1?'producto':'productos'} sin precio. No se pueden vender hasta que lo tengan.</p><p class="mu">Podés ponerlos ahora en una grilla (escribís el precio y con Enter pasás al siguiente) o más tarde desde Productos.</p><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn sec" id="ctof_t">Más tarde</button><button class="btn" id="ctof_ok">Ponerles precio ahora</button></div></div>`;
+  ov.querySelector('#ctof_t').onclick=()=>{ov.remove();fin()};ov.querySelector('#ctof_ok').onclick=()=>{ov.remove();CT.precios(fin)};ov.querySelector('#ctof_ok').focus()};
+// ---------- Carga rápida de precios (grilla) ----------
+CT.MAX_FILAS=300;
+CT.precios=despues=>{if(!UT.chk('productos','editar')||$('#ctpr'))return;
+  const todos=CT.sinPrecio().sort((a,b)=>(a.cat||'').localeCompare(b.cat||'','es')||a.name.localeCompare(b.name,'es'));
+  if(!todos.length){toast('Todos tus productos ya tienen precio');return despues&&despues()}
+  const cats=[...new Set(todos.map(p=>p.cat||'Sin categoría'))],val={};let filtro='';
+  const ov=document.createElement('div');ov.className='ov';ov.id='ctpr';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');document.body.appendChild(ov);
+  const dibujar=()=>{const L=todos.filter(p=>!filtro||(p.cat||'Sin categoría')===filtro),V=L.slice(0,CT.MAX_FILAS);
+    ov.innerHTML=`<div class="card" style="max-width:760px;width:100%"><h3>Poné precio a tus productos</h3><p class="mu" style="margin-top:0">Escribí el precio de venta de cada uno y apretá Enter para pasar al siguiente. Los que dejes vacíos quedan sin precio y no se pueden vender. Los precios por kilo son para los productos marcados "por kg".</p><div class="form"><div><label for="ctp_c">Categoría</label><select id="ctp_c"><option value="">Todas (${todos.length})</option>${cats.map(c=>`<option value="${esc(c)}" ${c===filtro?'selected':''}>${esc(c)}</option>`).join('')}</select></div></div><div style="max-height:50vh;overflow:auto;margin:8px 0"><table><thead><tr><th>Producto</th><th>Categoría</th><th>Precio</th></tr></thead><tbody>${V.map(p=>`<tr><td>${esc(p.name)}${p.unidad==='kg'?' <span class="mu">(por kg)</span>':''}</td><td class="mu">${esc(p.cat||'')}</td><td><input data-ctp="${p.id}" inputmode="decimal" autocomplete="off" style="width:110px" aria-label="Precio de ${esc(p.name)}" value="${esc(val[p.id]||'')}"></td></tr>`).join('')}</tbody></table></div>${L.length>V.length?`<p class="mu">Se muestran ${V.length} de ${L.length}: guardá estos y volvé a abrir la grilla para seguir.</p>`:''}<div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn sec" id="ctp_x">Cerrar</button><button class="btn" id="ctp_ok">Guardar precios</button></div></div>`;
+    const ins=[...ov.querySelectorAll('input[data-ctp]')];if(ins[0])ins[0].focus();
+    ov.querySelector('#ctp_c').onchange=e=>{filtro=e.target.value;dibujar()};
+    ins.forEach((el,i)=>{el.oninput=()=>{val[el.dataset.ctp]=el.value};el.onkeydown=e=>{if(e.key!=='Enter')return;e.preventDefault();(ins[i+1]||ov.querySelector('#ctp_ok')).focus()}});
+    ov.querySelector('#ctp_x').onclick=()=>{ov.remove();if(despues)despues()};ov.querySelector('#ctp_ok').onclick=guardar};
+  const guardar=()=>{if(!UT.chk('productos','editar'))return;const cambios=[];
+    for(const [id,v] of Object.entries(val)){if(!String(v).trim())continue;const p=db.prods.find(x=>x.id==id),n=UT.num(v);if(!p||!sinPrecio(p))continue;
+      if(n==null||!isFinite(n)||n<=0||n>=1e9)return toast('Revisá el precio de '+p.name+': tiene que ser un número mayor a 0');cambios.push([p,Math.round(n*100)/100])}
+    if(!cambios.length)return toast('Todavía no escribiste ningún precio');
+    cambios.forEach(([p,n])=>{p.price=n});ajuste({tipo:'producto.precio',txt:`Carga rápida de precios: ${cambios.length} productos`});save();draw();ov.remove();
+    const q=CT.sinPrecio().length;toast(`Listo: ${cambios.length} ${cambios.length===1?'precio guardado':'precios guardados'}${q?` · quedan ${q} sin precio`:''}`);if(despues)despues()};
+  dibujar()};
+// Botones en Productos
+{const f=$('#flast');if(f){f.insertAdjacentHTML('afterend','<div id="ct_bar" style="display:none;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn sec" id="ct_ab">Cargar catálogo de mi rubro</button><button class="btn sec hide" id="ct_pr"></button></div>');
+  $('#ct_ab').onclick=()=>CT.abrir();$('#ct_pr').onclick=()=>CT.precios();
+  MODS.push(()=>{const b=$('#ct_bar');if(!b)return;b.style.display=CT.hay()?'flex':'none';const n=CT.sinPrecio().length,p=$('#ct_pr');p.classList.toggle('hide',!n);p.textContent=n===1?'Ponerle precio al producto sin precio':`Ponerles precio a los ${n} sin precio`})}}
 </script>
 <script>
 // ===== Caja: apertura, movimientos, cierre por turno e historial (v3.0.0, fase 1) =====

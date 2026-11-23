@@ -6,6 +6,7 @@
 - **Guías de instalación dentro de Mercado Pago y ARCA**, paso a paso, y un botón para **crear la caja QR** sin salir del programa.
 - **Débito y crédito por el Point de Mercado Pago.**
 - **IVA contenido en el ticket**, según la Ley 27.743 (transparencia fiscal).
+- **Catálogo de productos de ejemplo por rubro** al empezar (y desde Productos), con una grilla para ponerles el precio rápido.
 - Correcciones varias.
 
 ## 5.7.0

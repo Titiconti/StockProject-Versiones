@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('sp', {
   info: () => ipcRenderer.invoke('b:info'),
   now: () => ipcRenderer.invoke('b:now'),
   leerXlsx: buf => ipcRenderer.invoke('xlsx:leer', buf),
+  catalogo: r => ipcRenderer.invoke('cat:leer', r),
   choose: () => ipcRenderer.invoke('b:choose'),
   restore: () => ipcRenderer.invoke('b:restore'),
   print: (html, opts) => ipcRenderer.invoke('print', html, opts),
