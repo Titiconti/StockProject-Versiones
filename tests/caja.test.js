@@ -48,16 +48,15 @@ const assert = require('assert'), { web } = require('./helpers');
   // Cierre: sin contado no cierra; con diferencia exige observación; con sobrante se guarda.
   tab('v'); click('#cj_ce'); assert(/Efectivo esperado/.test(txt('#cjov')) && txt('#cjov').includes(f(1450)));
   click('#cj_cok'); assert(/dinero contado/.test(toast()));
-  set('#cj_ct', '1500'); assert(/Sobrante/.test(txt('#cj_df'))); click('#cj_cok'); assert(/observación/.test(toast())); assert(!db().cajas[0].cierre);
-  set('#cj_cn', 'Propina'); click('#cj_cok'); c = db().cajas[0];
-  assert(c.cierre && c.contado === 1500 && c.dif === 50 && c.notaCierre === 'Propina' && c.tot.esperado === 1450); assert(/Sobrante/.test(toast()));
+  set('#cj_ct', '1500'); assert(/Sobrante/.test(txt('#cj_df'))); set('#cj_cn', 'Propina'); click('#cj_cok'); c = db().cajas[0];   // v5.7.3: el cierre nunca se bloquea por una diferencia
+  assert(c.cierre && c.contado === 1500 && c.dif === 50 && c.notaCierre === 'Propina' && c.tot.esperado === 1450); assert(/Cierre registrado/.test(toast()) && /Sobrante/.test(toast()), 'el dueño ve la diferencia en el aviso');
   assert(/Caja cerrada/.test(txt('#cjbar')));
   // Un cierre confirmado es una foto: una venta anulada después no lo modifica.
   w.eval('db.sales[2].void=true'); assert.strictEqual(db().cajas[0].tot.esperado, 1450);
 
   // Faltante y equilibrada.
-  assert.ok(w.eval('CJ.abrir(200,"Mostrador").ok')); assert(w.eval('CJ.cerrar(150).err'), 'faltante sin explicar no cierra');
-  assert.ok(w.eval("CJ.cerrar(150,'Error de vuelto').ok")); assert.strictEqual(db().cajas[1].dif, -50);
+  assert.ok(w.eval('CJ.abrir(200,"Mostrador").ok'));
+  assert.ok(w.eval("CJ.cerrar(150,'Error de vuelto').ok"), 'un faltante cierra igual'); assert.strictEqual(db().cajas[1].dif, -50);
   assert.ok(w.eval('CJ.abrir(300).ok')); assert.ok(w.eval('CJ.cerrar(300).ok'), 'equilibrada no pide observación'); assert.strictEqual(db().cajas[2].dif, 0);
   assert.deepStrictEqual(db().cajas.map(x => w.eval(`CJ.dif(${x.dif})[1]`)), ['Sobrante', 'Faltante', 'Equilibrada']);
 

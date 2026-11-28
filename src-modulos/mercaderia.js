@@ -59,12 +59,12 @@ $('#me_l').onclick=e=>{const b=e.target.closest('[data-rm]');if(b){ME.items=ME.i
 ME.recibir=()=>{ME.fix();if(!ME.items.length)return{err:'Agregá al menos un producto'};const prov=$('#me_pv').value.trim().slice(0,60),pago=(document.querySelector('[name="me_pg"]:checked')||{}).value||'caja',total=ME.total();
   const series={};for(const it of ME.items){const p=db.prods.find(x=>x.id===it.id);if(!p)return{err:'Un producto ya no existe'};if(!(it.q>0))return{err:'Revisá la cantidad de '+p.name};if(!(it.c>=0))return{err:'Revisá el costo de '+p.name};
     if(p.reqVto&&vtoOn()&&!it.exp)return{err:p.name+' exige la fecha de vencimiento'};if(esSerie(p)){const s=PX.series(it.ser,it.q,p.id);if(s.err)return{err:p.name+': '+s.err};series[p.id]=s}}
-  if(pago==='caja'&&total>0){if(typeof CJ==='undefined'||!CJ.abierta())return{err:'No hay una caja abierta: abrila o elegí otra forma de pago'};const k=CJ.calc(CJ.abierta());if(total>k.esperado+0.005)return{err:'No hay tanto efectivo en la caja ('+fmt(k.esperado)+'). Elegí otra forma de pago.'}}
+  if(pago==='caja'&&total>0){if(typeof CJ==='undefined'||!CJ.abierta())return{err:'No hay una caja abierta: abrila o elegí otra forma de pago'};const k=CJ.calc(CJ.abierta());if(CJ.ve()&&total>k.esperado+0.005)return{err:'No hay tanto efectivo en la caja ('+fmt(k.esperado)+'). Elegí otra forma de pago.'}}
   if(pago==='deuda'&&!prov)return{err:'Escribí el proveedor para anotar la deuda'};
   const r={id:db.recid2++,date:new Date().toISOString(),user:quien(),prov,pago,total,items:[]};
   ME.items.forEach(it=>{const p=db.prods.find(x=>x.id===it.id),n=prov?'R'+r.id:'Ingreso '+r.id;if(Math.abs((p.cost||0)-it.c)>0.004){ajuste({tipo:'producto.precio',pid:p.id,txt:p.name+': costo '+fmt(p.cost||0)+' → '+fmt(it.c)+' (recepción)'});p.cost=Math.round(it.c*100)/100}
     if(series[p.id])series[p.id].forEach(s=>p.lots.push({id:db.lid++,n:s,qty:1,exp:it.exp}));else addLot(p,n,it.q,it.exp);r.items.push({id:p.id,name:p.name,q:it.q,c:it.c,exp:it.exp})});
-  if(pago==='caja'&&total>0){const m=CJ.mov('egreso',total,'Pago a '+(prov||'proveedor')+' (mercadería)');if(m.err)return m;const c=CJ.abierta(),mv=c.movs[c.movs.length-1];mv.cat='Proveedor';mv.rec=r.id}
+  if(pago==='caja'&&total>0){const m=CJ.mov('egreso',total,'Pago a '+(prov||'proveedor')+' (mercadería)','gasto');if(m.err)return m;const c=CJ.abierta(),mv=c.movs[c.movs.length-1];mv.cat='Proveedor';mv.rec=r.id}
   if(pago==='deuda')db.fin.pagar.push({id:db.fin.id++,prov,desc:'Mercadería recibida el '+new Date().toLocaleDateString('es-AR'),monto:total,vence:'',pagado:false,rec:r.id});
   db.recepciones.push(r);save();ME.items=[];return{ok:true,r}};
 $('#me_ok').onclick=()=>{if(!can('pedidos','crear'))return toast('Tu usuario no tiene permiso para esto');const r=ME.recibir();if(r.err)return toast(r.err);draw();toast('Mercadería sumada al stock: '+fmt(r.r.total));$('#me_q').focus()};

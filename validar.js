@@ -77,12 +77,22 @@ function ventas(o, a) {
   return null;
 }
 
+// Un cierre solo cambia con una corrección: lo declarado puede cambiar, pero se agrega UNA entrada al historial (con motivo, antes y después) y el resto queda igual.
+const CORREGIBLE = ['contado', 'dif', 'retiro', 'queda', 'quedaDecl', 'notaCierre', 'correcciones'];
+function correccionCaja(viejo, nuevo) {
+  if (!viejo || !nuevo || !viejo.cierre || !nuevo.cierre) return false;
+  const vc = viejo.correcciones || [], nc = nuevo.correcciones || [], u = nc[nc.length - 1];
+  if (nc.length !== vc.length + 1 || !igual(nc.slice(0, -1), vc) || !u || !String(u.motivo || '').trim() || !u.user || !u.date) return false;
+  const sin = c => Object.fromEntries(Object.entries(c).filter(([k]) => !CORREGIBLE.includes(k)));
+  return igual(sin(viejo), sin(nuevo)) && igual(u.antes && u.antes.contado, viejo.contado) && igual(u.despues && u.despues.contado, nuevo.contado);
+}
+
 // Reglas que comparan con lo que ya estaba guardado.
 function cambios(a, o) {
   if (!a) return null;
   // Un cierre de caja confirmado no se puede modificar ni borrar.
   const cj = new Map((o.cajas || []).map(c => [c.id, c]));
-  for (const c of a.cajas || []) if (c.cierre && !igual(c, cj.get(c.id))) return 'Un cierre de caja confirmado no se puede modificar';
+  for (const c of a.cajas || []) if (c.cierre && !igual(c, cj.get(c.id)) && !correccionCaja(c, cj.get(c.id))) return 'Un cierre de caja confirmado no se puede modificar';
   // Una venta registrada no se puede alterar: solo anularse (o quitarse para corregirla y registrarla de nuevo).
   const sv = new Map((o.sales || []).map(s => [s.id, s])), clave = s => ({ date: s.date, items: s.items, total: s.total, pay: s.pay, cid: s.cid, caja: s.caja });
   for (const s of a.sales || []) { const n = sv.get(s.id); if (n && !igual(clave(s), clave(n))) return 'Una venta registrada no se puede modificar: anulala y registrala de nuevo'; if (n && s.void && !n.void) return 'Una venta anulada no se puede reactivar'; }
@@ -103,3 +113,4 @@ module.exports = function validar(anterior, nuevo) {
   return productos(nuevo, anterior) || ventas(nuevo, anterior) || cambios(anterior, nuevo);
 };
 module.exports.dia = dia;
+module.exports.correccionCaja = correccionCaja;

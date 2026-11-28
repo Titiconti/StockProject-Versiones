@@ -3,7 +3,7 @@
 // Mientras no exista ningún usuario, el sistema funciona como siempre (sin inicio de sesión).
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
 
-const MODULOS = ['ventas', 'inventario', 'productos', 'pedidos', 'clientes', 'escuela', 'reporte', 'finanzas', 'configuracion', 'respaldo', 'acceso_remoto', 'usuarios'];
+const MODULOS = ['ventas', 'inventario', 'productos', 'pedidos', 'clientes', 'escuela', 'reporte', 'finanzas', 'caja', 'configuracion', 'respaldo', 'acceso_remoto', 'usuarios'];
 const ACCIONES = ['ver', 'crear', 'editar', 'eliminar'];
 const ROLES = {
   admin: { nombre: 'Administrador' },
@@ -16,7 +16,7 @@ const todo = () => Object.fromEntries(MODULOS.map(m => [m, ACCIONES.slice()]));
 const PERMISOS = {
   admin: todo(),
   gerente: { ...todo(), configuracion: ['ver', 'editar'], respaldo: ['ver', 'crear'], acceso_remoto: [], usuarios: ['ver'] },
-  empleado: { ventas: ['ver', 'crear'], inventario: ['ver'], productos: ['ver', 'crear', 'editar'], pedidos: ['ver', 'crear'], clientes: ['ver', 'crear', 'editar'], escuela: ['ver', 'crear'] },
+  empleado: { ventas: ['ver', 'crear'], caja: ['crear'], inventario: ['ver'], productos: ['ver', 'crear', 'editar'], pedidos: ['ver', 'crear'], clientes: ['ver', 'crear', 'editar'], escuela: ['ver', 'crear'] },
   consulta: Object.fromEntries(['ventas', 'inventario', 'productos', 'pedidos', 'clientes', 'escuela', 'reporte'].map(m => [m, ['ver']]))
 };
 

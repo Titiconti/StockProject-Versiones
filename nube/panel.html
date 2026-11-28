@@ -568,6 +568,7 @@ nav button[aria-current="page"]{background:var(--activo);color:#fff}
     function extras(c) {
       var ch = [];
       if (c.queda != null) ch.push(h('span', { class: 'chip' }, 'Retiro ' + plata(c.retiro) + ' · queda ' + plata(c.queda)));
+      if (num(c.corregida) > 0) ch.push(h('span', { class: 'chip' }, 'Corregido (' + num(c.corregida) + ')'));
       if (c.traspasoDif != null && Math.abs(num(c.traspasoDif)) >= 0.005) ch.push(h('span', { class: 'chip' }, 'Traspaso: diferencia ' + plata(c.traspasoDif)));
       var aq = c.arqueo && typeof c.arqueo === 'object' ? c.arqueo : {};
       Object.keys(aq).forEach(function (k) { var x = aq[k] || {}; if (Math.abs(num(x.dif)) >= 0.005) ch.push(h('span', { class: 'chip' }, 'Arqueo ' + (ARQ[k] || txt(k)) + ': dif. ' + plata(x.dif))); });
