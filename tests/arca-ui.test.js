@@ -51,7 +51,7 @@ const assert = require('assert'), { JSDOM, HTML, until, api } = require('./helpe
   resp = async () => ({ ok: false, rechazo: true, err: 'ARCA rechazó: importe' }); venta(507); await ev('FA.emitir(507,{docTipo:99,docNro:"0",condIva:5})'); assert.strictEqual(ev('db.sales.find(s=>s.id===507).fe.estado'), 'error'); await ev('FA.reintentar()'); assert.strictEqual(ev('db.sales.find(s=>s.id===507).fe.estado'), 'error');
   // ---- anular una venta facturada = nota de crédito ----
   ev(`AU.habilitado=true;AU.permisos={ventas:['ver','crear']}`); A.click($('#hist [data-v="501"]')); await new Promise(r => setTimeout(r, 120)); assert(!log.some(l => l[0] === 'anular') && /permiso/.test(ev('window.__t')), 'sin permiso de anular no se emite la NC');
-  ev(`AU.permisos={ventas:['ver','crear','eliminar']}`); A.click($('#hist [data-v="501"]'));
+  ev(`AU.permisos={ventas:['ver','crear','eliminar'],anulacion:['crear','editar']}`); A.click($('#hist [data-v="501"]'));
   assert(await until(() => ev('db.sales.find(s=>s.id===501).void===true')) && log.some(l => l[0] === 'anular' && l[1] === 501), 'anula tras emitir la NC'); assert(ev('!!db.sales.find(s=>s.id===501).fe.nc.cae') && ev('db.sales.find(s=>s.id===501).fe.cae') , 'queda el CAE de la NC junto a la factura');
   A.tab('r'); assert(await until(() => /NC C 0003-/.test(A.txt('#hist'))), 'el historial muestra la nota de crédito');
   respNC = async () => ({ ok: false, pendiente: true, err: 'sin conexión' }); resp = async id => ({ ok: true, fe: fe(id, ++n) }); venta(601); await ev('FA.emitir(601,{docTipo:99,docNro:"0",condIva:5})'); A.tab('r'); await until(() => $('#hist [data-v="601"]'));

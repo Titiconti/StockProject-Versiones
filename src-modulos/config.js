@@ -39,11 +39,11 @@ CF.W={
   deudas:()=>{const d=db.clients.map(c=>({c,d:debtOf(c.id)})).filter(x=>x.d>0.005).sort((a,b)=>b.d-a.d);return CF.k('Deuda de clientes',fmt(d.reduce((a,x)=>a+x.d,0)),d.slice(0,3).map(x=>esc(x.c.name)+' '+fmt(x.d)).join(' · ')||'Sin deudas')},
   pedidos:()=>{const n=db.orders.filter(o=>!o.closed).length;return CF.k('Pedidos abiertos',n,'Pendientes de recibir o cerrar')},
   top:()=>{const m={},h=UT.hoy();UT.ventas(UT.add(h,-29),h).forEach(s=>s.items.forEach(i=>m[i.name]=(m[i.name]||0)+i.qty));const l=Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,5);return CF.k('Más vendidos (30 días)',l[0]?esc(l[0][0]):'-',l.map(x=>esc(x[0])+' ('+x[1]+')').join(' · ')||'Todavía no hay ventas')},
-  margen:()=>{const h=UT.hoy(),d1=h.slice(0,8)+'01',v=UT.ventas(d1,h);return CF.k('Ganancia del mes',fmt(UT.ganancia(v)),`Sobre ventas por ${fmt(UT.suma(v))}`)},
+  margen:()=>{if(!VR)return'';const h=UT.hoy(),d1=h.slice(0,8)+'01',v=UT.ventas(d1,h);return CF.k('Ganancia del mes',fmt(UT.ganancia(v)),`Sobre ventas por ${fmt(UT.suma(v))}`)},
   tendencia:()=>{const h=UT.hoy(),ks=[...Array(14)].map((_,i)=>UT.add(h,i-13)),vals=ks.map(k=>UT.suma(UT.ventas(k,k)));return `<div class="card" style="grid-column:1/-1"><div class="mu" style="font-size:13px">Ventas de los últimos 14 días</div>${UT.grafico(vals,ks.map(k=>k.slice(5).split('-').reverse().join('/')),{alto:130})}</div>`}
 };
 CF.tips=()=>{const t=[],e=CF.enc()||{},n=(e.necs||[]);
-  if(db.prods.some(p=>!p.cost))t.push(['costos','Hay productos sin costo cargado: sin eso no se puede calcular la ganancia real.','p']);
+  if(VC&&db.prods.some(p=>!p.cost))t.push(['costos','Hay productos sin costo cargado: sin eso no se puede calcular la ganancia real.','p']);
   if(AU.habilitado&&!(AU.usuario||{}).pregunta&&!db.cfg.tipPreg)t.push(['pregunta','Configurá una pregunta de seguridad en Mi cuenta para poder recuperar tu contraseña.','u']);
   if(!AU.habilitado&&EDA)t.push(['usuarios','Todavía no activaste usuarios: cualquiera que abra el programa ve y modifica todo.','u']);
   if(n.includes('clientes')&&db.clients.some(c=>debtOf(c.id)>0.005)&&!(db.rules.recordatorio||{}).on)t.push(['recordatorios','Tenés clientes con deuda: podés activar recordatorios de cobro en Finanzas > Recordatorios.','f']);

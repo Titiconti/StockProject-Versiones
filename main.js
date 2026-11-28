@@ -11,6 +11,8 @@ const permite = (m, a) => !usr.habilitado() || usr.tiene(quien(), m, a);
 const esAdminSesion = () => !usr.habilitado() || !!(quien() && quien().rol === 'admin');   // el cifrado lo maneja solo un administrador
 const conSesion = () => !usr.habilitado() || !!quien();          // datos del equipo (rutas, empresas, panel): no se muestran antes de ingresar
 const autorizar = require('./permisos-datos');
+const costos = require('./permisos-costos');
+const sinCostos = { ok: false, err: 'Tu usuario no puede ver costos: la copia incluye costos de compra' };
 // Enlaces que el programa abre afuera (WhatsApp, correo, el panel y las novedades del proyecto). Nada más.
 const ENLACES = [/^mailto:/i, /^https:\/\/wa\.me\//i, /^https:\/\/api\.whatsapp\.com\//i, /^https:\/\/stockprojectapp\.vercel\.app(\/|$)/i, /^https:\/\/github\.com\/Titiconti\/(?!.*(\.\.|%2e))/i];
 const enlacePermitido = url => ENLACES.some(r => r.test(String(url || '')));
@@ -74,7 +76,9 @@ app.whenReady().then(() => {
   usr = require('./usuarios')({ usersFile: path.join(ud, 'usuarios.json'), auditFile: path.join(ud, 'auditoria.jsonl'), marcado: () => marca });
   const marcar = () => { if (!usr.habilitado() || usr.faltanUsuarios()) return; if (!cfgS().usuariosActivos) principal.setConfig({ usuariosActivos: true }); if (!faltaClave) principal.marcarUsuarios(); marca = true; };
   if (usr.habilitado() && !usr.faltanUsuarios()) marcar();
-  ipcMain.on('load', e => { try { e.returnValue = usr.habilitado() && !quien() ? '' : store.load() } catch (x) { e.returnValue = '' } });
+  // Quien no ve costos, márgenes ni rentabilidad recibe los datos con los costos de compra en 0 (permisos-costos.js).
+  const paraUsuario = (q, s) => { if (!s || !usr.habilitado() || usr.veCostos(q)) return s; try { return JSON.stringify(costos.ocultar(JSON.parse(s))); } catch (x) { return ''; } };
+  ipcMain.on('load', e => { try { e.returnValue = usr.habilitado() && !quien() ? '' : paraUsuario(quien(), store.load()) } catch (x) { e.returnValue = '' } });
   ipcMain.on('auth:estado', e => { e.returnValue = usr.llamar(tok, 'estado'); });
   ipcMain.handle('auth:call', (e, nombre, args) => {
     if (!usr.NOMBRES.includes(nombre)) return { ok: false };
@@ -88,7 +92,8 @@ app.whenReady().then(() => {
   ipcMain.handle('auth:ir', () => { win.loadFile(pagina()); return true; });
   if (!faltaClave) try { store.load(); } catch (x) {}   // inicializa la versión de los datos
   const avisarNube = r => { if (r && r.ok) { try { nube.avisar(); } catch (e) {} } return r; };   // despierta la sincronización rápida al guardar
-  ipcMain.handle('save', (e, s, base) => { try { if (usr.habilitado()) { const q = quien(); if (!q) return { ok: false, auth: true, err: 'La sesión venció: volvé a ingresar' }; if (!usr.puedeEscribir(q)) return { ok: false, err: 'Tu usuario es de solo consulta' }; if (!usr.puedePrecios(q) && usr.cambiaPrecios(store.load(), s)) return { ok: false, err: 'Solo el gerente o el administrador pueden cambiar precios' }; return avisarNube(store.put(s, base, (prev, o) => autorizar(prev, o, (m, a) => usr.tiene(q, m, a)))); } return avisarNube(store.put(s, base)) } catch (x) { return { ok: false, err: String((x && x.message) || x) } } });
+  ipcMain.handle('save', (e, s, base) => { try { if (usr.habilitado()) { const q = quien(); if (!q) return { ok: false, auth: true, err: 'La sesión venció: volvé a ingresar' }; if (!usr.puedeEscribir(q)) return { ok: false, err: 'Tu usuario es de solo consulta' }; if (!usr.veCostos(q)) { try { s = JSON.stringify(costos.restaurar(JSON.parse(store.snapshot() || 'null'), JSON.parse(s))); } catch (x) { return { ok: false, err: 'datos inválidos' }; } }   // la interfaz solo vio costos en 0: vuelven los reales
+      if (!usr.puedePrecios(q) && usr.cambiaPrecios(store.load(), s)) return { ok: false, err: 'Solo el gerente o el administrador pueden cambiar precios' }; return avisarNube(store.put(s, base, (prev, o) => autorizar(prev, o, (m, a) => usr.tiene(q, m, a)))); } return avisarNube(store.put(s, base)) } catch (x) { return { ok: false, err: String((x && x.message) || x) } } });
   ipcMain.on('version', e => { e.returnValue = store.rev(); });
   ipcMain.handle('tema:set', (e, t) => {
     if (!TEMAS.includes(t)) return { ok: false };
@@ -165,7 +170,7 @@ app.whenReady().then(() => {
     const r = emp.cambiar(id); if (!r.ok) return r;
     try { store.load(); } catch (x) {} usr.audit(quien(), 'empresa.cambiar', id); win.loadFile(pagina()); return { ok: true };
   });
-  ipcMain.handle('emp:consolidado', (e, o) => permite('reporte', 'ver') && permite('configuracion', 'ver') ? emp.consolidado({ desde: String(o.desde), hasta: String(o.hasta), base: String(o.base), estado: o.estado || {} }) : null);
+  ipcMain.handle('emp:consolidado', (e, o) => permite('reporte', 'ver') && permite('configuracion', 'ver') && permite('rentabilidad', 'ver') ? emp.consolidado({ desde: String(o.desde), hasta: String(o.hasta), base: String(o.base), estado: o.estado || {} }) : null);
   ipcMain.handle('fx:actualizar', async (e, base) => permite('configuracion', 'editar') ? require('./monedas').actualizar((...a) => fetch(...a), base) : sinPermiso);
   ipcMain.handle('sys:metricas', () => {
     if (!conSesion()) return null;
@@ -208,6 +213,7 @@ app.whenReady().then(() => {
   });
   ipcMain.handle('seg:copiaProtegida', async (e, pw) => {
     if (!permite('respaldo', 'ver')) return { ok: false, err: 'Sin permiso' };
+    if (usr.habilitado() && !usr.veCostos(quien())) return sinCostos;
     if (String(pw || '').length < 8) return { ok: false, err: 'La contraseña de la copia debe tener al menos 8 caracteres' };
     const r = await dialog.showSaveDialog(win, { title: 'Guardar copia protegida', defaultPath: path.join(opcionesStore.docsDir, 'StockProject-protegida-' + new Date().toISOString().slice(0, 10) + '.spbak'), filters: [{ name: 'Copia protegida', extensions: ['spbak'] }] });
     if (r.canceled || !r.filePath) return { ok: false };
@@ -243,7 +249,7 @@ app.whenReady().then(() => {
     return r;
   });
   ipcMain.handle('arca:anular', async (e, id) => {   // anular una venta facturada = emitir la nota de crédito (solo gerente o administrador)
-    if (!permite('ventas', 'eliminar')) return { ok: false, err: 'Solo un gerente o un administrador puede anular una venta facturada' };
+    if (!permite('anulacion', 'crear')) return { ok: false, err: 'Solo un gerente o un administrador puede anular una venta facturada' };
     let venta; try { venta = (JSON.parse(store.snapshot() || '{}').sales || []).find(s => s.id === id); } catch (x) {}
     if (!venta || !venta.fe || !venta.fe.cae) return { ok: false, err: 'La venta no tiene una factura autorizada' };
     const r = await arca().notaCredito({ id: venta.id, date: venta.date, total: venta.total }, venta.fe);
@@ -289,6 +295,7 @@ app.whenReady().then(() => {
   ipcMain.handle('mp:conciliar', (e, d) => permite('reporte', 'ver') ? mp.conciliar(String(d)) : { ok: false, err: 'Tu usuario no puede ver reportes' });
   ipcMain.handle('b:export', async () => {
     if (!permite('respaldo', 'ver')) return { ok: false };
+    if (usr.habilitado() && !usr.veCostos(quien())) return sinCostos;   // la copia es el archivo de datos completo, con costos
     const r = await dialog.showSaveDialog(win, { title: 'Guardar copia de seguridad', defaultPath: path.join(opcionesStore.docsDir, 'StockProject-copia-' + new Date().toISOString().slice(0, 10) + '.json'), filters: [{ name: 'Copia de StockProject', extensions: ['json'] }] });
     if (r.canceled || !r.filePath) return { ok: false };
     try { fs.writeFileSync(r.filePath, store.snapshot() || '{}'); usr.audit(quien(), 'respaldo.exportar'); return { ok: true, file: r.filePath }; } catch (x) { return { ok: false, err: String(x.message || x) }; }

@@ -20,6 +20,7 @@
       "store.js",
       "validar.js",
       "permisos-datos.js",
+      "permisos-costos.js",
       "nube.js",
       "xlsx-lector.js",
       "mercadopago.js",

@@ -24,14 +24,21 @@ const alguno = (tiene, ...p) => p.some(([m, a]) => tiene(m, a));
 const CFG_LIBRE = new Set(['nroComp', 'avisoDia', 'avisos', 'tourVisto', 'tipsOff', 'tipPreg', 'widgets', 'tabs', 'orden',
   'ultimaImport', 'mapeos', 'entrevistaBorrador', 'entrevista', 'encuesta', 'reposCobertura', 'reposDias']);
 // Campos de un producto que hacen a su precio o costo.
-const esPrecio = k => /^(price|cost|tramos|minimo)$/.test(k) || /precio|costo/i.test(k);
+// Cada campo exige su permiso: costo (costos.editar), margen (margenes.editar) y precio de venta (precios.editar).
+const esCosto = k => /^cost/i.test(k);
+const esMargen = k => /margen/i.test(k);
+const esPrecio = k => /^(price|tramos|minimo)$/.test(k) || /precio/i.test(k);
 const FIN_LISTAS = ['mov', 'pagar', 'emp', 'banco'];
 
 function ventas(a, o, tiene) {
   // Solo importa si una venta se anuló o se quitó; el resto de una venta registrada ya lo bloquea validar.js.
   const d = diferencias(a.sales, o.sales, s => ({ void: !!s.void }));
   if (d.altas.length && !tiene('ventas', 'crear')) return 'Tu usuario no puede registrar ventas';
-  if ((d.cambios.length || d.bajas.length) && !tiene('ventas', 'eliminar')) return 'Tu usuario no puede anular ni corregir ventas ya registradas';
+  if (d.altas.some(s => Number(s.disc) > 0) && !tiene('descuentos', 'crear')) return 'Tu usuario no puede aplicar descuentos';
+  const viejos = new Map(lista(a.sales).map(s => [s.id, s]));
+  const anuladas = d.cambios.filter(s => !(viejos.get(s.id) || {}).void && s.void).length;
+  if (anuladas && !tiene('anulacion', 'crear')) return 'Tu usuario no puede anular ventas ya registradas';
+  if (d.cambios.length - anuladas + d.bajas.length > 0 && !tiene('anulacion', 'editar')) return 'Tu usuario no puede corregir ventas ya registradas';
   return null;
 }
 function productos(a, o, tiene) {
@@ -39,8 +46,15 @@ function productos(a, o, tiene) {
   if (d.altas.length && !tiene('productos', 'crear')) return 'Tu usuario no puede crear productos';
   if (d.bajas.length && !tiene('productos', 'eliminar')) return 'Tu usuario no puede eliminar productos';
   const viejos = new Map(lista(a.prods).map(p => [p.id, p]));
-  const tocaPrecio = d.cambios.some(p => { const v = viejos.get(p.id) || {}; return [...new Set([...Object.keys(v), ...Object.keys(p)])].some(k => esPrecio(k) && !igual(v[k], p[k])); });
-  if (tocaPrecio && !tiene('productos', 'editar')) return 'Tu usuario no puede cambiar precios ni costos';
+  // El costo de una promo se calcula solo con el de sus componentes: no cuenta como cambio de costo hecho a mano.
+  const toca = (es, solo = () => true) => d.cambios.filter(solo).some(p => { const v = viejos.get(p.id) || {}; return [...new Set([...Object.keys(v), ...Object.keys(p)])].some(k => es(k) && !igual(v[k], p[k])); });
+  const costoManual = toca(esCosto, p => p.tipo !== 'promo');
+  if ((toca(esPrecio) || costoManual || toca(esMargen)) && !tiene('productos', 'editar')) return 'Tu usuario no puede cambiar precios ni costos';
+  if (toca(esPrecio) && !tiene('precios', 'editar')) return 'Tu usuario no puede cambiar precios de venta';
+  if (costoManual && !tiene('costos', 'editar')) return 'Tu usuario no puede cambiar costos';
+  if (toca(esMargen) && !tiene('margenes', 'editar')) return 'Tu usuario no puede cambiar márgenes';
+  // Un producto nuevo no puede traer costo si no podés cargar costos (las promos y variantes lo calculan solas).
+  if (d.altas.some(p => Number(p.cost) > 0 && p.tipo !== 'promo' && p.padre == null) && !tiene('costos', 'editar')) return 'Tu usuario no puede cargar costos';
   return null;
 }
 function clientes(a, o, tiene) {
@@ -64,7 +78,7 @@ function cuentas(a, o, tiene) {
 function cajas(a, o, tiene) {
   const d = diferencias(a.cajas, o.cajas);
   if ([...d.cambios, ...d.bajas].some(c => (lista(a.cajas).find(x => x.id === c.id) || {}).cierre)) return 'Un cierre de caja confirmado no se puede modificar';
-  if ((d.altas.length || d.cambios.length) && !tiene('ventas', 'crear')) return 'Tu usuario no puede usar la caja';
+  if ((d.altas.length || d.cambios.length) && !tiene('caja', 'editar')) return 'Tu usuario no puede usar la caja';
   if (d.bajas.length && !tiene('ventas', 'eliminar')) return 'Tu usuario no puede borrar cajas';
   return null;
 }
@@ -73,6 +87,8 @@ function pedidos(a, o, tiene) {
     const d = diferencias(a[k], o[k]);
     if ((d.altas.length || d.cambios.length) && !alguno(tiene, ['pedidos', 'crear'], ['pedidos', 'editar'])) return 'Tu usuario no puede cargar pedidos';
     if (d.bajas.length && !tiene('pedidos', 'eliminar')) return 'Tu usuario no puede borrar pedidos';
+    // Anotar el proveedor de un pedido o de una recepción es tarea de quien puede editar proveedores.
+    if (d.altas.some(x => x && (x.supplier || x.prov)) && !tiene('proveedores', 'editar')) return 'Tu usuario no puede cargar proveedores';
   }
   return null;
 }
