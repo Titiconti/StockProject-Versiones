@@ -7,6 +7,18 @@ const UT={
   suma:a=>a.reduce((x,s)=>x+s.total,0),
   ganancia:a=>a.reduce((x,s)=>x+s.total-s.items.reduce((y,i)=>y+i.qty*(i.cost||0),0),0),
   r2:n=>Math.round((n||0)*100)/100,
+  // Líneas de venta/baja: por peso guardan g (gramos enteros), qty (kg) y u:'kg'. Todo cálculo de kilos pasa por gramos para no arrastrar errores de coma flotante.
+  esKg:i=>!!i&&i.u==='kg',
+  gDe:i=>i.g!=null?i.g:Math.round((i.qty||0)*1000),
+  kg3:g=>(g/1000).toLocaleString('es-AR',{minimumFractionDigits:3,maximumFractionDigits:3})+' kg',
+  qtyDe:i=>UT.esKg(i)?UT.gDe(i)/1000:i.qty,   // kg (o unidades) de la línea
+  cantTxt:i=>UT.esKg(i)?UT.kg3(UT.gDe(i)):String(i.qty),
+  itemTot:i=>i.tot!=null?i.tot:UT.r2(i.qty*i.price),
+  // Unidades y gramos de una lista de líneas, por separado (nunca se suman kilos con unidades).
+  sepCant:items=>items.reduce((a,i)=>{if(UT.esKg(i))a.g+=UT.gDe(i);else a.u+=i.qty;return a},{u:0,g:0}),
+  // Bajas de stock: las nuevas guardan g/u:'kg' como las ventas; las viejas de productos por peso guardaron los gramos en qty (sin g).
+  bajaG:i=>{if(UT.esKg(i))return UT.gDe(i);const p=db.prods.find(x=>x.id===i.id);return p&&p.unidad==='kg'?i.qty:null},
+  bajaTxt:i=>{const g=UT.bajaG(i);return g==null?String(i.qty):UT.kg3(g)},
   bajar(nombre,texto,tipo='text/plain'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([texto],{type:tipo+';charset=utf-8'}));a.download=nombre;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)},
   csv:rows=>'\ufeff'+rows.map(r=>r.map(c=>{c=c==null?'':String(c);return /[";\n\r]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c}).join(';')).join('\r\n'),
   // Gráfico que se adapta al ancho: barras en HTML o línea en SVG con trazo de grosor constante. Cada barra/tramo lleva data-i (se puede tocar).
