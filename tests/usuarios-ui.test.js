@@ -38,7 +38,7 @@ function remoto(auth) {   // acceso remoto simulado: fetch devuelve lo mínimo y
   assert.strictEqual(a.$('nav button[data-t=u]').textContent, 'Usuarios');
   a.tab('u'); assert(await until(() => a.$('#n_m').querySelectorAll('input').length === U.MODULOS.length * 4), 'grilla módulos x 4 acciones');
   assert(!a.$('#uadm').classList.contains('hide'));
-  a.set('#n_r', 'consulta'); assert.strictEqual(a.$('#n_m').querySelectorAll('input:checked').length, 7, 'la grilla sigue al rol');
+  a.set('#n_r', 'consulta'); assert.strictEqual(a.$('#n_m').querySelectorAll('input:checked').length, 8, 'la grilla sigue al rol');
   a.set('#n_u', 'pepe'); a.set('#n_n', 'Pepe'); a.set('#n_p', 'Clave1234'); a.$('#n_m input[data-m=reporte][data-a=ver]').checked = false; a.click('#n_g');
   assert(await until(() => a.calls.some(c => c[0] === 'crear')));
   const c = a.calls.find(x => x[0] === 'crear')[1][0]; assert.deepStrictEqual([c.user, c.rol, c.deny], ['pepe', 'consulta', ['reporte.ver']], 'ajuste de permisos enviado como deny');

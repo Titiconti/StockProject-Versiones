@@ -3,7 +3,7 @@ const assert = require('assert'), { web } = require('./helpers.js');
   const a = web(), { $, $$, w } = a, ev = w.eval.bind(w);
   const vis = () => [...a.d.querySelectorAll('nav button:not(.hide)')].map(b => b.dataset.t);
   // demo web sin encuesta: solo las pantallas de siempre
-  assert.deepStrictEqual(vis().sort(), ['c', 'e', 'i', 'k', 'o', 'p', 'r', 'v', 'w', 'z']);
+  assert.deepStrictEqual(vis().sort(), ['c', 'e', 'hz', 'i', 'k', 'o', 'p', 'r', 'v', 'w', 'z']);
   // encuesta: 4 pasos
   ev('CF.abrirEncuesta(true)'); const ov = () => $('#enc');
   assert(ov() && /Paso 1 de 4/.test(ov().textContent));
