@@ -62,7 +62,7 @@ FA.necesitaQr=s=>FA.ok()&&s&&s.fe&&s.fe.cae&&s.fe.qr&&!(s.fe.cae in FA.qrC);
 FA.cargarQr=async s=>{try{FA.qrC[s.fe.cae]=await sp.arca.qr(s.fe.qr)}catch(x){FA.qrC[s.fe.cae]=''}};
 FA.bloque=s=>{const f=s&&s.fe;if(!f||!f.cae)return'';const e=f.emisor||{},r=f.receptor||{},dc={80:'CUIT',86:'CUIL',96:'DNI'}[r.docTipo];
   return `<hr><div style="text-align:center"><b>${esc(FA.nombre(f))}</b>${f.amb==='homologacion'?'<br><b>PRUEBA - SIN VALIDEZ FISCAL</b>':''}<br>Fecha de emisión: ${FA.fecha(f.fecha)}</div>
-  <div style="margin-top:4px">${esc(e.razon||'')}<br>CUIT: ${esc(e.cuit||'')} · ${e.condIva==='ri'?'IVA Responsable Inscripto':'Responsable Monotributo'}${e.domicilio?'<br>'+esc(e.domicilio):''}${e.inicio?'<br>Inicio de actividades: '+esc(e.inicio):''}</div>
+  <div style="margin-top:4px">${esc(e.razon||'')}<br>CUIT: ${esc(e.cuit||'')} · ${e.condIva==='ri'?'IVA Responsable Inscripto':'Responsable Monotributo'}${e.domicilio?'<br>'+esc(e.domicilio):''}${e.inicio?'<br>Inicio de actividades: '+esc(e.inicio):''}${typeof TK!=='undefined'&&TK.iibb()?'<br>Ingresos Brutos: '+esc(TK.iibb()):''}</div>
   <div style="margin-top:4px">Cliente: ${dc?dc+' '+esc(r.docNro):'Consumidor final'} · ${esc(FA.COND[r.condIva]||'')}</div>${f.iva>0?`<div>Neto gravado ${fmt(f.neto)} · IVA ${fmt(f.iva)}</div>`:''}
   <div style="margin-top:4px">CAE: ${esc(f.cae)}<br>Vencimiento del CAE: ${FA.fecha(f.vto)}</div>${FA.qrC[f.cae]?`<div style="width:110px;margin:6px auto 0">${FA.qrC[f.cae]}</div>`:''}`};
 
