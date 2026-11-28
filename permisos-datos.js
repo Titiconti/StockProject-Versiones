@@ -4,6 +4,7 @@
 // `tiene(modulo, accion)` dice si el usuario de la sesión tiene ese permiso. Devuelve null si está todo bien o un mensaje.
 'use strict';
 const igual = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+const { correccionCaja } = require('./validar');
 const lista = v => (Array.isArray(v) ? v : []);
 
 // Altas, cambios y bajas de una lista de registros con `id`. Si algún registro no tiene id, se compara la lista entera.
@@ -63,7 +64,13 @@ function cuentas(a, o, tiene) {
 // Cajas: quien vende las abre, carga movimientos y las cierra. Borrar una caja es otra cosa; una caja cerrada no cambia más.
 function cajas(a, o, tiene) {
   const d = diferencias(a.cajas, o.cajas);
-  if ([...d.cambios, ...d.bajas].some(c => (lista(a.cajas).find(x => x.id === c.id) || {}).cierre)) return 'Un cierre de caja confirmado no se puede modificar';
+  const cerrada = c => (lista(a.cajas).find(x => x.id === c.id) || {}).cierre;
+  if (d.bajas.some(cerrada)) return 'Un cierre de caja confirmado no se puede modificar';
+  const tocadas = d.cambios.filter(cerrada);
+  if (tocadas.length) {   // un cierre solo cambia con una corrección registrada (con historial) y con el permiso de corregir
+    if (!tocadas.every(c => correccionCaja(lista(a.cajas).find(x => x.id === c.id), lista(o.cajas).find(x => x.id === c.id)))) return 'Un cierre de caja confirmado no se puede modificar';
+    if (!tiene('caja', 'editar')) return 'Tu usuario no puede corregir cierres de caja';
+  }
   if ((d.altas.length || d.cambios.length) && !tiene('ventas', 'crear')) return 'Tu usuario no puede usar la caja';
   if (d.bajas.length && !tiene('ventas', 'eliminar')) return 'Tu usuario no puede borrar cajas';
   return null;

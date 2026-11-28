@@ -3,7 +3,7 @@
 // Mientras no exista ningún usuario, el sistema funciona como siempre (sin inicio de sesión).
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
 
-const MODULOS = ['ventas', 'inventario', 'productos', 'pedidos', 'clientes', 'escuela', 'reporte', 'finanzas', 'configuracion', 'respaldo', 'acceso_remoto', 'usuarios'];
+const MODULOS = ['ventas', 'inventario', 'productos', 'pedidos', 'clientes', 'escuela', 'reporte', 'finanzas', 'caja', 'configuracion', 'respaldo', 'acceso_remoto', 'usuarios'];
 const ACCIONES = ['ver', 'crear', 'editar', 'eliminar'];
 const ROLES = {
   admin: { nombre: 'Administrador' },

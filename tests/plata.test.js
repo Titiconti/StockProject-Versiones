@@ -8,7 +8,7 @@ const assert = require('assert'), { web } = require('./helpers');
   vender([1, 1], 'Efectivo'); vender([3], 'Tarjeta de débito'); vender([2], 'Transferencia'); vender([5], 'Cuenta corriente', 1);   // 5600 · 6900 · 1200 · 1485 (10 % de descuento)
   tab('c'); ev('cSel=1;draw()'); $('#cm').value = '485'; $('#cmm').value = 'Efectivo'; click('#cpay');
   // retiro de caja con tipo de gasto
-  tab('v'); click('#cj_mv'); $('#cj_mt').value = 'egreso'; $('#cj_mm').value = '1000'; $('#cj_mo').value = 'Bolsas'; $('#cj_mc').value = 'Mercadería e insumos'; click('#cj_mok');
+  tab('v'); click('#cj_mv'); $('#cj_mt').value = 'gasto'; ev("$('#cj_mt').dispatchEvent(new Event('change'))"); $('#cj_mm').value = '1000'; $('#cj_mo').value = 'Bolsas'; $('#cj_mc').value = 'Mercadería e insumos'; click('#cj_mok');
   assert.strictEqual(db().cajas[0].movs[0].cat, 'Mercadería e insumos');
   ev("db.fin.pagar.push({id:db.fin.id++,prov:'Lácteos del Valle',desc:'Mercadería',monto:3000,vence:'',pagado:false});save()");
   // pantalla
