@@ -122,9 +122,13 @@ function bajasMercaderia(a, o, tiene) {
   return null;
 }
 
+// Horarios (turnos y francos): la grilla, los empleados y el historial solo los cambia quien tiene horarios.editar.
+function horarios(a, o, tiene) {
+  return igual(a.horarios || {}, o.horarios || {}) || tiene('horarios', 'editar') ? null : 'Tu usuario no puede modificar los horarios';
+}
 module.exports = function autorizar(anterior, nuevo, tiene) {
   if (!anterior || !nuevo) return null;   // sin datos previos (primer guardado) no hay nada que comparar
-  for (const f of [ventas, productos, clientes, cuentas, cajas, pedidos, finanzas, configuracion, planesClientes, bajasMercaderia]) {
+  for (const f of [ventas, productos, clientes, cuentas, cajas, pedidos, finanzas, configuracion, planesClientes, bajasMercaderia, horarios]) {
     const e = f(anterior, nuevo, tiene); if (e) return e;
   }
   return null;
