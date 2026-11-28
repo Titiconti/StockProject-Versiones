@@ -53,7 +53,7 @@ function proyeccion(db, ahora = Date.now()) {
   (db.sales || []).forEach(s => { if (s.cid != null && !s.void && s.pay === 'Cuenta corriente') sum(s.cid, s.total); });
   (db.cargos || []).forEach(x => sum(x.cid, x.amount)); (db.pays || []).forEach(p => sum(p.cid, -p.amount));
   const clientes = (db.clients || []).map(c => ({ n: c.name, saldo: r2(saldo.get(c.id) || 0) })).filter(c => Math.abs(c.saldo) >= 0.005);
-  const bajas = (db.desv || []).filter(v => !v.void && dia(v.date) >= desde).slice(-300).map(v => ({ fecha: v.date, motivo: v.reason || '', detalle: (v.items || []).map(i => i.qty + ' x ' + i.name).join(', '), costo: r2((v.items || []).reduce((a, i) => a + i.qty * (i.cost || 0), 0)), usuario: v.user || null }));
+  const bajas = (db.desv || []).filter(v => !v.void && dia(v.date) >= desde).slice(-300).map(v => ({ fecha: v.date, motivo: v.reason || '', detalle: (v.items || []).map(i => i.qty + ' x ' + i.name).join(', '), usuario: v.user || null }));
   const vencimientos = []; prods.forEach(p => (p.lots || []).forEach(l => { if (l.exp && l.qty > 0 && l.exp <= en30) vencimientos.push({ n: p.name, lote: l.n, cant: cant(p, l.qty), vence: l.exp, estado: l.exp < hoy ? 'vencido' : 'porvencer' }); }));
   // Últimos movimientos de baldes de la heladería (db.baldes, opcional): quién, cuándo, qué gusto y si entró un balde o se ajustó lo que queda.
   const baldes = (heladeria && Array.isArray(db.baldes) ? db.baldes : []).slice(-20).map(b => ({ fecha: b.date || '', usuario: b.user || null, n: b.gusto || '', t: b.t === 'ingreso' ? 'ingreso' : 'ajuste', baldes: r2(b.baldes) }));

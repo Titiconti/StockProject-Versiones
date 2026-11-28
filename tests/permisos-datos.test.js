@@ -1,8 +1,8 @@
 // E2 (auditoría 16/11/2026): al guardar, cada colección que cambió exige el permiso del módulo dueño.
 const assert = require('assert');
 const autorizar = require('../permisos-datos.js');
-const { PERMISOS } = require('../usuarios.js');
-const rol = r => (m, a) => ((PERMISOS[r] || {})[m] || []).includes(a);
+const U = require('../usuarios.js');
+const rol = r => (m, a) => U.tiene({ activo: true, rol: r, extra: [], deny: [] }, m, a);   // incluye los permisos finos (precios, anular, caja...)
 const copia = o => JSON.parse(JSON.stringify(o));
 
 const base = {

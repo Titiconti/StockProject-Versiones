@@ -20,6 +20,37 @@ const PERMISOS = {
   consulta: Object.fromEntries(['ventas', 'inventario', 'productos', 'pedidos', 'clientes', 'escuela', 'reporte'].map(m => [m, ['ver']]))
 };
 
+// Permisos finos (independientes de los módulos de arriba). Formato igual: "modulo.accion" en `extra` / `deny` del usuario.
+// admin y gerente los tienen todos; los demás roles solo heredan lo que ya podían hacer (HEREDA), así nadie gana acceso nuevo.
+// Ver costos, márgenes y rentabilidad NO se hereda: un empleado no los tenía definidos y ahora no los ve.
+const FINOS = {
+  costos: { nombre: 'Costos de compra', acciones: ['ver', 'editar'] },
+  margenes: { nombre: 'Márgenes', acciones: ['ver', 'editar'] },
+  rentabilidad: { nombre: 'Reportes de rentabilidad (ganancia)', acciones: ['ver'] },
+  proveedores: { nombre: 'Proveedores', acciones: ['ver', 'editar'] },
+  precios: { nombre: 'Precio de venta', acciones: ['editar'] },
+  descuentos: { nombre: 'Aplicar descuentos', acciones: ['crear'] },
+  anulacion: { nombre: 'Anular (crear) y corregir (editar) ventas', acciones: ['crear', 'editar'] },
+  caja: { nombre: 'Caja: ver arqueo (ver), operar (crear), corregir cierres (editar)', acciones: ['ver', 'crear', 'editar'] }
+};
+const HEREDA = { proveedores: { ver: ['pedidos', 'ver'], editar: ['pedidos', 'crear'] }, precios: { editar: ['productos', 'editar'] }, descuentos: { crear: ['ventas', 'crear'] }, anulacion: { crear: ['ventas', 'eliminar'], editar: ['ventas', 'eliminar'] }, caja: { crear: ['ventas', 'crear'] } };   // caja.ver y caja.editar no se heredan: solo admin y gerente
+const ROLES_PLENOS = ['admin', 'gerente'];
+const esFino = k => typeof k === 'string' && k.split('.').length === 2 && !!FINOS[k.split('.')[0]] && FINOS[k.split('.')[0]].acciones.includes(k.split('.')[1]);
+
+// Permiso = permisos del rol + extras concedidos al usuario - denegados al usuario (formato "modulo.accion").
+function tiene(u, modulo, accion = 'ver') {
+  if (!u || !u.activo) return false;
+  const k = modulo + '.' + accion;
+  if ((u.deny || []).includes(k)) return false;
+  if (esFino(k)) {
+    if (ROLES_PLENOS.includes(u.rol) || (u.extra || []).includes(k)) return true;
+    const h = (HEREDA[modulo] || {})[accion];
+    return !!h && tiene(u, h[0], h[1]);
+  }
+  return ((PERMISOS[u.rol] || {})[modulo] || []).includes(accion) || (u.extra || []).includes(k);
+}
+const matriz = u => ({ ...Object.fromEntries(MODULOS.map(m => [m, ACCIONES.filter(a => tiene(u, m, a))])), ...Object.fromEntries(Object.entries(FINOS).map(([m, f]) => [m, f.acciones.filter(a => tiene(u, m, a))])) });
+
 const SCRYPT = { N: 16384, r: 8, p: 1 };
 const hash = (clave, salt) => crypto.scryptSync(String(clave), Buffer.from(salt, 'hex'), 32, SCRYPT).toString('hex');
 const nuevoSalt = () => crypto.randomBytes(16).toString('hex');
@@ -41,7 +72,7 @@ module.exports = function ({ usersFile, auditFile, maxSesiones = 3, inactividad 
   // Jerarquía de roles: un no administrador solo maneja usuarios de rango menor al suyo y asigna como máximo "empleado".
   const RANGO = { consulta: 0, empleado: 1, gerente: 2, admin: 3 }, MAX_SIN_ADMIN = 1;
   const esAdmin = u => !!(u && u.activo && u.rol === 'admin');
-  const PERMISO_OK = k => typeof k === 'string' && MODULOS.includes(k.split('.')[0]) && ACCIONES.includes(k.split('.')[1]) && k.split('.').length === 2;
+  const PERMISO_OK = k => esFino(k) || (typeof k === 'string' && MODULOS.includes(k.split('.')[0]) && ACCIONES.includes(k.split('.')[1]) && k.split('.').length === 2);
   const mismos = (a, b) => JSON.stringify([...(a || [])].sort()) === JSON.stringify([...(b || [])].sort());
 
   // ---- auditoría (archivo de texto, un registro por línea) ----
@@ -59,19 +90,14 @@ module.exports = function ({ usersFile, auditFile, maxSesiones = 3, inactividad 
     return l.reverse().slice(0, limite);
   }
 
-  // ---- permisos ----
-  // Permiso = permisos del rol + extras concedidos al usuario - denegados al usuario (formato "modulo.accion").
-  function tiene(u, modulo, accion = 'ver') {
-    if (!u || !u.activo) return false;
-    const k = modulo + '.' + accion;
-    if ((u.deny || []).includes(k)) return false;
-    return ((PERMISOS[u.rol] || {})[modulo] || []).includes(accion) || (u.extra || []).includes(k);
-  }
-  const matriz = u => Object.fromEntries(MODULOS.map(m => [m, ACCIONES.filter(a => tiene(u, m, a))]));
+  // ---- permisos ---- (tiene y matriz están arriba, a nivel del módulo, para poder probarlas sin usuarios guardados)
+  const baseRol = Object.fromEntries(Object.keys(ROLES).map(r => [r, matriz({ activo: true, rol: r, extra: [], deny: [] })]));
+  // Si el usuario no ve costos, ni márgenes, ni rentabilidad, el proceso principal no le entrega los costos.
+  const veCostos = u => tiene(u, 'costos', 'ver') || tiene(u, 'margenes', 'ver') || tiene(u, 'rentabilidad', 'ver');
   const puedeEscribir = u => MODULOS.some(m => ['crear', 'editar', 'eliminar'].some(a => m !== 'usuarios' && tiene(u, m, a)));
 
   // Heladería: solo administrador y gerente cambian precios (el empleado vende, carga stock y ajusta baldes).
-  const puedePrecios = u => !!u && u.activo && ['admin', 'gerente'].includes(u.rol) && tiene(u, 'productos', 'editar');
+  const puedePrecios = u => !!u && u.activo && ['admin', 'gerente'].includes(u.rol) && tiene(u, 'productos', 'editar') && tiene(u, 'precios', 'editar');
   // ¿El guardado cambia el precio de algún producto que ya existía? Solo cuenta si el negocio es una heladería (cfg.rubro o caps).
   function cambiaPrecios(antes, despues) {
     let a, n; try { a = JSON.parse(antes); n = JSON.parse(despues); } catch (e) { return false; }
@@ -94,6 +120,15 @@ module.exports = function ({ usersFile, auditFile, maxSesiones = 3, inactividad 
   };
   const admins = d => d.users.filter(u => u.rol === 'admin' && u.activo);
 
+  // Texto de lo que cambió en los permisos de un usuario ('' si no cambió nada): rol, permisos dados (+) y quitados (-).
+  function detallePermisos(antes, u) {
+    const dif = (a, b) => (b || []).filter(k => !(a || []).includes(k));
+    const partes = [];
+    if (antes.rol !== u.rol) partes.push('rol ' + antes.rol + '->' + u.rol);
+    if (antes.activo !== u.activo) partes.push(u.activo ? 'activado' : 'desactivado');
+    [['+extra', dif(antes.extra, u.extra)], ['-extra', dif(u.extra, antes.extra)], ['+deny', dif(antes.deny, u.deny)], ['-deny', dif(u.deny, antes.deny)]].forEach(([n, l]) => { if (l.length) partes.push(n + ':' + l.join(',')); });
+    return partes.join(' ');
+  }
   // ---- alta y edición ----
   function crear(quien, { user, nombre, rol, clave, extra, deny }) {
     const d = rd();
@@ -110,6 +145,8 @@ module.exports = function ({ usersFile, auditFile, maxSesiones = 3, inactividad 
     const salt = nuevoSalt(), u = { id: d.uid++, user: String(user).trim(), nombre: String(nombre || user).trim(), rol, salt, hash: hash(clave, salt), activo: true, extra: extra || [], deny: deny || [], prefs: {}, creado: new Date(ahora()).toISOString() };
     d.users.push(u); wr(d);
     audit(quien || u, 'usuario.crear', u.user + ' (' + rol + ')');
+    const alta = detallePermisos({ rol, extra: [], deny: [], activo: true }, u);
+    if (alta) audit(quien || u, 'permisos.cambiar', u.user + ' ' + alta);
     return { ok: true, usuario: publico(u) };
   }
   function editar(quien, id, patch) {
@@ -129,12 +166,16 @@ module.exports = function ({ usersFile, auditFile, maxSesiones = 3, inactividad 
     if (!esAdmin(quien) && quien.id === u.id) {
       if ((patch.rol !== undefined && patch.rol !== u.rol) || (patch.deny !== undefined && (u.deny || []).some(k => !patch.deny.includes(k)))) return { ok: false, err: 'No podés ampliar tus propios permisos' };
     }
+    const antes = { rol: u.rol, extra: u.extra || [], deny: u.deny || [], activo: u.activo };
     ['nombre', 'extra', 'deny'].forEach(k => { if (patch[k] !== undefined) u[k] = patch[k]; });
     u.rol = sera.rol; u.activo = sera.activo;
     if (patch.clave) { const e = validarClave(patch.clave); if (e) return { ok: false, err: e }; u.salt = nuevoSalt(); u.hash = hash(patch.clave, u.salt); }
     wr(d);
     if (!u.activo || patch.clave || patch.rol !== undefined) cerrarSesiones(u.id);
     audit(quien, 'usuario.editar', u.user + ' ' + Object.keys(patch).filter(k => k !== 'clave').join(',') + (patch.clave ? ',clave' : ''));
+    // Auditoría de permisos: quién (el registro), a quién (u.user), qué cambió y cuándo (la fecha del registro).
+    const cambioPermisos = detallePermisos(antes, u);
+    if (cambioPermisos) audit(quien, 'permisos.cambiar', u.user + ' ' + cambioPermisos);
     return { ok: true, usuario: publico(u) };
   }
   const listar = quien => tiene(quien, 'usuarios', 'ver') ? rd().users.map(publico) : [];
@@ -219,7 +260,7 @@ module.exports = function ({ usersFile, auditFile, maxSesiones = 3, inactividad 
   function llamar(token, nombre, a = []) {
     const q = habilitado() ? sesion(token) : null;
     switch (nombre) {
-      case 'estado': return { habilitado: habilitado(), faltanUsuarios: faltanUsuarios(), usuario: q ? publico(q) : null, permisos: q ? matriz(q) : null, roles: ROLES, modulos: MODULOS, acciones: ACCIONES, permisosRol: PERMISOS };
+      case 'estado': return { habilitado: habilitado(), faltanUsuarios: faltanUsuarios(), usuario: q ? publico(q) : null, permisos: q ? matriz(q) : null, roles: ROLES, modulos: MODULOS, acciones: ACCIONES, permisosRol: Object.fromEntries(Object.keys(PERMISOS).map(r => [r, { ...PERMISOS[r], ...baseRol[r] }])), finos: FINOS };
       case 'listar': return listar(q);
       case 'crear': return crear(q, a[0] || {});
       case 'editar': return editar(q, a[0], a[1] || {});
@@ -235,6 +276,6 @@ module.exports = function ({ usersFile, auditFile, maxSesiones = 3, inactividad 
     }
     return { ok: false, err: 'operación desconocida' };
   }
-  return { llamar, NOMBRES, habilitado, faltanUsuarios, crear, editar, listar, login, logout, sesion, misSesiones, cerrarOtras, cambiarClave, setPregunta, setPrefs, preguntaDe, recuperar, tiene, matriz, puedeEscribir, puedePrecios, cambiaPrecios, audit, auditoria, publico, ROLES, MODULOS, ACCIONES, PERMISOS };
+  return { llamar, NOMBRES, habilitado, faltanUsuarios, crear, editar, listar, login, logout, sesion, misSesiones, cerrarOtras, cambiarClave, setPregunta, setPrefs, preguntaDe, recuperar, tiene, matriz, veCostos, puedeEscribir, puedePrecios, cambiaPrecios, audit, auditoria, publico, ROLES, MODULOS, ACCIONES, PERMISOS };
 };
-module.exports.ACCIONES = ACCIONES; module.exports.MODULOS = MODULOS; module.exports.ROLES = ROLES; module.exports.PERMISOS = PERMISOS;
+module.exports.ACCIONES = ACCIONES; module.exports.MODULOS = MODULOS; module.exports.ROLES = ROLES; module.exports.PERMISOS = PERMISOS; module.exports.FINOS = FINOS; module.exports.tiene = tiene; module.exports.matriz = matriz;

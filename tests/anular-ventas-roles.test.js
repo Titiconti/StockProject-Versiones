@@ -1,6 +1,7 @@
 // Anular o corregir una venta: solo gerente y administrador (el empleado no), en la interfaz y en el proceso principal.
 const assert = require('assert'), { web, wait } = require('./helpers.js');
-const autorizar = require('../permisos-datos.js'), validar = require('../validar.js'), { PERMISOS } = require('../usuarios.js');
+const autorizar = require('../permisos-datos.js'), validar = require('../validar.js'), U = require('../usuarios.js');
+const PERMISOS = Object.fromEntries(Object.keys(U.PERMISOS).map(r => [r, U.matriz({ activo: true, rol: r, extra: [], deny: [] })]));   // con los permisos finos (anulacion.*)
 const tiene = r => (m, a) => ((PERMISOS[r] || {})[m] || []).includes(a);
 
 (async () => {

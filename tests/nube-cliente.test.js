@@ -20,7 +20,7 @@ const assert = require('assert'), crear = require('../nube'), { proyeccion } = c
   assert.strictEqual(st('Vencido').estado, 'vencido'); assert.strictEqual(st('Remera'), undefined, 'el producto principal de variantes no es stock');
   assert.deepStrictEqual(f.clientes, [{ n: 'Luis', saldo: 1500 }], 'solo nombre y saldo, y solo quien tiene saldo');
   assert.deepStrictEqual([f.cajas[0].esperado, f.cajas[0].vendido, f.cajas[0].porMedio.Efectivo], [2350, 3800, 1800], 'efectivo: 100 + 1800 + 500 − 50; la anulada no cuenta');
-  assert.strictEqual(f.bajas[0].costo, 600); assert(f.vencimientos.some(v => v.n === 'Vencido' && v.estado === 'vencido') && f.vencimientos.some(v => v.n === 'Jamón' && v.estado === 'porvencer'));
+  assert.strictEqual(f.bajas[0].costo, undefined, 'la foto del panel no lleva el costo de compra'); assert(f.bajas[0].detalle, 'la baja sí sale, sin costo'); assert(f.vencimientos.some(v => v.n === 'Vencido' && v.estado === 'vencido') && f.vencimientos.some(v => v.n === 'Jamón' && v.estado === 'porvencer'));
   // qué NO se envía
   const txt = JSON.stringify(f); ['341 555', 'l@x.com', 'vecino', 'secreto', 'fidel', 'cajaObligatoria', '"cost"'].forEach(x => assert(!txt.includes(x), 'no debe enviarse: ' + x));
   assert.doesNotThrow(() => proyeccion({}, T)); assert.doesNotThrow(() => proyeccion(null, T));

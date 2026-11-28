@@ -55,9 +55,9 @@ MG.aplicar=(ent,filas,{modo='actualizar',stock='sumar'}={})=>{const ok=filas.fil
   const prev=ent==='productos'?{prods:db.prods,nid:db.nid,lid:db.lid}:ent==='clientes'?{clients:db.clients,cid:db.cid}:{cargos:db.cargos,cgid:db.cgid},snap=JSON.stringify(prev);
   db.cfg.ultimaImport=snap.length<8e6?{fecha,ent,n:ok.length,prev:snap}:{fecha,ent,n:ok.length,prev:null};
   ok.forEach(f=>{const x=f.v;
-    if(ent==='productos'){let p=f.ref&&db.prods.find(q=>q.id===f.ref);if(p){if(modo==='soloNuevos'){r.omitidos++;return}Object.assign(p,{name:x.name,price:x.price,cost:x.cost,min:x.min});if(x.code)p.code=x.code;r.actualizados++;
+    if(ent==='productos'){let p=f.ref&&db.prods.find(q=>q.id===f.ref);if(p){if(modo==='soloNuevos'){r.omitidos++;return}Object.assign(p,{name:x.name,price:can('precios','editar')?x.price:p.price,cost:VC&&can('costos','editar')?x.cost:p.cost,min:x.min});if(x.code)p.code=x.code;r.actualizados++;
         if(x.stock>0&&stock==='reemplazar'){p.lots=[];addLot(p,'Importado '+fecha.slice(0,10),x.stock,x.exp)}else if(x.stock>0&&stock==='sumar')addLot(p,'Importado '+fecha.slice(0,10),x.stock,x.exp)}
-      else{p={id:db.nid++,name:x.name,code:x.code,price:x.price,cost:x.cost,min:x.min,lots:[]};db.prods.push(p);if(x.stock>0)addLot(p,'Inicial',x.stock,x.exp);r.nuevos++}}
+      else{p={id:db.nid++,name:x.name,code:x.code,price:x.price,cost:VC&&can('costos','editar')?x.cost:0,min:x.min,lots:[]};db.prods.push(p);if(x.stock>0)addLot(p,'Inicial',x.stock,x.exp);r.nuevos++}}
     if(ent==='clientes'){let c=f.ref&&cl$(f.ref);const d={name:x.name,phone:x.phone,mail:x.mail,disc:x.disc,note:x.note};if(x.limite)d.limite=x.limite;if(c){if(modo==='soloNuevos'){r.omitidos++;return}Object.assign(c,d);r.actualizados++}else{db.clients.push({id:db.cid++,...d});r.nuevos++}}
     if(ent==='saldos'){db.cargos.push({id:db.cgid++,cid:f.ref,date:fecha,desc:'Saldo inicial (importado)',amount:x.saldo,tipo:'saldo inicial'});r.nuevos++}});return r};
 MG.deshacer=()=>{const u=db.cfg.ultimaImport;if(!u||!u.prev)return false;const p=JSON.parse(u.prev);Object.assign(db,p);delete db.cfg.ultimaImport;return true};
@@ -96,7 +96,8 @@ $('#g_d').onclick=async e=>{const b=e.target.closest('button');if(!b||!MG.st)ret
     const fin=`Importación lista: ${r.nuevos} nuevos, ${r.actualizados} actualizados, ${r.omitidos} omitidos.`;MG.st=MG.nuevo();MG.st.fin=fin;draw();MG.render();toast(fin)}
   if(id==='mg_un'){if(!UT.chk('productos','eliminar')||!armed('mgun'))return;if(MG.deshacer()){save();call('audit','migracion.deshacer');MG.st=MG.nuevo();MG.st.fin='Se deshizo la última importación.';draw();MG.render()}}
   if(b.dataset.ex){if(!UT.chk('respaldo','ver'))return;const t=b.dataset.ex;let txt,nom=`${t}-${UT.hoy()}.csv`;
-    if(t==='productos')txt=UT.csv([['Nombre','Código','Precio de venta','Costo','Stock','Stock mínimo','Vencimiento'],...db.prods.map(p=>{const v=p.lots.filter(l=>l.exp).map(l=>l.exp).sort()[0]||'';return[p.name,p.code||'',p.price,p.cost||0,tot(p),p.min||0,v]})]);
+    if(t==='json'&&!VC)return toast('Tu usuario no puede exportar los datos completos: incluyen costos');
+    if(t==='productos')txt=UT.csv([['Nombre','Código','Precio de venta',...(VC?['Costo']:[]),'Stock','Stock mínimo','Vencimiento'],...db.prods.map(p=>{const v=p.lots.filter(l=>l.exp).map(l=>l.exp).sort()[0]||'';return[p.name,p.code||'',p.price,...(VC?[p.cost||0]:[]),tot(p),p.min||0,v]})]);
     else if(t==='clientes')txt=UT.csv([['Nombre','Teléfono','Correo','Descuento %','Límite de crédito','Notas','Saldo'],...db.clients.map(c=>[c.name,c.phone||'',c.mail||'',c.disc||0,c.limite||'',c.note||'',debtOf(c.id)])]);
     else if(t==='ventas')txt=UT.csv([['N.º','Fecha','Cliente','Medio de pago','Producto','Cantidad','Precio','Total de la venta'],...db.sales.filter(s=>!s.void).flatMap(s=>s.items.map(i=>[s.id,s.date,s.cname||'',s.pay,i.name,i.qty,i.price,s.total]))]);
     else{txt=JSON.stringify(db,null,1);nom=`stockproject-${UT.hoy()}.json`}

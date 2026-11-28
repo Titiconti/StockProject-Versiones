@@ -25,7 +25,7 @@ FA.alCobrar=s=>{if(!FA.ok()||!FA.e||!FA.e.listo||!s)return;const c=s.cid?cl$(s.c
   if(m==='siempre'||(m==='clientes'&&c&&c.facturar))FA.emitir(s.id,FA.receptorDe(c))};
 // Anular o corregir una venta facturada: primero se emite la nota de crédito (mismo tipo, con el comprobante asociado) y recién después se anula como siempre.
 FA.anular=async(s,fix,btn)=>{
-  if(!can('ventas','eliminar'))return toast('Solo un gerente o un administrador puede anular una venta facturada');
+  if(!can('anulacion','crear'))return toast('Solo un gerente o un administrador puede anular una venta facturada');
   if(fix&&Object.keys(cart).length)return toast('Primero cobrá o vaciá la venta actual');
   if(!confirm('Esta venta tiene la '+FA.nombre(s.fe)+'.\n\nSe emite en ARCA la nota de crédito que la anula y después se '+(fix?'carga para corregir':'anula la venta y se devuelve el stock')+'. ¿Seguir?'))return;
   let r=s.fe.nc&&s.fe.nc.cae?{ok:true,fe:s.fe.nc}:null;
