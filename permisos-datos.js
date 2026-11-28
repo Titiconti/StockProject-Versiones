@@ -78,7 +78,7 @@ function cuentas(a, o, tiene) {
 function cajas(a, o, tiene) {
   const d = diferencias(a.cajas, o.cajas);
   if ([...d.cambios, ...d.bajas].some(c => (lista(a.cajas).find(x => x.id === c.id) || {}).cierre)) return 'Un cierre de caja confirmado no se puede modificar';
-  if ((d.altas.length || d.cambios.length) && !tiene('caja', 'editar')) return 'Tu usuario no puede usar la caja';
+  if ((d.altas.length || d.cambios.length) && !tiene('caja', 'crear')) return 'Tu usuario no puede usar la caja';
   if (d.bajas.length && !tiene('ventas', 'eliminar')) return 'Tu usuario no puede borrar cajas';
   return null;
 }

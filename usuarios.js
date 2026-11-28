@@ -31,9 +31,9 @@ const FINOS = {
   precios: { nombre: 'Precio de venta', acciones: ['editar'] },
   descuentos: { nombre: 'Aplicar descuentos', acciones: ['crear'] },
   anulacion: { nombre: 'Anular (crear) y corregir (editar) ventas', acciones: ['crear', 'editar'] },
-  caja: { nombre: 'Administrar caja', acciones: ['editar'] }
+  caja: { nombre: 'Caja: ver arqueo (ver), operar (crear), corregir cierres (editar)', acciones: ['ver', 'crear', 'editar'] }
 };
-const HEREDA = { proveedores: { ver: ['pedidos', 'ver'], editar: ['pedidos', 'crear'] }, precios: { editar: ['productos', 'editar'] }, descuentos: { crear: ['ventas', 'crear'] }, anulacion: { crear: ['ventas', 'eliminar'], editar: ['ventas', 'eliminar'] }, caja: { editar: ['ventas', 'crear'] } };
+const HEREDA = { proveedores: { ver: ['pedidos', 'ver'], editar: ['pedidos', 'crear'] }, precios: { editar: ['productos', 'editar'] }, descuentos: { crear: ['ventas', 'crear'] }, anulacion: { crear: ['ventas', 'eliminar'], editar: ['ventas', 'eliminar'] }, caja: { crear: ['ventas', 'crear'] } };   // caja.ver y caja.editar no se heredan: solo admin y gerente
 const ROLES_PLENOS = ['admin', 'gerente'];
 const esFino = k => typeof k === 'string' && k.split('.').length === 2 && !!FINOS[k.split('.')[0]] && FINOS[k.split('.')[0]].acciones.includes(k.split('.')[1]);
 

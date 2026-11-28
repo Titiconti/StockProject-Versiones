@@ -7,12 +7,13 @@ const usr = (rol, extra = [], deny = []) => ({ activo: true, rol, extra, deny })
 const tiene = (u, k) => U.tiene(u, k.split('.')[0], k.split('.')[1]);
 
 // ---- 1. Modelo de permisos y migración ----
-const FINOS = ['costos.ver', 'costos.editar', 'margenes.ver', 'margenes.editar', 'rentabilidad.ver', 'proveedores.ver', 'proveedores.editar', 'precios.editar', 'descuentos.crear', 'anulacion.crear', 'anulacion.editar', 'caja.editar'];
+const FINOS = ['costos.ver', 'costos.editar', 'margenes.ver', 'margenes.editar', 'rentabilidad.ver', 'proveedores.ver', 'proveedores.editar', 'precios.editar', 'descuentos.crear', 'anulacion.crear', 'anulacion.editar', 'caja.ver', 'caja.crear', 'caja.editar'];
 FINOS.forEach(k => { assert(tiene(usr('admin'), k) && tiene(usr('gerente'), k), 'admin y gerente conservan ' + k); });
 ['costos.ver', 'costos.editar', 'margenes.ver', 'margenes.editar', 'rentabilidad.ver'].forEach(k => assert(!tiene(usr('empleado'), k) && !tiene(usr('consulta'), k), 'empleado y consulta no ven ' + k));
 // Los empleados existentes no ganan acceso: solo conservan lo que ya podían hacer.
-['precios.editar', 'descuentos.crear', 'proveedores.ver', 'proveedores.editar', 'caja.editar'].forEach(k => assert(tiene(usr('empleado'), k), 'empleado conserva ' + k));
-['anulacion.crear', 'anulacion.editar', 'precios.editar', 'descuentos.crear', 'caja.editar'].forEach(k => assert(!tiene(usr('consulta'), k), 'consulta sigue sin ' + k));
+['precios.editar', 'descuentos.crear', 'proveedores.ver', 'proveedores.editar', 'caja.crear'].forEach(k => assert(tiene(usr('empleado'), k), 'empleado conserva ' + k));
+assert(!tiene(usr('empleado'), 'caja.ver') && !tiene(usr('empleado'), 'caja.editar'), 'el empleado opera la caja pero no ve el arqueo ni corrige cierres');
+['anulacion.crear', 'anulacion.editar', 'precios.editar', 'descuentos.crear', 'caja.crear', 'caja.editar'].forEach(k => assert(!tiene(usr('consulta'), k), 'consulta sigue sin ' + k));
 assert(!tiene(usr('empleado'), 'anulacion.crear'), 'el empleado sigue sin anular');
 // Usuarios guardados antes de esta versión (extra / deny viejos) mantienen lo suyo.
 assert(tiene(usr('empleado', ['ventas.eliminar']), 'anulacion.crear') && tiene(usr('empleado', ['ventas.eliminar']), 'anulacion.editar'), 'extra ventas.eliminar sigue anulando');
@@ -42,6 +43,12 @@ assert(autorizar(base, con(base, o => { o.sales[0].void = true; }), T(usr('geren
 assert.strictEqual(autorizar(base, con(base, o => { o.sales[0].void = true; }), T(usr('gerente', [], ['anulacion.editar']))), null, 'anular y corregir son permisos distintos');
 assert(autorizar(base, con(base, o => { o.sales = []; }), T(usr('gerente', [], ['anulacion.editar']))), 'borrar una venta es corregirla');
 assert(autorizar(base, con(base, o => { o.sales.push({ id: 2, date: '2026-11-16T11:00:00.000Z', items: [{ id: 1, qty: 1, price: 90 }], total: 90, pay: 'Efectivo', cid: 1, disc: 10 }); }), T(usr('gerente', [], ['descuentos.crear']))), 'sin descuentos.crear no vende con descuento');
+
+const conCierre = con(base, o => { o.cajas = [{ id: 1, uid: 2, ini: 0, movs: [], cierre: '2026-11-16T20:00:00.000Z', contado: 0, dif: 0 }]; });
+const cierreCorregido = con(conCierre, o => { o.cajas[0].dif = 50; });
+assert(autorizar(conCierre, cierreCorregido, T(usr('empleado'))), 'el empleado no corrige un cierre');
+assert(autorizar(conCierre, cierreCorregido, T(usr('gerente'))), 'un cierre confirmado no cambia desde un guardado común (ni el gerente); la corrección con caja.editar la define la rama de caja');
+assert.strictEqual(autorizar(base, con(base, o => { o.cajas.push({ id: 2, uid: 2, ini: 0, movs: [] }); }), T(usr('empleado'))), null, 'el empleado opera la caja del día');
 
 // ---- 3. Ocultar y restaurar costos ----
 const completo = {
