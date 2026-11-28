@@ -9,9 +9,6 @@
 .ic-wa { width: 1.15em; height: 1.15em; flex: none; margin-right: .5em; vertical-align: -0.2em; }
 
 /* features: the client's screenshots fill each panel from the top left */
-#funciones .panel { --p-h: 300px; }
-#funciones .frame__img { object-fit: cover; object-position: 0 0; }
-@media (max-width: 639px) { #funciones .panel { --p-h: 180px; } }
 
 /* phone panel section */
 .cel-rubros { max-width: 52ch; }
@@ -65,7 +62,6 @@ html.fx [data-revela].is-visivel { opacity: 1; transform: none; }
 .btn--primary:hover { background: #1c3de0 !important; color: #fff !important; }
 main > section:not(.hero) { padding-inline: 0; }
 /* componentes de 21st.dev adaptados */
-#funciones [data-blur-progresivo] > .blur-prog { inset: 72% 0 0 0; }
 .hero__rubro { margin-top: var(--s-3) !important; }
 .hero__rubro .xfade { font-weight: 600; color: #12233d; }
 .pie .mov { white-space: normal; text-align: left; max-width: 100%; }
@@ -135,14 +131,58 @@ main > section.ground-surface { padding-block: clamp(48px, 9vh, 112px) !importan
 .caso__lista { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-4); }
 .caso__lista li { max-width: 56ch; }
 
-/* beneficios en filas: la captura grande a un lado y el texto al otro, alternando */
-.benef { grid-template-columns: minmax(0, 1fr) !important; gap: 96px !important; }
-.benef li { display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); column-gap: var(--s-7); align-items: center; }
-.benef li:nth-child(even) figure { order: 2; }
-.benef figure { margin: 0 !important; max-width: 640px; }
-.benef h3 { font-size: clamp(22px, 2.2vw, 32px); margin: 0 0 var(--s-3); }
-.benef p { font-size: 18px; margin: 0; }
-@media (max-width: 899px) { .benef { gap: var(--s-7) !important; } .benef li { grid-template-columns: minmax(0, 1fr); row-gap: var(--s-4); } .benef li:nth-child(even) figure { order: 0; } }
 .pie__cols ul + .mov { margin-top: var(--s-4); }
 #arranque .stack-5 > p:last-child { margin-top: var(--s-5); }
 @media (max-width: 1023px) { .cel-phone { justify-content: center; } }
+
+/* beneficios: la captura de cobro (la mas angosta) va chica junto a su texto; caja y stock van abajo, mas grandes y parejas */
+.benef { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 72px var(--s-7) !important; }
+.benef li { display: flex; flex-direction: column; gap: var(--s-4); }
+.benef li:first-child { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); column-gap: var(--s-7); align-items: center; }
+.benef li:first-child figure { max-width: 440px; }
+.benef figure { margin: 0 !important; }
+.benef h3 { font-size: clamp(22px, 2.2vw, 32px); margin: 0 0 var(--s-3); }
+.benef p { font-size: 18px; margin: 0; }
+@media (max-width: 899px) { .benef { grid-template-columns: minmax(0, 1fr) !important; gap: var(--s-7) !important; } .benef li:first-child { grid-template-columns: minmax(0, 1fr); row-gap: var(--s-4); } }
+
+/* botones: quietos (sin imán ni desplazamiento); hover, foco y pulsación se notan por color y sombra */
+.btn { min-height: 44px; transition: background-color .15s, border-color .15s, box-shadow .15s, color .15s; }
+html .btn:hover, html .btn:active { transform: none !important; }
+.btn--primary:hover { box-shadow: 0 4px 14px rgb(36 71 249 / .3); }
+.btn--primary:active { background: #1733b8 !important; box-shadow: inset 0 1px 3px rgb(0 0 0 / .3); }
+.btn--secondary:active { background: #dfe4ee; }
+.btn:focus-visible { outline: 3px solid #12233d; outline-offset: 3px; }
+
+/* galeria "Todo el mostrador": desliza con el dedo (scroll-snap); galeria.js agrega flechas, puntos y el texto que cambia */
+.gal { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-5); margin-top: var(--s-6); }
+.gal__pista { list-style: none; margin: 0; padding: 0; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; scroll-behavior: smooth; border-radius: var(--r-lg); border: 1px solid #d5dae3; background: #fff; }
+.gal__pista::-webkit-scrollbar { display: none; }
+.gal__pista:focus-visible { outline: 3px solid #12233d; outline-offset: 3px; }
+.gal__slide { flex: 0 0 100%; scroll-snap-align: center; scroll-snap-stop: always; }
+.gal__slide figure { margin: 0; }
+.gal__slide img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: contain; }
+.gal__cap { padding: var(--s-4) var(--s-5); }
+.gal--js .gal__cap { display: none; }
+.gal__lado { display: flex; flex-direction: column; gap: var(--s-3); }
+.gal__texto { min-height: 11rem; transition: opacity .14s ease, transform .14s ease; }
+.gal__texto.is-sale { opacity: 0; transform: translateY(6px); }
+.gal__texto h3 { font-size: clamp(22px, 2.2vw, 32px); margin: 0 0 var(--s-3); }
+.gal__texto p { font-size: 18px; margin: 0; color: var(--p-muted); max-width: 42ch; }
+.gal__cuenta { font-size: 14px; font-variant-numeric: tabular-nums; color: var(--p-muted); }
+.gal__ctl { display: flex; align-items: center; gap: var(--s-2); }
+.gal__puntos { display: flex; }
+.gal__flecha, .gal__punto { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; padding: 0; border: 0; background: none; color: #12233d; cursor: pointer; }
+.gal__flecha { border: 1px solid #b9c1d1; border-radius: 50%; background: #fff; transition: background-color .15s, box-shadow .15s, opacity .15s; }
+.gal__flecha svg { width: 20px; height: 20px; }
+.gal__flecha--prev svg { transform: rotate(180deg); }
+.gal__flecha:hover:not(:disabled) { background: #eef1f8; box-shadow: 0 2px 8px rgb(18 35 61 / .15); }
+.gal__flecha:disabled { opacity: .4; cursor: default; }
+.gal__punto span { width: 10px; height: 10px; border-radius: 99px; background: #b9c1d1; transition: width .2s ease, background-color .2s ease; }
+.gal__punto:hover span { background: #7d8aa6; }
+.gal__punto[aria-current] span { width: 26px; background: #2447f9; }
+.gal :is(button):focus-visible { outline: 3px solid #12233d; outline-offset: 2px; }
+@media (min-width: 900px) { .gal { grid-template-columns: minmax(0, 7fr) minmax(0, 4fr); column-gap: var(--s-7); align-items: center; } .gal__texto { min-height: 13rem; } }
+@media (max-width: 639px) { .gal__texto { min-height: 12rem; } }
+@media (prefers-reduced-motion: reduce) { .gal__pista { scroll-behavior: auto; } .gal__texto, .gal__punto span, .gal__flecha { transition: none; } }
+html.sin-animaciones .gal__pista { scroll-behavior: auto; }
+html.sin-animaciones .gal__texto, html.sin-animaciones .gal__punto span, html.sin-animaciones .gal__flecha { transition: none; }

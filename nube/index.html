@@ -41,7 +41,6 @@
 }
 </style>
 <link rel="stylesheet" href="landing/landing.css">
-<link rel="stylesheet" href="landing/boton-magnetico.css">
 <link rel="stylesheet" href="landing/tarjeta-desenfoque-progresivo.css">
 <link rel="stylesheet" href="landing/texto-crossfade.css">
 <script src="landing/arranque.js"></script>
@@ -87,7 +86,7 @@
       </div>      <div class="hero__figura">
         <svg class="portada__cubo" viewBox="0 0 64 64" role="img" aria-label="La caja del logo de StockProject, que se abre al bajar" focusable="false"><g class="pc-l"><path d="M12 21.5 32 33V56L12 44.5Z" fill="#2447F9"/></g><g class="pc-r"><path d="M52 21.5 32 33V56L52 44.5Z" fill="#6E8BFF"/></g><g class="pc-t"><path d="M32 10 52 21.5 32 33 12 21.5Z" fill="#0E9F6E"/></g><path class="pc-c" pathLength="1" d="M22 15.75 42 27.25V38" fill="none" stroke="#fff" stroke-width="4" stroke-linejoin="round" stroke-dasharray="1" stroke-dashoffset="0"/></svg>
       </div>
-      <div class="hero__acciones"><a class="btn btn--primary" data-magnetico href="#contact" data-contacto aria-label="Pedir una visita por WhatsApp"><svg class="ic-wa" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3a.4.4 0 0 0 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.1 5.1 0 0 0 1.1 2.7 11.7 11.7 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3Z"/></svg> Pedir una visita</a><a class="btn btn--secondary" href="#beneficios">Ver qué cambia</a></div>
+      <div class="hero__acciones"><a class="btn btn--primary" href="#contact" data-contacto aria-label="Pedir una visita por WhatsApp"><svg class="ic-wa" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3a.4.4 0 0 0 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.1 5.1 0 0 0 1.1 2.7 11.7 11.7 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3Z"/></svg> Pedir una visita</a><a class="btn btn--secondary" href="#beneficios">Ver qué cambia</a></div>
     </div>
   </section>
   <section class="section" id="beneficios" aria-labelledby="ben-h">
@@ -112,36 +111,32 @@
       </ol>
     </div>
   </section>
-  <section class="section g2 ground-surface" id="funciones" aria-labelledby="fun-h">
+  <section class="section ground-surface" id="funciones" aria-labelledby="fun-h">
     <div class="wrap">
       <div class="group">
         <div class="section-head">
           <h2 id="fun-h">Todo el mostrador en un programa <span class="muted">Stock, clientes, mercadería y finanzas</span></h2>
         </div>
-        <div class="grid">
-          <article class="card card--row card--open span-6">
-            <h3>Lotes con aviso de vencimiento</h3>
-            <p>Cargás lotes con su fecha y la campana te avisa antes. El stock bajo también se marca.</p>
-            <div class="panel" data-blur-progresivo="bottom"><img class="frame__img" src="landing/media/stock.webp" alt="Inventario con lotes, fechas de vencimiento y stock bajo marcado" loading="lazy"></div>
-          </article>
-          <article class="card card--row card--open span-6">
-            <h3>Cuenta corriente de cada cliente</h3>
-            <p>Vendés al fiado con F7 y ves cuánto debe cada uno y qué pagó.</p>
-            <div class="panel" data-blur-progresivo="bottom"><img class="frame__img" src="landing/media/clientes.webp" alt="Ficha de un cliente con su saldo de cuenta corriente" loading="lazy"></div>
-          </article>
+        <div class="gal" data-galeria role="region" aria-roledescription="galería" aria-label="Pantallas del programa">
+          <ul class="gal__pista" tabindex="0" aria-label="Pantallas, deslizá o usá las flechas del teclado">
+            <li class="gal__slide"><figure>
+              <img src="landing/media/stock.webp" alt="Inventario con lotes, fechas de vencimiento y stock bajo marcado" width="1600" height="1000" loading="lazy">
+              <figcaption class="gal__cap"><h3>Lotes con aviso de vencimiento</h3><p>Cargás lotes con su fecha y la campana te avisa antes. El stock bajo también se marca.</p></figcaption>
+            </figure></li>
+            <li class="gal__slide"><figure>
+              <img src="landing/media/clientes.webp" alt="Ficha de un cliente con su saldo de cuenta corriente" width="1600" height="1000" loading="lazy">
+              <figcaption class="gal__cap"><h3>Cuenta corriente de cada cliente</h3><p>Vendés al fiado con F7 y ves cuánto debe cada uno y qué pagó.</p></figcaption>
+            </figure></li>
+            <li class="gal__slide"><figure>
+              <img src="landing/media/mercaderia.webp" alt="Ingreso de mercadería y lista de faltantes para pedir" width="1600" height="1000" loading="lazy">
+              <figcaption class="gal__cap"><h3>Pedido al proveedor por WhatsApp</h3><p>Cargás lo que trae el proveedor en un paso. La lista para pedir se arma con lo que vendés y sale por WhatsApp.</p></figcaption>
+            </figure></li>
+            <li class="gal__slide"><figure>
+              <img src="landing/media/plata.webp" alt="Pantalla Resumen financiero con entradas y salidas" width="1600" height="1000" loading="lazy">
+              <figcaption class="gal__cap"><h3>Resumen financiero del negocio</h3><p>Gastos, retiros y pagos a proveedores quedan anotados, aparte de la caja del día.</p></figcaption>
+            </figure></li>
+          </ul>
         </div>
-      </div>
-      <div class="grid">
-        <article class="card card--row card--open span-6">
-          <h3>Pedido al proveedor por WhatsApp</h3>
-          <p>Cargás lo que trae el proveedor en un paso. La lista para pedir se arma con lo que vendés y sale por WhatsApp.</p>
-          <div class="panel" data-blur-progresivo="bottom"><img class="frame__img" src="landing/media/mercaderia.webp" alt="Ingreso de mercadería y lista de faltantes para pedir" loading="lazy"></div>
-        </article>
-        <article class="card card--row card--open span-6">
-          <h3>Resumen financiero del negocio</h3>
-          <p>Gastos, retiros y pagos a proveedores quedan anotados, aparte de la caja del día.</p>
-          <div class="panel" data-blur-progresivo="bottom"><img class="frame__img" src="landing/media/plata.webp" alt="Pantalla Resumen financiero con entradas y salidas" loading="lazy"></div>
-        </article>
       </div>
     </div>
   </section>
@@ -194,7 +189,7 @@
       <div class="span-5 stack-5">
         <h2 id="arr-h">La instalación en Rosario y alrededores</h2>
         <p class="t-lead">Vamos a tu local, lo dejamos funcionando y te enseñamos a usarlo con tus productos. El precio te lo contamos en la visita, según tu comercio y cuántas cajas usás.</p>
-        <p><a class="btn btn--primary" data-magnetico href="#contact" data-contacto aria-label="Pedir una visita por WhatsApp"><svg class="ic-wa" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3a.4.4 0 0 0 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.1 5.1 0 0 0 1.1 2.7 11.7 11.7 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3Z"/></svg> Pedir una visita</a></p>
+        <p><a class="btn btn--primary" href="#contact" data-contacto aria-label="Pedir una visita por WhatsApp"><svg class="ic-wa" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3a.4.4 0 0 0 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.1 5.1 0 0 0 1.1 2.7 11.7 11.7 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3Z"/></svg> Pedir una visita</a></p>
       </div>
       <div class="span-6 start-7">
         <h3 class="incluye__t">Qué incluye</h3>
@@ -256,7 +251,7 @@
       
       <h2 id="close-h">Te lo instalamos en Rosario y alrededores</h2>
       <p>Escribile por WhatsApp al <a class="tel" href="#contact" data-contacto>341 203-1359</a>. Va a tu local, instala StockProject en tu PC y te muestra cómo usarlo con tus productos. El precio te lo cuenta en la visita, según tu comercio.</p>
-      <a class="btn btn--primary" data-magnetico href="#contact" data-contacto aria-label="Pedir una visita por WhatsApp"><svg class="ic-wa" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3a.4.4 0 0 0 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.1 5.1 0 0 0 1.1 2.7 11.7 11.7 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3Z"/></svg>Pedir una visita</a>
+      <a class="btn btn--primary" href="#contact" data-contacto aria-label="Pedir una visita por WhatsApp"><svg class="ic-wa" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3a.4.4 0 0 0 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.1 5.1 0 0 0 1.1 2.7 11.7 11.7 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3Z"/></svg>Pedir una visita</a>
     </div>
     <div class="pie__cols">
       <div><h3>Programa</h3><ul><li><a href="#beneficios">Beneficios</a></li><li><a href="#funciones">Funciones</a></li><li><a href="#arranque">Instalación</a></li></ul></div>
@@ -273,7 +268,7 @@
 </footer>
 
 <nav class="actionbar" aria-label="Acciones rápidas">
-  <a class="btn btn--primary" data-magnetico href="#contact" data-contacto aria-label="Pedir una visita por WhatsApp"><svg class="ic-wa" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3a.4.4 0 0 0 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.1 5.1 0 0 0 1.1 2.7 11.7 11.7 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3Z"/></svg>Pedir una visita</a>
+  <a class="btn btn--primary" href="#contact" data-contacto aria-label="Pedir una visita por WhatsApp"><svg class="ic-wa" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3a.4.4 0 0 0 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.1 5.1 0 0 0 1.1 2.7 11.7 11.7 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3Z"/></svg>Pedir una visita</a>
 </nav>
 
 <script type="module" src="landing/assets/system.js"></script>
@@ -281,7 +276,7 @@
 <script type="module" src="landing/assets/layout/layout.js"></script>
 <script src="landing/portada.js" defer></script>
 <script src="landing/efectos.js" defer></script>
-<script src="landing/boton-magnetico.js" defer></script>
+<script src="landing/galeria.js" defer></script>
 <script src="landing/tarjeta-desenfoque-progresivo.js" defer></script>
 <script src="landing/texto-crossfade.js" defer></script>
 <script type="module" src="landing/contacto.js"></script>
