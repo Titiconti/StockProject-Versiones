@@ -83,6 +83,8 @@ const assert = require('assert'), { web } = require('./helpers');
   // ---- stock mínimo de un producto por peso: se escribe en kg y alerta en kg ----
   tab('p'); click('#fx'); set('#fn', 'Harina'); set('#fp', '900'); set('#fm', '2'); $('#px_u').value = 'kg'; $('#px_u').dispatchEvent(new w.Event('change', { bubbles: true })); set('#fs', '1.5'); click('#fg');
   assert.strictEqual(P('Harina').min, 2000, 'mínimo de 2 kg = 2.000 g'); tab('r'); assert(/Harina ?1,5 kg/.test(cant(txt('#low'))), 'alerta de stock bajo: ' + txt('#low'));
+  // ---- mínimo viejo (menos de 50 g) en un producto por peso: aviso suave al editarlo, sin migrar ----
+  ev(`db.prods.find(p=>p.name==='Harina').min=5;pick(db.prods.find(p=>p.name==='Harina'))`); assert(/¿El mínimo era en kg\?/.test($('#toast').textContent), 'aviso de mínimo viejo'); assert.strictEqual(P('Harina').min, 5, 'no se migra');
   assert.strictEqual(require('../validar')(null, db()), null);
   assert.deepStrictEqual(errs, []); console.log('ALMACEN_PESO_OK'); process.exit(0);
 })().catch(e => { console.log('FALLO', e.stack || e.message); process.exit(1); });

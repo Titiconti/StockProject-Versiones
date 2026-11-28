@@ -406,7 +406,7 @@ function clr(){editId=null;back=false;[fn,fc,fp,fk,fs,fm,fv,fl].forEach(i=>i.val
 $('#fx').onclick=clr;
 const norm=s=>String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 function addLot(p,n,q,x){const l=p.lots.find(z=>z.n===n&&z.exp===x);if(l)l.qty+=q;else p.lots.push({id:db.lid++,n,qty:q,exp:x})}
-function pick(p,inv){editId=p.id;back=!!inv;if(typeof PX!=='undefined')PX.llenarForm(p);fn.value=p.name;fc.value=p.code||'';fp.value=p.price;fk.value=p.cost||'';fm.value=esPeso(p)&&p.min?PX.coma(p.min/1000,3):p.min;fs.value='';fl.value='';fv.value='';ft.textContent='Agregar stock a: '+p.name+' (stock actual: '+fq(p,tot(p))+')';sg.classList.add('hide');fs.focus()}
+function pick(p,inv){editId=p.id;back=!!inv;if(typeof PX!=='undefined')PX.llenarForm(p);fn.value=p.name;fc.value=p.code||'';fp.value=p.price;fk.value=p.cost||'';fm.value=esPeso(p)&&p.min?PX.coma(p.min/1000,3):p.min;if(esPeso(p)&&p.min>0&&p.min<50)toast('¿El mínimo era en kg? Revisalo: hoy está en '+p.min+' g');fs.value='';fl.value='';fv.value='';ft.textContent='Agregar stock a: '+p.name+' (stock actual: '+fq(p,tot(p))+')';sg.classList.add('hide');fs.focus()}
 function sugg(){if(editId)return sg.classList.add('hide');const q=norm(fn.value.trim());const m=q?db.prods.filter(p=>norm(p.name).includes(q)||norm(p.code||'').includes(q)).slice(0,6):[];
 sg.innerHTML=m.map(p=>`<div data-s='${p.id}'><b>${esc(p.name)}</b> <span class='mu'>· Stock ${fq(p,tot(p))} · ${fmt(p.price)} · clic para sumar stock</span></div>`).join('');sg.classList.toggle('hide',!m.length)}
 fn.oninput=sugg;fn.onfocus=sugg;fn.onblur=()=>setTimeout(()=>sg.classList.add('hide'),150);
