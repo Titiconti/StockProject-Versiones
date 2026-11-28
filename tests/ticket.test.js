@@ -7,12 +7,13 @@ const assert = require('assert'), { web } = require('./helpers.js');
 
   // no fiscal: leyenda, n° de operación, decimal con unidad, descuento, vuelto
   let t = mostrar(venta, 72);
-  assert(/COMPROBANTE DE PAGO\s*No válido como factura/.test(t) && /Operación N\.º\s*000077/.test(t), 'leyenda y n° de operación');
+  assert(/COMPROBANTE DE PAGO\s*Documento no válido como factura/.test(t) && /Operación N\.º\s*000077/.test(t), 'leyenda y n° de operación');
   assert(/0,350 kg x \$\s?12\.000,00\/kg/.test(t), 'cantidad decimal con unidad y precio por kg: ' + t);
   assert(/Descuento aplicado\s*-\$\s?400/.test(t) && /Subtotal/.test(t), 'descuento claro');
   assert(/Recibido\s*\$\s?10\.000/.test(t) && /Vuelto\s*\$\s?2\.800/.test(t), 'vuelto en efectivo');
   assert(!/CAE/.test(t), 'sin CAE');
 
+  assert.strictEqual((t.match(/Gracias por su compra/g) || []).length, 1, 'agradecimiento por defecto una sola vez'); assert.strictEqual((t.match(/no válido como factura/g) || []).length, 1, 'leyenda una sola vez');
   // fiscal: CAE + QR, sin la leyenda de "no válido"
   const fis = { ...venta, pay: 'Mercado Pago', fe: { estado: 'ok', letra: 'B', ptoVta: 1, nro: 5, cae: '70000000000001', vto: '20261201', fecha: '20261128', amb: 'produccion', receptor: { docTipo: 99, docNro: '0', condIva: 5 }, emisor: { razon: 'Heladería SA', cuit: '20111111112', condIva: 'ri' }, qr: 'x' } };
   ev('FA.qrC["70000000000001"]=\'<svg id="qrfake"></svg>\''); ev("db.shop.tk={iibb:'901-123'}");
@@ -24,7 +25,7 @@ const assert = require('assert'), { web } = require('./helpers.js');
   ev('db.shop.tk={}');
   for (const [w, mm] of [[48, '56mm'], [72, '80mm']]) { mostrar(venta, w); assert.strictEqual(A.$('#pvb').style.width, mm, 'ancho ' + mm); }
   ev("db.shop.tk={cuit:'20-1-2',iva:'Monotributo',iibb:'5',inicio:'01/01/2020',head:'Hola\\nMundo',foot:'Vuelva pronto',plantilla:'completa'}");
-  t = mostrar(venta, 72); assert(/CUIT: 20-1-2/.test(t) && /Monotributo/.test(t) && /Ingresos Brutos: 5/.test(t) && /Inicio de actividades: 01\/01\/2020/.test(t) && /Hola/.test(t) && /Vuelva pronto/.test(t) && /Artículos/.test(t), 'completa con datos');
+  t = mostrar(venta, 72); assert(!/Gracias por su compra/.test(t) && /CUIT: 20-1-2/.test(t) && /Monotributo/.test(t) && /Ingresos Brutos: 5/.test(t) && /Inicio de actividades: 01\/01\/2020/.test(t) && /Hola/.test(t) && /Vuelva pronto/.test(t) && /Artículos/.test(t), 'completa con datos');
   ev("db.shop.tk.plantilla='compacta'"); const c = mostrar(venta, 72); assert(!/CUIT/.test(c) && !/Artículos/.test(c) && c.length < t.length, 'compacta más corta');
   ev("db.shop.tk={head:'<img src=x onerror=alert(1)>'}"); mostrar(venta, 72); assert(!A.$('#pvb img'), 'el encabezado se escapa');
 

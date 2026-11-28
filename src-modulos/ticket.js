@@ -26,13 +26,13 @@ TK.html=(s,sh,d)=>{const c=TK.cfg(),comp=c.plantilla==='compacta',fis=TK.fiscal(
   const n=s.items.reduce((a,i)=>a+(i.u==='kg'?1:i.qty),0);
   const vuelto=s.pay==='Efectivo'&&s.rec>0?`<div class="r"><span>Recibido</span><span>${fmt(s.rec)}</span></div><div class="r"><span>Vuelto</span><span>${fmt(Math.max(0,Math.round((s.rec-s.total)*100)/100))}</span></div>`:'';
   return `${TK.logoHtml()}<div style="text-align:center"><b style="font-size:15px">${esc(sh.n||'StockProject')}</b>${sh.a?'<br>'+esc(sh.a):''}${sh.t?'<br>Tel: '+esc(sh.t):''}${fiscalLin?'<br>'+fiscalLin:''}${c.head?'<br>'+tkLineas(c.head):''}</div><hr>`
-  +(fis?'':`<div style="text-align:center"><b>COMPROBANTE DE PAGO</b><br>No válido como factura</div><hr>`)
+  +(fis?'':`<div style="text-align:center"><b>COMPROBANTE DE PAGO</b><br>Documento no válido como factura</div><hr>`)
   +`<div class="r"><span>Operación N.º</span><b>${String(s.id).padStart(6,'0')}</b></div>${d.toLocaleString('es-AR',{dateStyle:'short',timeStyle:'short'})}${s.cname?'<br>Cliente: '+esc(s.cname):''}<hr>`
   +s.items.map(i=>TK.item(i,comp)).join('')+'<hr>'
   +(ah>0?`<div class="r"><span>Subtotal</span><span>${fmt(sub)}</span></div><div class="r"><span>Descuento aplicado${s.disc?': '+s.disc+' %':''}</span><span>-${fmt(ah)}</span></div>`:'')
   +`<div class="r" style="font-size:14px"><b>TOTAL</b><b>${fmt(s.total)}</b></div>`+(comp?'':`<div class="r"><span>Artículos</span><span>${n.toLocaleString('es-AR',{maximumFractionDigits:3})}</span></div>`)
   +`<div class="r"><span>Pago</span><span>${esc(s.pay)}</span></div>${vuelto}${!ah&&s.disc?'Descuento aplicado: '+s.disc+' %<br>':''}<hr>`
-  +`<div style="text-align:center">${c.foot?tkLineas(c.foot)+'<br>':''}¡Gracias por su compra!${fis?'':'<br>Comprobante no válido como factura'}</div>`};
+  +`<div style="text-align:center">${c.foot?tkLineas(c.foot):'¡Gracias por su compra!'}</div>`};
 // ---- Logo: gris -> blanco y negro de alto contraste (umbral o puntos) ----
 // Promedia los píxeles al ancho pedido (sobre fondo blanco) y devuelve niveles de gris.
 TK.escalarGris=(rgba,w,h,tw)=>{const th=Math.max(1,Math.round(h*tw/w)),g=new Uint8Array(tw*th),fx=w/tw,fy=h/th;
