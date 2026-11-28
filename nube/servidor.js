@@ -12,6 +12,8 @@ const sincro = require('./sync'), { ErrorHttp, CAMPOS_ESTADO, estadoDe, conEstad
 const SUB_OK = /^(?!.*--)[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$/;
 // Nombres que no se dan a ningún comercio: rutas del servidor, secciones del sitio y nombres que suplantarían al soporte o a organismos.
 // "prueba" no está: es un comercio que ya existe.
+// Para BUSCAR un comercio ya creado se usan las reglas de siempre: lo que ya está guardado tiene que seguir abriendo aunque hoy no se podría dar de alta.
+const SUB_BUSCAR = /^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])$/, RESERVADOS_BUSCAR = new Set(['www', 'admin', 'api', 'app', 'panel', 'mail']);
 const RESERVADOS = new Set(['www', 'admin', 'api', 'app', 'panel', 'mail', 'c', 'cuenta', 'cuentas', 'registro', 'ingesta', 'salud', 'interno', 'login', 'logout',
   'landing', 'static', 'assets', 'stockproject', 'stock', 'soporte', 'ayuda', 'hola', 'ventas', 'privacidad', 'legal', 'contacto', 'info', 'status', 'blog', 'docs',
   'afip', 'arca', 'mercadopago', 'telegram', 'whatsapp', 'oficial', 'root', 'ns1', 'ns2', 'smtp', 'ftp']);
@@ -225,12 +227,12 @@ function crear({ dataDir, almacen, frescuraMs = 120 * 1000, dominioBase, adminTo
     if (dominioBase && host === dominioBase) return null;
     if (dominioBase && host.endsWith('.' + dominioBase)) {
       const s = host.slice(0, -dominioBase.length - 1);
-      return SUB_OK.test(s) && !RESERVADOS.has(s) ? s : '';
+      return SUB_BUSCAR.test(s) && !RESERVADOS_BUSCAR.has(s) ? s : '';
     }
     const x = req.headers['x-comercio'];   // solo para pruebas locales, cuando el Host no es del dominio
     if (x === undefined) return null;
     const s = String(x).toLowerCase();
-    return SUB_OK.test(s) && !RESERVADOS.has(s) ? s : '';
+    return SUB_BUSCAR.test(s) && !RESERVADOS_BUSCAR.has(s) ? s : '';
   }
 
   // ---------- Alta de un comercio (la usan la administración y el registro automático) ----------
@@ -496,13 +498,13 @@ function crear({ dataDir, almacen, frescuraMs = 120 * 1000, dominioBase, adminTo
     if (req.method !== 'GET' && req.method !== 'HEAD' && !origenBien(req)) { req.resume(); return json(res, 403, { error: 'Pedido de otra página: no permitido' }); }
     await mudar();
     const mc = /^\/c\/([^/]+)(\/.*)?$/.exec(ruta);
-    if (mc) { const s0 = mc[1].toLowerCase(); req.spSub = SUB_OK.test(s0) && !RESERVADOS.has(s0) ? s0 : ''; req.spPrefijo = '/c/' + s0; ruta = mc[2] || '/'; }
+    if (mc) { const s0 = mc[1].toLowerCase(); req.spSub = SUB_BUSCAR.test(s0) && !RESERVADOS_BUSCAR.has(s0) ? s0 : ''; req.spPrefijo = '/c/' + s0; ruta = mc[2] || '/'; }
 
     if (ruta === '/interno/tls-permitido') {
       const d = String(u.searchParams.get('domain') || '').toLowerCase().replace(/\.$/, '');
       let ok = false;
       if (dominioBase && d === dominioBase) ok = true;
-      else if (dominioBase && d.endsWith('.' + dominioBase)) { const s = d.slice(0, -dominioBase.length - 1), c = SUB_OK.test(s) ? await porSub(s) : null; ok = !!(c && c.activo); }
+      else if (dominioBase && d.endsWith('.' + dominioBase)) { const s = d.slice(0, -dominioBase.length - 1), c = SUB_BUSCAR.test(s) ? await porSub(s) : null; ok = !!(c && c.activo); }
       return json(res, ok ? 200 : 404, { ok });
     }
     if (ruta === '/ingesta') return ingesta(req, res);
