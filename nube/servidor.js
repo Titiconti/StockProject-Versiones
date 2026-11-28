@@ -8,8 +8,13 @@ const http = require('http'), crypto = require('crypto'), fs = require('fs'), pa
 const { archivos } = require('./almacen');
 const sincro = require('./sync'), { ErrorHttp, CAMPOS_ESTADO, estadoDe, conEstado } = sincro;
 
-const SUB_OK = /^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])$/;
-const RESERVADOS = new Set(['www', 'admin', 'api', 'app', 'panel', 'mail']);
+// 3 a 32 caracteres, sin guion en los bordes ni "--" (así tampoco entra "xn--", que es la marca de las direcciones con acentos o símbolos parecidos a letras).
+const SUB_OK = /^(?!.*--)[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$/;
+// Nombres que no se dan a ningún comercio: rutas del servidor, secciones del sitio y nombres que suplantarían al soporte o a organismos.
+// "prueba" no está: es un comercio que ya existe.
+const RESERVADOS = new Set(['www', 'admin', 'api', 'app', 'panel', 'mail', 'c', 'cuenta', 'cuentas', 'registro', 'ingesta', 'salud', 'interno', 'login', 'logout',
+  'landing', 'static', 'assets', 'stockproject', 'stock', 'soporte', 'ayuda', 'hola', 'ventas', 'privacidad', 'legal', 'contacto', 'info', 'status', 'blog', 'docs',
+  'afip', 'arca', 'mercadopago', 'telegram', 'whatsapp', 'oficial', 'root', 'ns1', 'ns2', 'smtp', 'ftp']);
 // Foto máxima: un comercio con mucho movimiento (3000 productos, 90 días de ventas, tope de 3000 ventas) manda
 // unos 2 MB. 4 MB deja el doble de margen y queda por debajo del máximo que igual acepta Vercel (4,5 MB).
 const LIMITE_INGESTA = 4 * 1024 * 1024, LIMITE_CHICO = 64 * 1024;

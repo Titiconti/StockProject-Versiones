@@ -81,7 +81,7 @@ function crear({ leer, getCfg, setCfg, servidor = '', enviar = (u, o) => fetch(u
   // Diferencias: acked = lo último que el servidor confirmó; enVuelo = envío sin confirmar (se repite igual); inst = identifica esta ejecución del programa.
   // Cambios de precio pedidos desde el celular: aplicar(lista) los aplica en el programa y devuelve [{id, estado, motivo}] (null/[] = no pudo, quedan pendientes).
   let cvVisto = null, consultando = false, timerC = null, actividad = 0, quiereConsulta = false;
-  let acked = null, enVuelo = null, n = 0, fallos = 0, noAntes = 0, soloFoto = false; const inst = 'i' + crypto.randomBytes(8).toString('hex');
+  let tokAcked = null, acked = null, enVuelo = null, n = 0, fallos = 0, noAntes = 0, soloFoto = false; const inst = 'i' + crypto.randomBytes(8).toString('hex');
   const conf = () => (getCfg().nube || {});
   const token = () => { try { return conf().token ? desproteger(conf().token) : ''; } catch (e) { return ''; } };
   const urlOk = u => { try { const x = new URL(u); return x.protocol === 'https:' || (x.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(x.hostname)); } catch (e) { return false; } };
@@ -138,6 +138,9 @@ function crear({ leer, getCfg, setCfg, servidor = '', enviar = (u, o) => fetch(u
     mudar();
     if (conf().pendiente && !estado().configurado && !ocupado) { ocupado = true; try { const p = conf().pendiente; let k = ''; try { k = p.clave ? desproteger(p.clave) : ''; } catch (e) {} await registrar(p.nombre, k); } finally { ocupado = false; } }
     const c = conf(), t = token(); if (!c.activo || !c.url || !t) return estado();
+    // Varias empresas en la PC: la configuración (token) y los datos (leer) son siempre los de la empresa activa. Si cambió la empresa,
+    // lo que el servidor confirmó antes era de otra: se parte de cero para no mandar diferencias de una empresa al panel de otra.
+    if (t !== tokAcked) { if (tokAcked !== null) reiniciar(); tokAcked = t; }
     if (ocupado) { rehacer = true; return estado(); }
     if (!forzar && ahora() < noAntes) { armar(noAntes - ahora()); return estado(); }   // espera creciente tras un fallo: reintenta justo al vencer
     ocupado = true; est.intento = new Date(ahora()).toISOString(); ultInicio = ahora();
@@ -165,7 +168,7 @@ function crear({ leer, getCfg, setCfg, servidor = '', enviar = (u, o) => fetch(u
         else {
           if (j && typeof j.cv === 'number' && j.cv !== cvVisto && (cvVisto !== null || j.cv > 0)) { cvVisto = j.cv; quiereConsulta = true; }   // el servidor avisa que hay novedades de precios
           est.error = ''; est.ultima = new Date(ahora()).toISOString(); acked = e.destino; enVuelo = null; fallos = 0; noAntes = 0; ultEnvio = ahora();
-          if (e.tipo === 'foto') { ultFoto = ahora(); setCfg({ nube: { ...conf(), seq, ultima: est.ultima } }); }   // el seq solo importa para las fotos enteras
+          if (e.tipo === 'foto') { ultFoto = ahora(); if (token() === t) setCfg({ nube: { ...conf(), seq, ultima: est.ultima } }); }   // el seq solo importa para las fotos enteras
           // Si el envío confirmado era uno repetido y mientras tanto hubo más cambios, se mandan ya (sin esperar al próximo aviso).
           if (e.destino !== cur && vuelta < 2 && Object.keys(diferencias(acked, cur)).length) { forzar = false; continue; }
         }

@@ -79,6 +79,23 @@ const gz = t => 'gz:' + zlib.gzipSync(Buffer.from(t, 'utf8')).toString('base64')
   const [cambio] = await Promise.all([J('/clave-instalacion', { headers: { Authorization: 'Bearer ' + altas[0].j.token }, body: { nueva: 'Cambiada2026x' } }), J('/registro', { ip: '10.9.9.9', body: { nombre: 'Otro' } })]);
   assert.strictEqual(cambio.s, 200); assert.strictEqual((await login(altas[0].j.sub, 'Cambiada2026x')).s, 200, 'el cambio de clave no se revirtió');
 
+  // ===== Identidad: mismo nombre = otro id y otra dirección (nadie pisa a nadie); direcciones reservadas o mal formadas =====
+  const dos = [await J('/registro', { ip: '20.0.0.1', body: { nombre: 'Kiosco Gemelo' } }), await J('/registro', { ip: '20.0.0.2', body: { nombre: 'kiosco   gemelo' } })];
+  assert(dos.every(x => x.s === 201)); assert.notStrictEqual(dos[0].j.id, dos[1].j.id); assert.notStrictEqual(dos[0].j.sub, dos[1].j.sub);
+  assert.strictEqual(dos[0].j.sub, 'kiosco-gemelo'); assert.strictEqual(dos[1].j.sub, 'kiosco-gemelo-2');
+  assert.strictEqual((await login(dos[0].j.sub, dos[1].j.clave, { ip: '20.0.0.3' })).s, 401, 'la clave del segundo no abre el primero');
+  const antes = (await enviar(dos[0].j.token, 1, { v: 1, ventas: [{ id: 1, total: 11 }] })).s; assert.strictEqual(antes, 200);
+  assert.strictEqual((await enviar(dos[1].j.token, 1, { v: 1, ventas: [{ id: 2, total: 22 }] })).s, 200);
+  const l1 = (await login(dos[0].j.sub, dos[0].j.clave, { ip: '20.0.0.4' })).c;
+  assert.strictEqual((await J('/c/' + dos[0].j.sub + '/api/datos', { headers: { Cookie: l1 } })).j.foto.ventas[0].total, 11, 'cada panel ve su propia foto');
+  assert.strictEqual((await J('/c/' + dos[1].j.sub + '/api/datos', { headers: { Cookie: l1 } })).s, 401, 'la sesión de uno no sirve en el otro');
+  for (const n of ['Soporte', 'AFIP', 'Registro', 'Landing', 'Ayuda', 'Stockproject']) { const r = await J('/registro', { ip: '20.1.' + n.length + '.' + n.charCodeAt(0), body: { nombre: n } }); assert.strictEqual(r.s, 201); assert.notStrictEqual(r.j.sub, n.toLowerCase(), 'reservado: ' + n); }
+  for (const s of ['soporte', 'afip', 'arca', 'hola', 'registro', 'landing', 'c', 'static', 'assets', 'login', 'ayuda', 'stockproject', 'xn--abc', 'ab--cd', '-abc', 'abc-', 'ab', 'a'.repeat(33)])
+    assert.strictEqual((await adm('/admin/comercios', { nombre: 'Malo', sub: s })).s, 400, 'dirección rechazada: ' + s);
+  assert.strictEqual((await adm('/admin/comercios', { nombre: 'Bueno', sub: 'abc' })).s, 201, 'el mínimo de 3 sirve');
+  assert.strictEqual((await adm('/admin/comercios', { nombre: 'Bueno 32', sub: 'a'.repeat(32) })).s, 201, 'el máximo de 32 sirve');
+  assert.strictEqual((await J('/c/xn--abc/api/datos')).s, 404, 'una dirección con xn-- nunca llega a un comercio');
+
   // ===== W1: el tope de intentos no se esquiva en paralelo =====
   const malos = await Promise.all(Array.from({ length: 12 }, (_, i) => login('prueba', 'mala' + i, { ip: '7.7.7.7' })));
   assert.strictEqual(malos.filter(x => x.s === 401).length, 5, 'solo 5 intentos se prueban'); assert.strictEqual(malos.filter(x => x.s === 429).length, 7);
