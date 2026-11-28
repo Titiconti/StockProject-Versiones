@@ -17,11 +17,14 @@ const gz = t => 'gz:' + zlib.gzipSync(Buffer.from(t, 'utf8')).toString('base64')
   // ---- Datos de producción en el formato viejo (5.6.x): lista "comercios" y objeto "sesiones" enteros ----
   const TOK_PRUEBA = 'spn_' + 'ab'.repeat(24), CLAVE_PRUEBA = 'k7mpq2rstu', SAL1 = 'aa'.repeat(16);
   const TOK_PROPIA = 'spn_' + 'cd'.repeat(24), CLAVE_PROPIA = 'MiNegocio2026', SAL2 = 'bb'.repeat(16);
+  const TOK_VENTAS = 'spn_' + 'dd'.repeat(24);
   const SES_VIVA = 'ee'.repeat(32), SES_VENCIDA = 'ff'.repeat(32);
   const viejos = [
     // comercio muy viejo: sin claveTipo (clave generada, sin distinguir mayúsculas)
     { id: 'store_001', nombre: 'Prueba', sub: 'prueba', activo: true, alta: '2026-05-01T10:00:00.000Z', origen: 'admin', tokenHash: sha256(TOK_PRUEBA), ultimaSync: null, seq: 0, claveSalt: SAL1, claveHash: scrypt(CLAVE_PRUEBA, SAL1) },
     { id: 'store_002', nombre: 'Kiosco Propio', sub: 'kiosco-propio', activo: true, alta: '2026-09-01T10:00:00.000Z', origen: 'registro', tokenHash: sha256(TOK_PROPIA), ultimaSync: null, seq: 0, claveSalt: SAL2, claveTipo: 'propia', claveHash: scrypt(CLAVE_PROPIA, SAL2) },
+    // comercio viejo con una dirección que hoy está reservada: tiene que seguir abriendo
+    { id: 'store_003', nombre: 'Ventas Viejo', sub: 'ventas', activo: true, alta: '2026-10-01T10:00:00.000Z', origen: 'registro', tokenHash: sha256(TOK_VENTAS), ultimaSync: null, seq: 0, claveSalt: SAL2, claveTipo: 'propia', claveHash: scrypt(CLAVE_PROPIA, SAL2) },
   ];
   const sesionesViejas = { [sha256(SES_VIVA)]: { id: 'store_001', vence: reloj + 5 * 864e5 }, [sha256(SES_VENCIDA)]: { id: 'store_001', vence: reloj - 1000 } };
   const fotoVieja = { v: 1, negocio: { nombre: 'Prueba' }, ventas: [{ id: 1, total: 4321 }] };
@@ -63,7 +66,7 @@ const gz = t => 'gz:' + zlib.gzipSync(Buffer.from(t, 'utf8')).toString('base64')
   assert.strictEqual((await J('/clave-instalacion', { headers: { Authorization: 'Bearer ' + TOK_PROPIA }, body: { nueva: 'OtraClave2027' } })).s, 200, 'clave-instalacion con token viejo');
   assert.strictEqual((await login('kiosco-propio', 'OtraClave2027')).s, 200);
   const lista = (await J('/admin/comercios', { headers: { Authorization: 'Bearer ' + ADMIN } })).j;
-  assert.deepStrictEqual(lista.map(c => c.sub), ['prueba', 'kiosco-propio'], 'la administración ve los comercios viejos');
+  assert.deepStrictEqual(lista.map(c => c.sub), ['prueba', 'kiosco-propio', 'ventas'], 'la administración ve los comercios viejos');
   assert.strictEqual((await adm('/admin/comercios', { nombre: 'Otra', sub: 'prueba' })).s, 409, 'la dirección vieja sigue ocupada');
   // una copia que todavía no mudó y otra que sí, a la vez: nada se pisa (crearSiNo)
   const C = copia(); R.delete('sp:version-datos');
@@ -78,6 +81,29 @@ const gz = t => 'gz:' + zlib.gzipSync(Buffer.from(t, 'utf8')).toString('base64')
   assert(!ids.includes('store_001') && !ids.includes('store_002'), 'no repite ids viejos');
   const [cambio] = await Promise.all([J('/clave-instalacion', { headers: { Authorization: 'Bearer ' + altas[0].j.token }, body: { nueva: 'Cambiada2026x' } }), J('/registro', { ip: '10.9.9.9', body: { nombre: 'Otro' } })]);
   assert.strictEqual(cambio.s, 200); assert.strictEqual((await login(altas[0].j.sub, 'Cambiada2026x')).s, 200, 'el cambio de clave no se revirtió');
+
+  // ===== Identidad: mismo nombre = otro id y otra dirección (nadie pisa a nadie); direcciones reservadas o mal formadas =====
+  const dos = [await J('/registro', { ip: '20.0.0.1', body: { nombre: 'Kiosco Gemelo' } }), await J('/registro', { ip: '20.0.0.2', body: { nombre: 'kiosco   gemelo' } })];
+  assert(dos.every(x => x.s === 201)); assert.notStrictEqual(dos[0].j.id, dos[1].j.id); assert.notStrictEqual(dos[0].j.sub, dos[1].j.sub);
+  assert.strictEqual(dos[0].j.sub, 'kiosco-gemelo'); assert.strictEqual(dos[1].j.sub, 'kiosco-gemelo-2');
+  assert.strictEqual((await login(dos[0].j.sub, dos[1].j.clave, { ip: '20.0.0.3' })).s, 401, 'la clave del segundo no abre el primero');
+  const antes = (await enviar(dos[0].j.token, 1, { v: 1, ventas: [{ id: 1, total: 11 }] })).s; assert.strictEqual(antes, 200);
+  assert.strictEqual((await enviar(dos[1].j.token, 1, { v: 1, ventas: [{ id: 2, total: 22 }] })).s, 200);
+  const l1 = (await login(dos[0].j.sub, dos[0].j.clave, { ip: '20.0.0.4' })).c;
+  assert.strictEqual((await J('/c/' + dos[0].j.sub + '/api/datos', { headers: { Cookie: l1 } })).j.foto.ventas[0].total, 11, 'cada panel ve su propia foto');
+  assert.strictEqual((await J('/c/' + dos[1].j.sub + '/api/datos', { headers: { Cookie: l1 } })).s, 401, 'la sesión de uno no sirve en el otro');
+  for (const n of ['Soporte', 'AFIP', 'Registro', 'Landing', 'Ayuda', 'Stockproject']) { const r = await J('/registro', { ip: '20.1.' + n.length + '.' + n.charCodeAt(0), body: { nombre: n } }); assert.strictEqual(r.s, 201); assert.notStrictEqual(r.j.sub, n.toLowerCase(), 'reservado: ' + n); }
+  for (const s of ['soporte', 'afip', 'arca', 'hola', 'registro', 'landing', 'c', 'static', 'assets', 'login', 'ayuda', 'stockproject', 'xn--abc', 'ab--cd', '-abc', 'abc-', 'ab', 'a'.repeat(33)])
+    assert.strictEqual((await adm('/admin/comercios', { nombre: 'Malo', sub: s })).s, 400, 'dirección rechazada: ' + s);
+  assert.strictEqual((await adm('/admin/comercios', { nombre: 'Bueno', sub: 'abc' })).s, 201, 'el mínimo de 3 sirve');
+  assert.strictEqual((await adm('/admin/comercios', { nombre: 'Bueno 32', sub: 'a'.repeat(32) })).s, 201, 'el máximo de 32 sirve');
+  assert.strictEqual((await J('/c/xn--abc/api/datos')).s, 404, 'una dirección con xn-- nunca llega a un comercio');
+
+  // El comercio viejo con dirección hoy reservada sigue abriendo (login, ingesta, panel); uno nuevo con ese nombre cae en otra dirección.
+  assert.strictEqual((await login('ventas', CLAVE_PROPIA, { ip: '21.0.0.1' })).s, 200, 'dirección vieja reservada: entra');
+  assert.strictEqual((await J('/c/ventas', { ip: '21.0.0.1' })).s, 200, 'el panel del comercio viejo carga');
+  assert.strictEqual((await enviar(TOK_VENTAS, 5, { v: 1, ventas: [] }, { ip: '21.0.0.2' })).s, 200, 'ingesta del comercio viejo');
+  const nuevoVentas = await J('/registro', { ip: '21.0.0.3', body: { nombre: 'Ventas' } }); assert.strictEqual(nuevoVentas.s, 201); assert.strictEqual(nuevoVentas.j.sub, 'ventas-2', 'uno nuevo no puede ser ventas');
 
   // ===== W1: el tope de intentos no se esquiva en paralelo =====
   const malos = await Promise.all(Array.from({ length: 12 }, (_, i) => login('prueba', 'mala' + i, { ip: '7.7.7.7' })));

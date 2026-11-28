@@ -262,7 +262,7 @@ app.whenReady().then(() => {
     if (r.cambios.length && win && !win.isDestroyed()) win.webContents.send('precios:cambiados', { cambios: r.cambios, rev: r.rev, ajustes: r.ajustes, ajid: r.ajid, preciosCel: r.preciosCel });
     return r.resultados;
   };
-  const nube = require('./nube')({ aplicar: aplicarPrecios, leer: () => store.snapshot(), getCfg: () => principal.getConfig(), setCfg: p => principal.setConfig(p), servidor: defaults().nube || '',
+  const nube = require('./nube')({ aplicar: aplicarPrecios, leer: () => store.snapshot(), getCfg: () => store.getConfig(), setCfg: p => store.setConfig(p), servidor: defaults().nube || '',
     proteger: t => safeStorage.isEncryptionAvailable() ? 'ss:' + safeStorage.encryptString(t).toString('base64') : t,
     desproteger: t => String(t).startsWith('ss:') ? safeStorage.decryptString(Buffer.from(String(t).slice(3), 'base64')) : t });
   ipcMain.handle('nube:estado', () => conSesion() ? nube.estado() : { activo: false });
