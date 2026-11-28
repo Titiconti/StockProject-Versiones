@@ -3,7 +3,7 @@ const assert = require('assert'), { web } = require('./helpers'), validar = requ
 (async () => {
   const { w, $, click, set, tab, txt, db, errs } = web();
   const ev = w.eval.bind(w), J = c => JSON.parse(ev('JSON.stringify(' + c + ')'));
-  const EMP = "AU.habilitado=true;AU.usuario={id:2,nombre:'Eli'};AU.permisos={ventas:['ver','crear'],reporte:['ver']}";
+  const EMP = "AU.habilitado=true;AU.usuario={id:2,nombre:'Eli'};AU.permisos={ventas:['ver','crear'],caja:['crear'],reporte:['ver']}";
   const DUE = "AU.habilitado=true;AU.usuario={id:1,nombre:'Dueña'};AU.permisos={ventas:['ver','crear'],caja:['ver','editar'],reporte:['ver'],configuracion:['ver','editar']}";
   ev(`db.prods.length=0;db.sales.length=0;db.cajas=[];const x={id:db.nid++,name:'Pan',code:'',price:1000,cost:0,min:0,lots:[]};db.prods.push(x);addLot(x,'L',500,'');draw()`);
   const vender = (pay, n = 1) => { ev(`cart={};cart[${db().prods[0].id}]=${n}`); w.__sinAutoRec = false; ev(`$('#pay').value=${JSON.stringify(pay)}`); click('#cobrar'); };
@@ -12,6 +12,7 @@ const assert = require('assert'), { web } = require('./helpers'), validar = requ
   // ---- Turno 1 (empleada): retira a mitad de turno SIN cerrar, vende, y cierra con faltante sin retirar al cerrar ----
   ev(EMP);
   assert(ev("CJ.abrir('1234','Caja 1','').ok"));
+  ev("AU.permisos={ventas:['ver','crear']}"); assert(ev("CJ.mov('egreso',1,'x','retiro').err"), 'sin caja.crear no hay retiros'); ev(EMP);
   vender('Efectivo', 2); vender('Tarjeta de débito');
   assert(ev("CJ.mov('egreso',300,'Retiro a la caja fuerte','retiro').ok"), 'retiro sin cerrar');
   assert(!ev('!!CJ.abierta().cierre') && ev('!!CJ.abierta()'), 'la caja sigue abierta tras el retiro');
@@ -64,7 +65,12 @@ const assert = require('assert'), { web } = require('./helpers'), validar = requ
   const trucho = JSON.parse(JSON.stringify(despues)); delete trucho.cajas[0].correcciones; assert(validar(despues, trucho), 'sacar el historial no se acepta');
   const sinMotivo = JSON.parse(JSON.stringify(despues)); sinMotivo.cajas[0].correcciones[0].motivo = ''; assert(validar(base, sinMotivo), 'sin motivo no se acepta');
   const otroCampo = JSON.parse(JSON.stringify(despues)); otroCampo.cajas[0].tot.esperado = 1; assert(validar(base, otroCampo), 'no se toca el esperado');
+  const abierta = { id: 500, uid: 2, user: 'Eli', caja: 'X', abre: '2026-01-01T10:00:00.000Z', ini: 1, movs: [] };
+  const sinRetiro = JSON.parse(JSON.stringify(despues)); sinRetiro.cajas.push(abierta);
+  const conRetiro = JSON.parse(JSON.stringify(sinRetiro)); conRetiro.cajas[conRetiro.cajas.length - 1].movs.push({ t: 'egreso', tipo: 'retiro', monto: 1, motivo: 'x', date: 'd', user: 'u' });
   const tiene = p => (m, a) => (p[m] || []).includes(a);
+  assert(autorizar(sinRetiro, conRetiro, tiene({ ventas: ['crear'] })), 'un retiro sin caja.crear no se guarda');
+  assert.strictEqual(autorizar(sinRetiro, conRetiro, tiene({ ventas: ['crear'], caja: ['crear'] })), null);
   assert.strictEqual(autorizar(base, despues, tiene({ ventas: ['crear'], caja: ['editar'] })), null);
   assert(autorizar(base, despues, tiene({ ventas: ['crear'] })), 'el empleado no puede guardar una corrección');
   // ---- Cajas con el formato viejo siguen viéndose ----

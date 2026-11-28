@@ -16,7 +16,7 @@ const todo = () => Object.fromEntries(MODULOS.map(m => [m, ACCIONES.slice()]));
 const PERMISOS = {
   admin: todo(),
   gerente: { ...todo(), configuracion: ['ver', 'editar'], respaldo: ['ver', 'crear'], acceso_remoto: [], usuarios: ['ver'] },
-  empleado: { ventas: ['ver', 'crear'], inventario: ['ver'], productos: ['ver', 'crear', 'editar'], pedidos: ['ver', 'crear'], clientes: ['ver', 'crear', 'editar'], escuela: ['ver', 'crear'] },
+  empleado: { ventas: ['ver', 'crear'], caja: ['crear'], inventario: ['ver'], productos: ['ver', 'crear', 'editar'], pedidos: ['ver', 'crear'], clientes: ['ver', 'crear', 'editar'], escuela: ['ver', 'crear'] },
   consulta: Object.fromEntries(['ventas', 'inventario', 'productos', 'pedidos', 'clientes', 'escuela', 'reporte'].map(m => [m, ['ver']]))
 };
 

@@ -71,6 +71,9 @@ function cajas(a, o, tiene) {
     if (!tocadas.every(c => correccionCaja(lista(a.cajas).find(x => x.id === c.id), lista(o.cajas).find(x => x.id === c.id)))) return 'Un cierre de caja confirmado no se puede modificar';
     if (!tiene('caja', 'editar')) return 'Tu usuario no puede corregir cierres de caja';
   }
+  // Retiros e ingresos extraordinarios nuevos piden caja.crear (gastos y devoluciones siguen con ventas).
+  const nuevosRI = lista(o.cajas).some(c => { const v = lista(a.cajas).find(x => x.id === c.id), mv = lista(c.movs).slice(v ? lista(v.movs).length : 0); return mv.some(m => m.tipo === 'retiro' || m.tipo === 'ingreso'); });
+  if (nuevosRI && !tiene('caja', 'crear')) return 'Tu usuario no puede registrar retiros ni ingresos de caja';
   if ((d.altas.length || d.cambios.length) && !tiene('ventas', 'crear')) return 'Tu usuario no puede usar la caja';
   if (d.bajas.length && !tiene('ventas', 'eliminar')) return 'Tu usuario no puede borrar cajas';
   return null;

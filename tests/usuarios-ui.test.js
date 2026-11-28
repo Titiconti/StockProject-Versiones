@@ -36,7 +36,7 @@ function remoto(auth) {   // acceso remoto simulado: fetch devuelve lo mínimo y
   // Administrador: ve Usuarios, la grilla de permisos y el registro
   a = remoto(estado('admin'));
   assert.strictEqual(a.$('nav button[data-t=u]').textContent, 'Usuarios');
-  a.tab('u'); assert(await until(() => a.$('#n_m').querySelectorAll('input').length === U.MODULOS.length * 4), 'grilla módulos x 4 acciones');
+  a.tab('u'); assert(await until(() => a.$('#n_m').querySelectorAll('input').length === U.MODULOS.length * 4 - 1), 'grilla módulos x 4 acciones (Caja sin Eliminar)');
   assert(!a.$('#uadm').classList.contains('hide'));
   a.set('#n_r', 'consulta'); assert.strictEqual(a.$('#n_m').querySelectorAll('input:checked').length, 7, 'la grilla sigue al rol');
   a.set('#n_u', 'pepe'); a.set('#n_n', 'Pepe'); a.set('#n_p', 'Clave1234'); a.$('#n_m input[data-m=reporte][data-a=ver]').checked = false; a.click('#n_g');
