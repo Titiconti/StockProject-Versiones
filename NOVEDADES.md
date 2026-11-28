@@ -1,5 +1,8 @@
 # Novedades de StockProject
 
+## 5.7.3
+- **Promos:** al armar una promo podés elegir cualquier producto del inventario (con buscador, por categoría y también los que se venden por kilo).
+
 ## 5.7.2
 - **Promos y combos con stock real:** armá un producto con otros (café + 2 medialunas); al vender descuenta cada uno y al anular vuelven.
 - **Efectivo:** hay que cargar el recibido y no puede ser menor al total. Los vencimientos y lotes solo se ven en los rubros que los usan.
